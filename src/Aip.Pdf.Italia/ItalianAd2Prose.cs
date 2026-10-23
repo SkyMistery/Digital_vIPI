@@ -47,13 +47,95 @@ public static partial class ItalianAd2Prose
         ArgumentNullException.ThrowIfNull(station);
         if (procedure.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition))
             return ([], "non è una SID, una STAR o una transizione", []);
-        var testo = Route(procedure.Description);
-        if (testo is null) return ([], "senza testo", []);
         // Una STAR che non dice da dove comincia («Proceed on TR 119° … bound to TAQ VOR/DME») parte dal punto del suo nome.
         var inizio = procedure.Kind == ProcedureKind.Star ? procedure.Designator.Split(' ')[0] : null;
+        var (ricucito, ricuciture) = Ricuci(procedure.Description, n => station(n) is not null,
+            n => station(n) is not null || point(n) is not null, inizio);
+        var testo = Route(ricucito);
+        if (testo is null) return ([], "senza testo", []);
         var lettore = new Lettore(testo, point, station, runway, dallaPista: procedure.Kind == ProcedureKind.Sid);
         var (tratti, problema) = lettore.Leggi(inizio);
-        return (tratti, problema, problema is null ? lettore.Avvisi : []);
+        return (tratti, problema, problema is null ? [.. ricuciture, .. lettore.Avvisi] : []);
+    }
+
+    /// <summary>
+    /// Segnalazioni 2611, revisione col committente (carta §6, gruppi 1, 3 e 7): il testo rotto dal PDF e gli errori di stampa
+    /// che lo stesso testo corregge, prima di tutto il resto. Si ricuce solo se ne esce una cosa che esiste — una radioassistenza
+    /// (<paramref name="stazione"/>), il punto del nome della STAR, una parola del percorso —; se no il testo resta com'è e la
+    /// procedura si ferma come prima. Gli errori di stampa letti lo stesso tornano negli avvisi («se qualcosa non torna lo
+    /// correggiamo dall'app»).
+    /// </summary>
+    internal static (string? Testo, IReadOnlyList<string> Avvisi) Ricuci(
+        string? descrizione, Func<string, bool> stazione, Func<string, bool> conosciuto, string? inizio)
+    {
+        if (descrizione is null) return (null, []);
+        var avvisi = new List<string>();
+        var t = descrizione;
+        string Stampa(Match m, string letto)
+        {
+            avvisi.Add($"«{RxSpazi().Replace(m.Value, " ").Trim()}» è un errore di stampa: letto come «{letto.Trim()}»");
+            return letto;
+        }
+        // R4: «M OROB –», «T ZO VOR/DME» in testa a una STAR; anche senza la prima lettera («ELDA –» per NELDA 3M).
+        if (inizio is not null) t = NomeSpezzatoInTesta(t, inizio, conosciuto);
+        // R3: «P roceed» (LICR).
+        t = RxParolaSpezzata().Replace(t, m => ParoleDelPercorso.Contains(m.Groups[1].Value + m.Groups[2].Value) ? m.Groups[1].Value + m.Groups[2].Value : m.Value);
+        // R1: «RDL 064LPD VOR»; R5: «RDL 07 8L PD VOR» (LICD PURZE 1Y). Tre cifre e una radioassistenza, o niente.
+        t = RxSiglaAttaccataAllaRadiale().Replace(t, m => stazione(m.Groups[2].Value) ? $"RDL {m.Groups[1].Value} {m.Groups[2].Value}" : m.Value);
+        t = RxRadialeSparsa().Replace(t, m => RxCifreESigla().Match(RxSpazi().Replace(m.Groups[1].Value, "")) is { Success: true } x && stazione(x.Groups[2].Value)
+            ? $"RDL {x.Groups[1].Value} {x.Groups[2].Value} VOR" : m.Value);
+        // G3.1: «R 199 RCA VOR»; G3.2: «R318 (TR 318°) CAR VOR», la stazione dopo la rotta.
+        t = RxRadialeRConLoSpazio().Replace(t, m => stazione(m.Groups[2].Value) ? $"RDL {m.Groups[1].Value} {m.Groups[2].Value}" : m.Value);
+        t = RxRadialeRStazioneDopo().Replace(t, m => stazione(m.Groups[3].Value)
+            ? $"RDL {m.Groups[1].Value} {m.Groups[3].Value} {m.Groups[4].Value} (TR {m.Groups[2].Value}°)" : m.Value);
+        // Gruppo 7: errori di stampa che lo stesso testo corregge.
+        t = RxGradiComeVirgolette().Replace(t, m => Stampa(m, $"TR {m.Groups[1].Value}°"));
+        t = RxDoppiaBarra().Replace(t, m => Stampa(m, "VOR/DME"));
+        t = RxRadialeBarra().Replace(t, m => Stampa(m, $"RDL {m.Groups[1].Value}"));
+        t = RxTrattinoAttaccato().Replace(t, m => stazione(m.Groups[1].Value) ? Stampa(m, $"{m.Groups[1].Value} {m.Groups[2].Value}") : m.Value);
+        t = RxPuntini().Replace(t, m => Stampa(m, m.Groups[1].Value + " "));
+        t = RxRottaSenzaTr().Replace(t, m =>
+        {
+            if ((Numero(m.Groups[3]) + 180) % 360 != Numero(m.Groups[1])) return m.Value;
+            avvisi.Add($"«{m.Groups[1].Value}°» senza «TR» è un errore di stampa: letto come TR {m.Groups[1].Value}° (la radiale {m.Groups[3].Value} fra parentesi dice la stessa rotta)");
+            return $"TR {m.Groups[1].Value}°{m.Groups[2].Value}";
+        });
+        t = RxDne().Replace(t, m => stazione(m.Groups[1].Value) ? Stampa(m, $"{m.Groups[1].Value} DME") : m.Value);
+        t = RxRadialeSenzaSigla().Replace(t, m =>
+        {
+            var sigla = m.Groups[4].Value;
+            if (!stazione(sigla) || (Numero(m.Groups[2]) + 180) % 360 != Numero(m.Groups[1])) return m.Value;
+            avvisi.Add($"«RDL {m.Groups[2].Value} VOR» senza la stazione è un errore di stampa: letto come RDL {m.Groups[2].Value} {sigla}, la stazione verso cui va la rotta");
+            return $"TR {m.Groups[1].Value}° (RDL {m.Groups[2].Value} {sigla} VOR){m.Groups[3].Value}{sigla}{m.Groups[5].Value}";
+        });
+        return (t, avvisi);
+    }
+
+    // R3: le parole del percorso che il PDF spezza dopo la prima lettera.
+    private static readonly HashSet<string> ParoleDelPercorso = new(StringComparer.Ordinal)
+    {
+        "Proceed", "Turn", "Join", "Intercept", "Continue", "Leave", "Follow", "Crossing", "Bound", "After", "Then", "Over",
+        "Overflying", "Cross", "Maintain", "From",
+    };
+
+    /// <summary>
+    /// R4: le lettere maiuscole in testa al testo (dopo le note fra parentesi), spazi compresi: il primo pezzo che, senza spazi,
+    /// è il punto del nome della STAR — o il nome senza la prima lettera, se non è un altro nome dell'AIP — diventa il nome.
+    /// </summary>
+    private static string NomeSpezzatoInTesta(string t, string nome, Func<string, bool> conosciuto)
+    {
+        if (RxLettereInTesta().Match(t) is not { Success: true } m) return t;
+        var lettere = m.Groups["lettere"];
+        for (var fine = lettere.Length; fine > 1; fine--)
+        {
+            if (fine < lettere.Length && lettere.Value[fine] != ' ') continue;
+            var pezzo = lettere.Value[..fine];
+            if (pezzo == nome) return t;
+            var unito = pezzo.Replace(" ", "", StringComparison.Ordinal);
+            if (unito == nome || (nome.Length > 3 && unito == nome[1..] && !conosciuto(unito)))
+                return string.Concat(t.AsSpan(0, lettere.Index), nome, t.AsSpan(lettere.Index + fine));
+        }
+        return t;
     }
 
     /// <summary>
@@ -150,7 +232,10 @@ public static partial class ItalianAd2Prose
             // percorso («After take-off proceed on RDL172 CRN VOR. / At 5 NM CRN DME turn left …»).
             if (colPunto && !RxRigaCheContinua().IsMatch(riga)) break;
             // Una riga con le quote e senza verbi è sotto il percorso; una con un verbo ne fa ancora parte («Leaving 4000 FT turn»).
-            if (righe.Count > 0 && RxRigaDopo().IsMatch(riga) && !RxVerbo().IsMatch(riga)) break;
+            // Una parentesi aperta sulla riga prima continua («inbound to LICFE (RDL 139/49.4NM BSM VOR/DME or\nRDL319/19NM BOA
+            // VOR/DME).», LIPO LICFE 6C): la riga che comincia con un punto ne fa parte.
+            var aperta = righe.Sum(r => r.Count(c => c == '(') - r.Count(c => c == ')')) > 0;
+            if (righe.Count > 0 && RxRigaDopo().IsMatch(riga) && !RxVerbo().IsMatch(riga) && !(aperta && RxRigaColPunto().IsMatch(riga))) break;
             righe.Add(riga);
             colPunto = riga.EndsWith('.');
         }
@@ -162,6 +247,9 @@ public static partial class ItalianAd2Prose
         // U+F0B0: il segno dei gradi col carattere privato del font di alcune pagine (LIBP, B5).
         var t = testo.Replace('–', '-').Replace('—', '-').Replace('', '°');
         t = RxTrattino().Replace(t, " - ");
+        // Revisione col committente (carta §6): «ARC16 NM» (R2), «arc 17.0NM» e «tr 297°» minuscoli (U4, R6).
+        t = RxArcoAttaccato().Replace(t, "ARC $1");
+        t = RxRottaMinuscola().Replace(t, "TR $1");
         t = RxNumeroSpezzato().Replace(t, "TR $1$2°");
         t = RxNm().Replace(t, "$1 NM");
         t = RxAttaccato().Replace(t, "$1 $2");
@@ -171,7 +259,28 @@ public static partial class ItalianAd2Prose
         // B1: la stessa distanza letta da un altro DME, fra parentesi dopo la prima («16 NM BAR DME (or 17.5 NM BAP DME)»,
         // «13 NM PRU DME (12 NM IPER DME)»): il percorso è quello della prima. E «ARC 15 NM PRU (IPER) DME»: l'arco è di PRU.
         t = RxDistanzaAlternativa().Replace(t, "");
-        t = RxSiglaFraParentesiPrimaDiDme().Replace(t, "");
+        // U5: «PRU(IPER) DME», senza lo spazio prima della parentesi: toglierla incollava «PRUDME» (LIRZ LAKOX 3B).
+        t = RxSiglaFraParentesiPrimaDiDme().Replace(t, " ");
+        // Revisione col committente (carta §6), gruppo 2: le distanze DME scritte in un altro modo. «4NM ALG/AHO TACAN» è la
+        // prima stazione (D7); «26 NM ARC OZE DME», «ARC 15 GRO TACAN», «ARC 13 NM BSM» sono l'arco (D2, D3); «At 7.2 TOP DME»
+        // e «until 8NM TVS» la distanza (D4, D5); «RDL324/D25» il punto (D6); «5 NM before SME DME» la distanza davanti (D8).
+        t = RxDueStazioni().Replace(t, "$1 $2");
+        t = RxNumeroPrimaDiArc().Replace(t, "ARC $1 NM $2 DME");
+        t = RxArcoSenzaNm().Replace(t, "ARC $1 NM $2 DME");
+        t = RxArcoSenzaDme().Replace(t, "ARC $1 NM $2 DME");
+        t = RxDistanzaSenzaNm().Replace(t, "$1 NM $2 DME");
+        t = RxDistanzaSenzaDme().Replace(t, "$1 NM $2 DME");
+        t = RxRadialeDDistanza().Replace(t, "RDL $1/$2 NM $3 VOR");
+        t = RxPrimaDi().Replace(t, "NM ");
+        // Gruppo 4: «to leave on RDL» = «to be left on» (V2); «Leave KOVAS on TR 165°» = da KOVAS sulla TR 165° (V3);
+        // «take off», «takeoff» (V5).
+        t = RxDaLasciare().Replace(t, "to be left on");
+        t = RxLasciaSullaRotta().Replace(t, "$1 - TR");
+        t = RxDecollo().Replace(t, "$1ake-off");
+        // L1: «(293° IBLN LOC)» dopo una radiale è un'alternativa; la rotta per quando il VOR non c'è anche (LIPZ: «(TR 218°
+        // in case of TES VOR unavailability)», che prima diventava una rotta e poi un punto, TES).
+        t = RxLocFraParentesi().Replace(t, "");
+        t = RxSeIlVorNonCe().Replace(t, "");
         t = RxRadialeConLaR().Replace(t, "RDL $1");
         t = RxDvor().Replace(t, "VOR");
         t = RxTacanDistanza().Replace(t, "$1 DME");
@@ -179,11 +288,27 @@ public static partial class ItalianAd2Prose
         t = RxAlternativaNdb().Replace(t, "");
         t = RxRadialeOQdr().Replace(t, "RDL");
         t = RxVorONdb().Replace(t, "VOR");
+        // N1 (revisione col committente): il QDR. Come alternativa all'NDB, anche senza «or», si toglie: vale il VOR («RDL 126
+        // TRP VOR (QDR 127° TRP NDB)», «TR 047° (RDL 227 TRP VOR) or TR 045° (QDR 225° TRP NDB)», la parentesi che l'AIP non
+        // chiude in «(RDL 355 TRP VOR or TR 176° (QDR 356° TRP NDB)», «QDR/RDL 217 TRP NDB/VOR», «TRP VORTAC (TRP NDB)»). Come
+        // unico percorso è la radiale dell'NDB («Leave DEC NDB on QDR 012°», «follow QDR 118° DEC NDB»), con la declinazione
+        // che l'NDB ha (B1). Le altre forme col QDR continuano a fermare il lettore.
+        t = RxQdrNonChiusa().Replace(t, "$1)");
+        t = RxQdrAlternativa().Replace(t, "");
+        t = RxNdbFraParentesi().Replace(t, "");
+        t = RxQdrORdl().Replace(t, "RDL");
+        t = RxNdbOVor().Replace(t, "VOR");
+        t = RxLasciaLNdb().Replace(t, "$1 NDB - RDL $2 $1");
+        t = RxQdr().Replace(t, "RDL $1 $2");
         // B5: «as soon as practicable» dice quando, non dove; «Initial climb procedure completed» è «After take-off» per il
         // disegno (la salita iniziale è una procedura sua: la SID si disegna dal primo punto che si sa calcolare, come
         // sempre dopo il decollo); «Leave AEA VOR on RDL 149» è «AEA VOR, poi la radiale 149 di AEA».
         t = RxAppenaPossibile().Replace(t, " ");
         t = RxFineSalitaIniziale().Replace(t, "After take-off");
+        // «to leave on RDL 215° GRO VOR» (LIRS ILOWE 1X): il segno dei gradi va tolto prima, se no resta da solo; «When at
+        // D3 DEC TACAN» è «At» (LIEE KOVAS 7A).
+        t = RxRadialeColGrado().Replace(t, "RDL $1");
+        t = RxQuando().Replace(t, "At");
         t = RxLasciaSullaRadiale().Replace(t, "$1 $2 - RDL $3 $1 VOR");
         // B5: «RDL 273 (TR 093°)» senza la stazione: vale la rotta stampata fra parentesi (la stazione non si indovina);
         // «(74 VIE DME)» fra parentesi è la definizione del punto letta da un altro DME.
@@ -195,8 +320,10 @@ public static partial class ItalianAd2Prose
         t = RxVortac().Replace(t, "$1 VOR");
         t = RxLasciataSullaRadiale().Replace(t, "$1 $2 to be left on RDL $3 $1 VOR");
         t = RxVorDme().Replace(t, "VOR/DME");
+        // D1 (revisione col committente): «At 24 NM OZE VOR/DME», «until 3NM VIL VORTAC» è la distanza DME; non il punto
+        // «RDL 161/7.2NM TOP VOR/DME», che ha la barra davanti.
+        t = RxDistanzaDaUnVor().Replace(t, "$1 NM $2 DME");
         t = RxVorSpezzato().Replace(t, "VOR");
-        t = RxRadialeColGrado().Replace(t, "RDL $1");
         t = RxTrack().Replace(t, "TR $1°");
         t = RxMca().Replace(t, " ");
         t = RxDmeAbbreviato().Replace(t, "${d} NM ${n} DME"); // «D20 OST DME», «43 NM PNZ TAC»
@@ -245,7 +372,10 @@ public static partial class ItalianAd2Prose
                 if (_problema is not null) return ([], _problema);
             }
             resto.Append(testo, da, testo.Length - da);
-            var avanzo = RxRiempitivo().Replace(resto.ToString(), " ").Trim();
+            // V1 (revisione col committente): «Bound to», «Continue on», «Follow» con l'iniziale maiuscola sono le stesse parole;
+            // tutte maiuscole no («OR» deve ancora fermare, B2).
+            var minuscolo = RxIniziale().Replace(resto.ToString(), m => m.Value.ToLowerInvariant());
+            var avanzo = RxRiempitivo().Replace(minuscolo, " ").Trim();
             if (avanzo.Length > 0) return ([], $"non capito: «{avanzo}»");
             if (_arco is not null) return ([], "un arco DME senza la radiale dove finisce");
             if (_tratti.Count == 0) return ([], "nessun punto");
@@ -270,6 +400,23 @@ public static partial class ItalianAd2Prose
             if (g["lascia"].Success)
             {
                 _problema = $"«{g["lascia"].Value.Trim()}»: il punto dove si lascia una quota non si calcola";
+                return;
+            }
+            if (g["ctrlR"].Success)
+            {
+                // V6 (revisione col committente): il punto appena calcolato deve stare sulla radiale, entro un miglio.
+                var nome = g["ctrlN"].Value;
+                if (Stazione(nome) is not { } s) return;
+                var radiale = Numero(g["ctrlR"]);
+                if (_qui is not { } qui)
+                {
+                    _problema = $"«intersection RDL {radiale:000} {nome}» senza un punto da controllare";
+                    return;
+                }
+                var angolo = (Sphere.BearingDeg(s.Position, qui) - radiale - s.Variation) * Math.PI / 180;
+                var scarto = Sphere.DistanceNm(s.Position, qui) * Math.Sin(angolo);
+                if (Math.Abs(scarto) > 1 || Math.Cos(angolo) <= 0)
+                    _problema = $"il punto non sta sulla RDL {radiale:000} {nome} che il testo gli dà ({Math.Abs(scarto):0.0} NM)";
                 return;
             }
             if (g["pistaH"].Success)
@@ -423,6 +570,16 @@ public static partial class ItalianAd2Prose
                 else if (_linea.Distanza(s.Position, d, _qui) is { } p)
                 {
                     Calcolato(p, $"{_linea.Nome}/{Dist(d)} NM {nome} DME", _linea.Rotta);
+                }
+                else if (_linea.Stazione is { } della && della != nome && stazione(della) is { } sd
+                    && RxRadialeDi(della).IsMatch(testo, m.Index + m.Length)
+                    && Sphere.Destination(sd.Position, _linea.Radiale!.Value + sd.Variation, d) is var q)
+                {
+                    // U1 (revisione col committente): LIMC LEGLO 4U/4X, «TR 267° (RDL 087 SRN VOR) until 3 NM VOG DME, then turn
+                    // left on TR 182° (RDL 182 SRN VOR)»: la radiale di SRN non passa mai a 3 NM da VOG, e il tratto dopo è
+                    // ancora di SRN. È la distanza da SRN, stampata male: si legge e si dice.
+                    _avvisi.Add($"«{Dist(d)} NM {nome} DME» è un errore di stampa: la RDL {_linea.Radiale:000} {della} non passa a {Dist(d)} NM da {nome}, letto come {Dist(d)} NM {della} DME");
+                    Calcolato(q, $"RDL {_linea.Radiale:000}/{Dist(d)} NM {della}", _linea.Rotta);
                 }
                 else
                 {
@@ -664,6 +821,8 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(
         @"(?<lascia>\b(?:[Ll]eaving|until\s+leaving)\s+\d+\s*(?:FT|ft)\b)"
         + @"|(?<pistaH>\b(?:RWY|runway|RUNWAY)\s+heading\b(?:\s*\(\s*TR\s+\d{3}°\s*\))?)"
+        // V6: «at 17 NM CMP DME (intersection RDL 073 OST VOR)»: lo stesso punto detto in un altro modo, da controllare.
+        + @"|\(\s*intersection\s+RDL\s+(?<ctrlR>\d{3})\s+(?<ctrlN>" + Nav + @")(?:\s+VOR)?\s*\)"
         + @"|(?<loc>\b[A-Z]{3,5}\s+LOC\b)"
         + @"|(?:(?<lasciaN1>" + Nav + @")\s+VOR(?:/DME)?\s+to\s+be\s+left\s+on|\bLeave\s+(?<lasciaN2>" + Nav + @")\s+VOR(?:/DME)?\s+on)\s+RDL\s+(?<lasciaR>\d{3})(?:\s+" + Nav + @"\s+VOR)?\s+until\s+(?<lasciaD>" + D + @")\s+NM\s+(?<lasciaN3>" + Nav + @")\s+DME"
         + @"|\bARC\s+(?<arcoD>" + D + @")\s+NM\s+(?<arcoN>" + Nav + @")\s+DME"
@@ -687,16 +846,26 @@ public static partial class ItalianAd2Prose
     // Segnalazioni 2611, B5: «until intercepting and following RDL …» = «until joining», «inbound to» = «bound to», «Over TOP
     // VOR proceed …» = «da TOP VOR».
     [GeneratedRegex(@"\b(?:then|and|proceed|on|to|bound|direct|until|till|point|via|join|joining|intercept|follow|at|from|after|take-off|continue|the|be|or|turn|left|right|crossing|maintain|From|Proceed|Turn|Join|At|Then|And|After|Crossing"
-        + @"|intercepting|following|Intercept|Intercepting|inbound|Inbound|Over)\b|[,;.\-()]",
+        + @"|intercepting|following|Intercept|Intercepting|inbound|Inbound|Over|over|overflying)\b|[,;.\-()]",
         RegexOptions.CultureInvariant)]
     private static partial Regex RxRiempitivo();
+
+    [GeneratedRegex(@"\b[A-Z][a-z]+\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxIniziale();
 
     [GeneratedRegex(@"\b(" + Nav + @")\s+VOR", RegexOptions.CultureInvariant)]
     private static partial Regex RxStazioneNelTesto();
 
     // Una riga dopo il percorso: le quote, le note, la WAYPOINT LIST.
-    [GeneratedRegex(@"^(?:REMARK|Waypoint|R\s?emain|Minimum|\(A\d|\*)|\b\d{3,5}\s?FT\b|\bFL\s?\d{2,3}\b|:\s*(?:\d|FL)|^[A-Z0-9 /–-]+:", RegexOptions.CultureInvariant)]
+    // U2 (revisione col committente): anche «…: TRL(1)» e la riga che comincia con un punto «RDL 131/34 NM SES VOR/DME (or …)
+    // – RDL 131/29 NM …» senza verbi, che va a capo prima dei due punti (LIMJ IDONA 2S), come «FL 70/TRL» della B8.
+    [GeneratedRegex(@"^(?:REMARK|Waypoint|R\s?emain|Minimum|\(A\d|\*|(?:INT\s+)?RDL\s*\d{3}\s*/\s*\d)|\b\d{3,5}\s?FT\b|\bFL\s?\d{2,3}\b|:\s*(?:\d|FL|TRL\b)|^[A-Z0-9 /–-]+:", RegexOptions.CultureInvariant)]
     private static partial Regex RxRigaDopo();
+
+    [GeneratedRegex(@"^(?:INT\s+)?RDL\s*\d{3}\s*/\s*\d", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRigaColPunto();
+
+    private static Regex RxRadialeDi(string stazione) => new(@"\bRDL\s+\d{3}\s+" + Regex.Escape(stazione) + @"\b", RegexOptions.CultureInvariant);
 
     [GeneratedRegex(@"\b(?:turn|proceed|join|bound|until|then|direct|crossing|intercept)\b")]
     private static partial Regex RxVerbo();
@@ -761,7 +930,8 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\bRDL\s+\d{3}\s*\(\s*TR\s*-?\s*(\d{3})°\s*\)")]
     private static partial Regex RxRadialeSenzaStazione();
 
-    [GeneratedRegex(@"\(\s*(?:or\s+)?\d+(?:\.\d+)?\s*(?:NM\s+)?[A-Z]{2,4}\s+DME\s*\)")]
+    // Anche «(D27 REG DME)» (LICR FOSQA 2A/2X: prima diventava un punto in più a un decimo di miglio).
+    [GeneratedRegex(@"\(\s*(?:or\s+)?D?\d+(?:\.\d+)?\s*(?:NM\s+)?[A-Z]{2,4}\s+DME\s*\)")]
     private static partial Regex RxDefinizioneDme();
 
     // «TR 214)», «TR 285 (RDL …», «(TR-241°)»: la rotta senza i gradi o col trattino.
@@ -803,6 +973,128 @@ public static partial class ItalianAd2Prose
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex RxSpazi();
+
+    // Revisione col committente (carta §6): le forme di Normalizza.
+    [GeneratedRegex(@"\b(?:ARC|arc)\s*(\d)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxArcoAttaccato();
+
+    [GeneratedRegex(@"\btr\s+(\d{3})", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRottaMinuscola();
+
+    [GeneratedRegex(@"\b(?!VOR\b|NDB\b|RDL\b|QDR\b)([A-Z]{3})/(?!DME\b|VOR\b|NDB\b)[A-Z]{3}\s+(TACAN|DME)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDueStazioni();
+
+    [GeneratedRegex(@"\b(\d+(?:\.\d+)?)\s+NM\s+ARC\s+([A-Z]{2,3})\s+DME\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxNumeroPrimaDiArc();
+
+    [GeneratedRegex(@"\bARC\s+(\d+(?:\.\d+)?)\s+([A-Z]{2,3})\s+(?:DME|TACAN|VORTAC|VOR)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxArcoSenzaNm();
+
+    [GeneratedRegex(@"\bARC\s+(\d+(?:\.\d+)?)\s+NM\s+([A-Z]{2,3})\b(?!\s*(?:DME|TACAN|VORTAC|VOR|TAC)\b|\s*[(/])", RegexOptions.CultureInvariant)]
+    private static partial Regex RxArcoSenzaDme();
+
+    [GeneratedRegex(@"(?<=\b(?:[Aa]t|until|till)\s+)(\d+(?:\.\d+)?)\s+([A-Z]{2,3})\s+DME\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDistanzaSenzaNm();
+
+    [GeneratedRegex(@"(?<=\b(?:[Aa]t|until|till)\s+)(\d+(?:\.\d+)?)\s+NM\s+([A-Z]{2,3})\b(?!\s*(?:DME|TACAN|VORTAC|VOR|TAC|NDB)\b|\s*[(/])", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDistanzaSenzaDme();
+
+    [GeneratedRegex(@"\bRDL\s*(\d{3})\s*/\s*D(\d+(?:\.\d+)?)\s+([A-Z]{2,3})\s+VOR\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRadialeDDistanza();
+
+    [GeneratedRegex(@"\bNM\s+before\s+", RegexOptions.CultureInvariant)]
+    private static partial Regex RxPrimaDi();
+
+    [GeneratedRegex(@"(?<![\d./])(?<!/\s*)(\d+(?:\.\d+)?)\s+NM\s+([A-Z]{2,3})\s+VOR(?:/DME)?\b(?!\s*/)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDistanzaDaUnVor();
+
+    [GeneratedRegex(@"\b[Ww]hen\s+at\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxQuando();
+
+    [GeneratedRegex(@"\bto\s+leave\s+on\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDaLasciare();
+
+    [GeneratedRegex(@"\b[Ll]eave\s+([A-Z]{2,5})\s+on\s+TR\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxLasciaSullaRotta();
+
+    [GeneratedRegex(@"\b([Tt])ake\s?off\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDecollo();
+
+    [GeneratedRegex(@"(\(\s*RDL\s+\d{3}\s+[A-Z]{2,3}\s+VOR)\s+or\s+TR\s+\d{3}°\s*\(\s*QDR\s+\d{3}°?\s+[A-Z]{2,3}\s+NDB\s*\)(?!\s*\))", RegexOptions.CultureInvariant)]
+    private static partial Regex RxQdrNonChiusa();
+
+    [GeneratedRegex(@"\s*(?:\bor\s+TR\s+\d{3}°\s*)?\(\s*QDR\s+\d{3}°?\s+[A-Z]{2,3}\s+NDB\s*\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxQdrAlternativa();
+
+    [GeneratedRegex(@"\s*\(\s*[A-Z]{2,3}\s+NDB\s*\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxNdbFraParentesi();
+
+    [GeneratedRegex(@"\bQDR\s*/\s*RDL\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxQdrORdl();
+
+    [GeneratedRegex(@"\bNDB\s*/\s*VOR\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxNdbOVor();
+
+    [GeneratedRegex(@"\b[Ll]eave\s+([A-Z]{2,3})\s+NDB\s+on\s+QDR\s+(\d{3})°?", RegexOptions.CultureInvariant)]
+    private static partial Regex RxLasciaLNdb();
+
+    [GeneratedRegex(@"\bQDR\s+(\d{3})°?\s+([A-Z]{2,3})\s+NDB\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxQdr();
+
+    [GeneratedRegex(@"\s*\(\s*\d{3}°\s+[A-Z]{3,5}\s+LOC\s*\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxLocFraParentesi();
+
+    [GeneratedRegex(@"\s*\(\s*TR\s+\d{3}°\s+in\s+case\s+of[^)]*\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxSeIlVorNonCe();
+
+    // Revisione col committente (carta §6): le ricuciture del testo rotto dal PDF.
+    [GeneratedRegex(@"^\s*(?:\([^)]*\)\s*)*(?<lettere>[A-Z](?:[A-Z]| (?=[A-Z]))*)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxLettereInTesta();
+
+    [GeneratedRegex(@"(?<![A-Za-z])([A-Z])\s([a-z]{2,})\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxParolaSpezzata();
+
+    [GeneratedRegex(@"\bRDL\s*(\d{3})([A-Z]{2,3})\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxSiglaAttaccataAllaRadiale();
+
+    [GeneratedRegex(@"\bRDL\s+(\d[\dA-Z ]{3,10}?)\s+VOR\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRadialeSparsa();
+
+    [GeneratedRegex(@"^(\d{3})([A-Z]{2,3})$", RegexOptions.CultureInvariant)]
+    private static partial Regex RxCifreESigla();
+
+    [GeneratedRegex(@"\bR\s(\d{3})\s+([A-Z]{2,3})\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRadialeRConLoSpazio();
+
+    [GeneratedRegex(@"\bR(\d{3})\s*\(\s*TR\s*(\d{3})°\s*\)\s*([A-Z]{2,3})\s+(D?VOR)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRadialeRStazioneDopo();
+
+    // Gruppo 7: gli errori di stampa che lo stesso testo corregge.
+    [GeneratedRegex(@"\bTR\s*(\d{3})""", RegexOptions.CultureInvariant)]
+    private static partial Regex RxGradiComeVirgolette();
+
+    [GeneratedRegex(@"\bVOR//DME\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDoppiaBarra();
+
+    [GeneratedRegex(@"\bRDL/\s*(\d{3})\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRadialeBarra();
+
+    [GeneratedRegex(@"\b([A-Z]{2,3})-\s+(D?VOR)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxTrattinoAttaccato();
+
+    [GeneratedRegex(@"(\bTR\s+\d{3}°)\s*…\s*(?=\()", RegexOptions.CultureInvariant)]
+    private static partial Regex RxPuntini();
+
+    // «LIBRO – 105° (RDL 285 CTF VOR)»: la rotta senza TR, se la radiale fra parentesi dice la stessa cosa.
+    [GeneratedRegex(@"(?<=[-–]\s*)(\d{3})°(\s*\(\s*RDL\s+(\d{3})\s+[A-Z]{2,3}\s+VOR)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRottaSenzaTr();
+
+    [GeneratedRegex(@"\b([A-Z]{2,3})\s+DNE\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDne();
+
+    // «TR 199° (RDL 019 VOR) bound GRO VOR»: la radiale senza la sigla, che la frase nomina subito dopo.
+    [GeneratedRegex(@"\bTR\s+(\d{3})°\s*\(\s*RDL\s+(\d{3})\s+VOR\s*\)(\s*bound\s+(?:to\s+)?)([A-Z]{2,3})(\s+VOR)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRadialeSenzaSigla();
 }
 
 /// <summary>
