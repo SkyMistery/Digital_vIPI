@@ -30,7 +30,11 @@ public static partial class ItalianAd2Prose
         // …», LIMC RWY 17L/17R).
         var primoRamo = RxInizioDiRamo().Match(testo);
         var decollo = RxDopoIlDecollo().Match(testo);
-        var inizio = new[] { primoRamo, decollo }.Where(m => m.Success).Select(m => m.Index).DefaultIfEmpty(0).Min();
+        // Revisione 3: la salita a vista (LIRQ RWY 05, «… must be performed … as follows: as soon as possible turn left on TR
+        // 237° …») comincia dopo «as follows:», se non dice «After take-off».
+        var comeSegue = decollo.Success ? Match.Empty : RxComeSegue().Match(testo);
+        var inizio = new[] { primoRamo, decollo }.Where(m => m.Success).Select(m => m.Index)
+            .Concat(comeSegue.Success ? [comeSegue.Index + comeSegue.Length] : []).DefaultIfEmpty(0).Min();
         if (inizio > 0) testo = testo[inizio..];
         var inizi = RxInizioDiRamo().Matches(testo).Select(m => m.Index).ToList();
         if (inizi.Count == 0) return new SalitaDivisa(SenzaLaSidAssegnata(testo), []);
@@ -64,7 +68,7 @@ public static partial class ItalianAd2Prose
     /// Una salita iniziale col percorso: «After take-off …» (anche dentro un ramo). Le altre sono avvertenze e pendenze («…
     /// require a suitable RWY for take-off», LIRF RWY 34R), e non si leggono.
     /// </summary>
-    internal static bool HaUnPercorso(string? descrizione) => descrizione is not null && RxDopoIlDecollo().IsMatch(descrizione);
+    internal static bool HaUnPercorso(string? descrizione) => descrizione is not null && (RxDopoIlDecollo().IsMatch(descrizione) || RxComeSegue().IsMatch(descrizione));
 
     /// <summary>Il nome di una SID nell'elenco di una condizione, senza badare agli spazi («BEROK8A» è BEROK 8A).</summary>
     private static bool Nomina(string condizione, string sid) =>
@@ -105,6 +109,10 @@ public static partial class ItalianAd2Prose
     internal static bool ValePer(string? descrizione, string sid) =>
         descrizione is not null && (Dividi(descrizione).Rami.Any(r => Nomina(r.Condizione, sid))
             || RxEccetto().Match(descrizione) is { Success: true } eccetto && !Nomina(eccetto.Value, sid));
+
+    /// <summary>La prima rotta dopo il decollo, «After takeoff proceed on track 164°» → 164 (revisione 3, LICR).</summary>
+    internal static string? RottaDopoIlDecollo(string? testo) =>
+        testo is not null && RxRottaDopoIlDecollo().Match(testo) is { Success: true } m ? m.Groups[1].Value : null;
 
     private static bool Esclude(string descrizione, string sid) => RxEccetto().Match(descrizione) is { Success: true } m && Nomina(m.Value, sid);
 
@@ -154,6 +162,12 @@ public static partial class ItalianAd2Prose
 
     [GeneratedRegex(@"\bA\s?fter\s+(?:take[\s–-]?off|takeoff|TKOF)\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxDopoIlDecollo();
+
+    [GeneratedRegex(@"\binitial\s+climb\b[^.]*\bas\s+follows\s*:\s*", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxComeSegue();
+
+    [GeneratedRegex(@"\bA\s?fter\s+take[\s–-]?off\s*,?\s+proceed\s+on\s+(?:track|TR)\s+(\d{3})", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxRottaDopoIlDecollo();
 
     // «Initial climb description After take-off proceed …» (LIPE, LIPH, LICB): il titolo davanti al testo.
     [GeneratedRegex(@"^\s*Initial\s+climb\s+description\s*", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]

@@ -860,6 +860,40 @@ public sealed class Ad2ProseTests
         Assert.Equal(attesi.Split('|'), tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
     }
 
+    // Revisione 3 (committente, 24 ottobre): «bound to BAR VOR. At 2 NM BAR DME turn left» si vira prima della stazione, sulla
+    // radiale su cui si arriva (LIBD BANAV 8B, LIEO POZZO 7D); «RDL 273 (TR 093°) bound to BAR VOR» senza la stazione è di BAR;
+    // «turn right immediately» è la virata, «passing RDL» è «crossing RDL» (LIRQ).
+    [Theory]
+    [InlineData("ARBUM - TR 132° (RDL 312 LMT VOR) bound to LMT VOR. At 3 NM LMT DME turn right bound to SUGEP.", "IF ARBUM|FD RDL 312/3 NM LMT|DF SUGEP", false)]
+    [InlineData("ARBUM - RDL 312 (TR 132°) bound to LMT VOR. At 3 NM LMT DME turn right bound to SUGEP.", "IF ARBUM|FD RDL 312/3 NM LMT|DF SUGEP", true)]
+    [InlineData("ARBUM - TR 132° (RDL 312 LMT VOR) until 17 NM LMT DME, then turn right immediately bound to SUGEP.", "IF ARBUM|FD RDL 312/17 NM LMT|DF SUGEP", false)]
+    [InlineData("DELIK - TR 310° (RDL 130 LMT VOR), then passing RDL 020 RCA VOR turn right bound to SUGEP.", "IF DELIK|CR INT RDL 130 LMT/RDL 020 RCA|DF SUGEP", false)]
+    public void LeFrasiDellaRevisione3_SiLeggono(string prosa, string attesi, bool erroreDiStampa)
+    {
+        var (tratti, problema, avvisi) = ItalianAd2Prose.DecodeWithWarnings(P(ProcedureKind.Star, "ARBUM 1R", prosa),
+            n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n));
+
+        Assert.Null(problema);
+        Assert.Equal(attesi.Split('|'), tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(erroreDiStampa, avvisi.Any(a => a.Contains("errore di stampa", StringComparison.Ordinal)));
+    }
+
+    // Revisione 3: la salita a vista della 05 di LIRQ comincia dopo «as follows:», senza «After take-off»; la prima rotta dopo il
+    // decollo dice di che pista è una SID che comincia come una salita (LICR).
+    [Fact]
+    public void LaSalitaAVista_ELaPrimaRottaDopoIlDecollo()
+    {
+        var aVista = "Following aerodrome meteorological minima shall be applied. Due to ground elevation, take off and initial climb from "
+            + "RWY 05 must be performed during daylight only and under visual conditions as follows: as soon as possible turn left on TR 237° "
+            + "until intercepting and following RDL 267 PRT VOR. REMARKS 1. Turn must be completely performed within 3 NM PRT DME.";
+
+        Assert.True(ItalianAd2Prose.HaUnPercorso(aVista));
+        Assert.StartsWith("as soon as possible turn left on TR 237°", ItalianAd2Prose.Dividi(aVista).Comune, StringComparison.Ordinal);
+        Assert.Equal("164", ItalianAd2Prose.RottaDopoIlDecollo("After takeoff proceed on track 164°, reaching 800ft turn right"));
+        Assert.Equal("164", ItalianAd2Prose.RottaDopoIlDecollo("A fter take-off proceed on track 164°, reaching 800ft:"));
+        Assert.Null(ItalianAd2Prose.RottaDopoIlDecollo("turn left as soon as possible after take-off (IAS MAX 200 kt during turn) on track 164°"));
+    }
+
     // Revisione 2: «… (or 7 NM FAL TACAN) Remark: Minimum climb gradient: 425 ft/NM (7%).» (LIPY RWY 04): la nota chiude il percorso.
     [Fact]
     public void UnaSalitaConLaNotaInCoda_SenzaIlPunto()

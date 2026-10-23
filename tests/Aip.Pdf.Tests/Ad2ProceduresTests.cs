@@ -390,6 +390,30 @@ public sealed class Ad2ProceduresTests
         Assert.Empty(r.Procedures.Single(p => p.Designator == "OBAXU 5A").Runways);
     }
 
+    // Revisione 3 (LIRQ 6): «VISUAL INITIAL CLIMB PROCEDURE RWY 05» e «NOISE ABATEMENT INITIAL CLIMB PROCEDURES RWY 23» sono
+    // titoli di salita; il secondo titolo senza pista sotto quello della 23, prima del testo, è la stessa salita.
+    [Fact]
+    public void LeSaliteAVistaEAntirumore_ColLaLoroPista()
+    {
+        var pagina = new Pagina([], [],
+        [
+            .. Testa("AD 2 LIXX 6 - 3"),
+            (60, 50, "VISUAL INITIAL CLIMB PROCEDURE RWY 05"),
+            (60, 60, "Take off and initial climb from RWY 05 must be performed during daylight only and under visual conditions as follows:"),
+            (60, 70, "as soon as possible turn left on TR 237° until intercepting and following RDL 267 PRT VOR."),
+            (60, 90, "NOISE ABATEMENT INITIAL CLIMB PROCEDURES RWY 23"),
+            (60, 100, "Provision N° 057/24.25 dated 10.01.2002 of Aerodrome Civil Aviation Authority."),
+            (60, 110, "INITIAL CLIMB PROCEDURE AND NOISE ABATEMENT ROUTING"),
+            (60, 120, "After take-off maintain TR 224°. Passing 520 ft turn right immediately to intercept and follow RDL 267 PRT VOR (TR 267°)."),
+        ]);
+
+        var r = ItalianAd2Procedures.Read(PdfText.Read(Enr4Tests.Pdf(pagina)), "LIXX", ProcedureKind.Sid);
+
+        var salite = r.Procedures.Where(p => p.Kind == ProcedureKind.InitialClimb && p.Description is not null).ToList();
+        Assert.Equal(["05", "23"], salite.Select(s => string.Join("/", s.Runways)));
+        Assert.Contains("After take-off maintain TR 224", salite[1].Description, StringComparison.Ordinal);
+    }
+
     // Segnalazioni 2611, N2 (revisione col committente): in fondo alle STAR convenzionali di LIPH la tabella dei punti è
     // intestata «Waypoint Latitude Longitude», senza «LIST»: PH001-PH006 non si leggevano, e le tre STAR si fermavano.
     [Fact]

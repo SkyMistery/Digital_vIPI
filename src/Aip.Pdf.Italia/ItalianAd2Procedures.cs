@@ -51,7 +51,8 @@ public static partial class ItalianAd2Procedures
 
     // Non la prima riga di una descrizione («Initial climb procedure completed, turn left…», LIEA e LIEE: passo 6); il titolo
     // anche al plurale e con le «l» al posto delle «I» («INlTlAL CLIMB PROCEDURES», LIEE 6).
-    [GeneratedRegex(@"^In[il1]t[il1]al\s*cli\s*mb\s+procedures?\b(?![\s,]+(?:executed|completed))(?!\s+shall)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    // Revisione 3 (LIRQ 6): anche «VISUAL INITIAL CLIMB PROCEDURE RWY 05» e «NOISE ABATEMENT INITIAL CLIMB PROCEDURES RWY 23».
+    [GeneratedRegex(@"^(?:VISUAL\s+|NOISE\s+ABATEMENT\s+)?In[il1]t[il1]al\s*cli\s*mb\s+procedures?\b(?![\s,]+(?:executed|completed))(?!\s+shall)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxSalitaIniziale();
 
     // Il designatore con le sue piste (passo 6): «SID BEROK 6B RWY 03R/L» (LIRP), «SID GILIO 5N (RWY 04C)» (LIRV).
@@ -704,6 +705,12 @@ public static partial class ItalianAd2Procedures
                     corrente = null;
                     continue;
                 }
+                // Revisione 3: un secondo titolo senza pista sotto quello con la pista, prima del testo («NOISE ABATEMENT INITIAL CLIMB
+                // PROCEDURES RWY 23» / «INITIAL CLIMB PROCEDURE AND NOISE ABATEMENT ROUTING», LIRQ 6) è la stessa salita.
+                if (RxSalitaIniziale().IsMatch(riga) && Piste(riga).Count == 0
+                    && corrente is { DalTitolo: true, Genere: ProcedureKind.InitialClimb, Piste.Count: > 0, Tratti.Count: 0 } salitaAperta
+                    && !ItalianAd2Prose.HaUnPercorso(string.Join(" ", salitaAperta.Prima)))
+                    continue;
                 if (RxSalitaIniziale().IsMatch(riga))
                 {
                     genere = ProcedureKind.InitialClimb;

@@ -137,6 +137,10 @@ public static partial class ItalianAd2Prose
         // «kt» (LIPY LANLI 4C).
         t = RxRadialeSenzaRdl().Replace(t, m => stazione(m.Groups[3].Value) ? Stampa(m, $"{m.Groups[1].Value} RDL {m.Groups[2].Value} {m.Groups[3].Value} VOR") : m.Value);
         t = RxVelocitaSenzaKt().Replace(t, m => Stampa(m, $"(IAS MAX {m.Groups[1].Value} KT)"));
+        // Revisione 3 (LIBD BANAV 8B): «join RDL 273 (TR 093°) bound to BAR VOR»: la radiale senza stazione è di quella verso
+        // cui si va, se la rotta è la radiale al contrario.
+        t = RxRadialeVersoLaStazione().Replace(t, m => stazione(m.Groups[3].Value) && (Numero(m.Groups[1]) + 180) % 360 == Numero(m.Groups[2])
+            ? Stampa(m, $"RDL {m.Groups[1].Value} {m.Groups[3].Value} VOR (TR {m.Groups[2].Value}°) bound to {m.Groups[3].Value}") : m.Value);
         return (t, avvisi);
     }
 
@@ -282,10 +286,15 @@ public static partial class ItalianAd2Prose
             var dellaPagina = p.Kind == ProcedureKind.Sid && p.Runways.Count == 0
                 && salite[p.Aerodrome].Where(s => s.Page?.Reference is { } pag && pag == p.Page?.Reference).SelectMany(PisteDi).Distinct(StringComparer.Ordinal).ToList() is [var unica]
                 ? unica : null;
+            // Revisione 3 (committente, LICR BERMI 6F): una SID che comincia come la salita iniziale di una pista («After takeoff
+            // proceed on track 164°, reaching 800ft …» come la RWY 15) è di quella pista.
+            var comeLaSalita = p.Kind == ProcedureKind.Sid && p.Runways.Count == 0 && RottaDopoIlDecollo(p.Description) is { } primaRotta
+                && salite[p.Aerodrome].Where(s => RottaDopoIlDecollo(s.Description) == primaRotta).SelectMany(PisteDi).Distinct(StringComparer.Ordinal).ToList() is [var stessa]
+                ? stessa : null;
             var pistaDellaSid = p.Kind != ProcedureKind.Sid ? p.Runways.FirstOrDefault()
                 : p.Runways.Count == 1 ? p.Runways[0]
                 : p.Runways.Count == 0 && nominanti.SelectMany(PisteDi).FirstOrDefault() is { } dallaSalita ? dallaSalita
-                : dellaPagina
+                : dellaPagina ?? comeLaSalita
                 ?? PistaDallaRotta(p, scalo, declinazione, p.Runways.Count > 0 ? p.Runways : null) ?? p.Runways.FirstOrDefault();
             var da = Decodifica(p, pistaDellaSid, null);
             if (p.Kind != ProcedureKind.Sid || !(ContinuaLaSalita(p.Description) || nominanti.Count > 0))
@@ -638,6 +647,10 @@ public static partial class ItalianAd2Prose
         t = RxTrack().Replace(t, "TR $1°");
         t = RxDmeAbbreviato().Replace(t, "${d} NM ${n} DME"); // «D20 OST DME», «43 NM PNZ TAC»
         t = RxDmePrimaDellaStazione().Replace(t, "$1 NM $2 DME");
+        t = RxPrimaDellaStazione().Replace(t, "until ");
+        // Revisione 3 (LIRQ RWY 23, BIBNO 1H): «turn right immediately» è la virata; «then passing RDL 308 PRT VOR» è «crossing».
+        t = RxSubito().Replace(t, "$1");
+        t = RxPassandoLaRadiale().Replace(t, "crossing RDL");
         // Passo 2 della revisione col committente (carta §6, gruppo 5): «non si butta niente». Quote, velocità, autorizzazioni
         // e condizioni non sono pezzi del percorso, ma restano: un segnaposto (⟦Q+2800⟧ la quota, ⟦V-210⟧ la velocità, ⟦N…⟧
         // una nota, ⟦A…⟧ un avviso, ⟦B+1500⟧ «not below» da controllare) che il lettore mette nel tratto dove sta.
@@ -1762,6 +1775,20 @@ public static partial class ItalianAd2Prose
     // Revisione 2 delle frasi non capite (committente, 24 ottobre).
     [GeneratedRegex(@"\b(joining|join|intercept(?:ing)?(?:\s+and\s+follow(?:ing)?)?|follow(?:ing)?)\s+(\d{3})\s+([A-Z]{3})\s+VOR\b", RegexOptions.CultureInvariant)]
     private static partial Regex RxRadialeSenzaRdl();
+
+    [GeneratedRegex(@"\bRDL\s*(\d{3})\s*\(\s*TR\s*(\d{3})\s*°?\s*\)\s*bound\s+to\s+([A-Z]{3})(?=\s+VOR)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRadialeVersoLaStazione();
+
+    // Revisione 3 (LIBD BANAV 8B): «bound to BAR VOR. At 2 NM BAR DME turn left»: si vira 2 NM prima di BAR, sulla radiale su
+    // cui si arriva, senza passarci.
+    [GeneratedRegex(@"\bbound\s+to\s+([A-Z]{3})\s+VOR(?:/DME)?\s*\.\s*At\s+(?=\d+(?:\.\d+)?\s*NM\s+\1\s+DME\b)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxPrimaDellaStazione();
+
+    [GeneratedRegex(@"\b([Tt]urn\s+(?:left|right))\s+immediately\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxSubito();
+
+    [GeneratedRegex(@"\b[Pp]assing\s+RDL\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxPassandoLaRadiale();
 
     [GeneratedRegex(@"\(\s*IAS\s+MAX\s+(\d{3})\s*\)", RegexOptions.CultureInvariant)]
     private static partial Regex RxVelocitaSenzaKt();
