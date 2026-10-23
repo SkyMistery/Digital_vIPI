@@ -89,8 +89,9 @@ public static partial class ItalianAd2Procedures
     [GeneratedRegex(@"^(?<id>[A-Z]{2,3})\s+(?:VOR/DME|VORTAC|VOR|NDB|DME|TACAN)$", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxPuntoConIlTipo();
 
-    // Anche «W AYPOINT LIST» (LIEA 5) e «Waypoints IAP RNP – Z RWY 03 – MISSED APPROACH via VANXI» (LIRP 5).
-    [GeneratedRegex(@"^(?:W\s?AYPOINT\s+LIST\b|Waypoint\s*$|RF\s+arc\s+centre|Waypoints?\s+(?:Table|IAP)\b)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    // Anche «W AYPOINT LIST» (LIEA 5) e «Waypoints IAP RNP – Z RWY 03 – MISSED APPROACH via VANXI» (LIRP 5); e «Waypoint
+    // Latitude Longitude» in fondo alle STAR convenzionali di LIPH (segnalazioni 2611, N2: PH001-PH006 non c'erano).
+    [GeneratedRegex(@"^(?:W\s?AYPOINT\s+LIST\b|Waypoint\s*$|Waypoint\s+Latitude\s+Longitude\s*$|RF\s+arc\s+centre|Waypoints?\s+(?:Table|IAP)\b)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxListaDeiPunti();
 
     // Le attese (passo 6) hanno la loro tabella, che si legge a parte (Attese): «HOLDING RWY 03R/L», «JESSY HOLDING PATTERN
@@ -203,8 +204,20 @@ public static partial class ItalianAd2Procedures
         }
         if (tagli.Count == 0) return page;
         var taglio = tagli.Min() - 1;
-        return page with { Words = [.. page.Words.Where(w => w.Baseline <= 40 || w.Baseline >= page.Height - 20 || w.XCenter >= taglio)] };
+        // La tabella dei punti in fondo alla pagina sta sotto tutte e due le colonne, a partire da sinistra («PH001 N45523971
+        // E011343924», LIPH 4; segnalazioni 2611, N2): le sue righe si tengono intere.
+        var intere = Table.PlainLinesWithY(page)
+            .Where(l => RxSpazi().Replace(l.Text, " ").Trim() is var t && (RxListaDeiPunti().IsMatch(t) || RxRigaDiPuntoArinc().IsMatch(t)))
+            .Select(l => l.Y).ToList();
+        return page with
+        {
+            Words = [.. page.Words.Where(w => w.Baseline <= 40 || w.Baseline >= page.Height - 20 || w.XCenter >= taglio
+                || intere.Any(y => Math.Abs(w.Baseline - y) <= 1.5))],
+        };
     }
+
+    [GeneratedRegex(@"^(?:[A-Z]{2}\d{3,4}|[A-Z]{5})\s+[NS]\d{6}\.?\d{2}\s+[EW]\d{7}\.?\d{2}$", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRigaDiPuntoArinc();
 
     private sealed class InCorso(string designatore, ProcedureKind genere, IReadOnlyList<string> piste, string? sezione, ImportPage pagina, bool dalTitolo = false)
     {

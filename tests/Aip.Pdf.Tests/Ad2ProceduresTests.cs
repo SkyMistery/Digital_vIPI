@@ -337,4 +337,29 @@ public sealed class Ad2ProceduresTests
     [InlineData("STAR LMT VOR RWY 28 description", "28")]
     public void LePisteDelTitolo(string titolo, string attese) =>
         Assert.Equal(attese.Length == 0 ? [] : attese.Split(','), ItalianAd2Procedures.Piste(titolo));
+
+    // Segnalazioni 2611, N2 (revisione col committente): in fondo alle STAR convenzionali di LIPH la tabella dei punti è
+    // intestata «Waypoint Latitude Longitude», senza «LIST»: PH001-PH006 non si leggevano, e le tre STAR si fermavano.
+    [Fact]
+    public void LaTabellaDeiPunti_IntestataWaypointLatitudeLongitude()
+    {
+        var pagina = new Pagina([], [],
+        [
+            .. Testa("AD 2 LIXX 4 - 4"),
+            // In due lingue, come LIPH 4: il lettore tiene la colonna inglese, a destra; la tabella dei punti sta a sinistra.
+            (60, 60, "ALESE 1A"), (330, 60, "ALESE 1A"),
+            (60, 70, "ALESE – TR 160° (RDL 340 VIC VOR) – PH001 –"), (330, 70, "ALESE – TR 160° (RDL 340 VIC VOR) – PH001 –"),
+            (60, 80, "PH002 – VIC VOR/DME."), (330, 80, "PH002 – VIC VOR/DME."),
+            (60, 110, "BORMI 1A"), (330, 110, "BORMI 1A"),
+            (60, 120, "BORMI – TR 134° (RDL 314 VIC VOR) – PH003 –"), (330, 120, "BORMI – TR 134° (RDL 314 VIC VOR) – PH003 –"),
+            (60, 170, "Waypoint     Latitude     Longitude"),
+            (60, 180, "PH001     N45523971     E011343924"),
+            (60, 190, "PH002     N45430330     E011383667"),
+        ]);
+
+        var r = ItalianAip.ReadFile("LI-AD 2 LIXX - Prova 4.pdf", PdfText.Read(Enr4Tests.Pdf(pagina)));
+
+        Assert.Equal(["PH001", "PH002"], r.Points.Select(p => p.Designator));
+        Assert.Equal(45 + 52 / 60.0 + 39.71 / 3600, r.Points[0].Position.Lat, 9);
+    }
 }

@@ -670,4 +670,48 @@ public sealed class Ad2ProseTests
         Assert.Null(problema);
         Assert.Equal("SUGEP", tratti[^1].Fix);
     }
+
+    // Passo 3 della revisione col committente (SC3): la rotta vera stampata «NIL» in AD 2.12 (LICG, LIDT, LIBD, LIPY): la
+    // direzione della pista va dalla sua soglia a quella opposta.
+    [Theory]
+    [InlineData("07", "25")]
+    [InlineData("25", "07")]
+    [InlineData("18", "36")]
+    [InlineData("36", "18")]
+    [InlineData("22L", "04R")]
+    [InlineData("16C", "34C")]
+    public void LaPistaOpposta(string pista, string opposta) => Assert.Equal(opposta, ItalianAd2Prose.PistaOpposta(pista));
+
+    [Fact]
+    public void LaRottaDellaPistaStampataNil_DalleDueSoglie()
+    {
+        var scalo = new Aerodrome
+        {
+            Icao = "LIXX", Name = "Prova",
+            Runways =
+            [
+                new() { Designator = "07", TrueBearing = "NIL", Threshold = new Position(39.0, 16.0) },
+                new() { Designator = "25", TrueBearing = "NIL", Threshold = new Position(39.0, 16.03) },
+            ],
+        };
+
+        var pista = ItalianAd2Prose.Pista(scalo, "07");
+
+        Assert.NotNull(pista);
+        Assert.Equal(90, pista.TrueBearing, 0);
+    }
+
+    // La declinazione quando il testo non nomina un VOR: dall'NDB nominato, se no dallo scalo (LIRS ILOWE 1W, LIEE KOVAS 2C).
+    [Fact]
+    public void UnaRottaSenzaVor_LaDeclinazioneDalloScalo()
+    {
+        var (tratti, problema, avvisi) = ItalianAd2Prose.DecodeWithWarnings(P(ProcedureKind.Star, "DELIK 1T", "DELIK – TR 199° (RDL 019 VOR) bound SUGEP."),
+            n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n), aerodromeVariation: 3);
+        var (_, senza) = Leggi(P(ProcedureKind.Star, "DELIK 1T", "DELIK – TR 199° bound SUGEP."));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF DELIK", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix}"));
+        Assert.Contains(avvisi, a => a.Contains("senza la stazione", StringComparison.Ordinal));
+        Assert.Contains("declinazione", senza, StringComparison.Ordinal);
+    }
 }

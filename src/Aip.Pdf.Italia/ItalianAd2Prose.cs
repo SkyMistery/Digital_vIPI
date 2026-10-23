@@ -40,7 +40,7 @@ public static partial class ItalianAd2Prose
     /// come rotta, senza vento (committente, 23 ottobre: «disegnalo come se non ci fosse vento e segnalo»).
     /// </summary>
     public static (IReadOnlyList<ProcedureLeg> Legs, string? Problem, IReadOnlyList<string> Warnings) DecodeWithWarnings(
-        Procedure procedure, Func<string, Position?> point, Func<string, Station?> station, Runway? runway = null)
+        Procedure procedure, Func<string, Position?> point, Func<string, Station?> station, Runway? runway = null, double? aerodromeVariation = null)
     {
         ArgumentNullException.ThrowIfNull(procedure);
         ArgumentNullException.ThrowIfNull(point);
@@ -53,7 +53,7 @@ public static partial class ItalianAd2Prose
             n => station(n) is not null || point(n) is not null, inizio);
         var testo = Route(ricucito);
         if (testo is null) return ([], "senza testo", []);
-        var lettore = new Lettore(testo, point, station, runway, dallaPista: procedure.Kind == ProcedureKind.Sid);
+        var lettore = new Lettore(testo, point, station, runway, dallaPista: procedure.Kind == ProcedureKind.Sid, declinazioneDelloScalo: aerodromeVariation);
         var (tratti, problema) = lettore.Leggi(inizio, procedure.Kind == ProcedureKind.Sid ? procedure.Designator.Split(' ')[0] : null);
         return (tratti, problema, problema is null ? [.. ricuciture, .. lettore.Avvisi] : []);
     }
@@ -107,6 +107,12 @@ public static partial class ItalianAd2Prose
             if (!stazione(sigla) || (Numero(m.Groups[2]) + 180) % 360 != Numero(m.Groups[1])) return m.Value;
             avvisi.Add($"«RDL {m.Groups[2].Value} VOR» senza la stazione è un errore di stampa: letto come RDL {m.Groups[2].Value} {sigla}, la stazione verso cui va la rotta");
             return $"TR {m.Groups[1].Value}° (RDL {m.Groups[2].Value} {sigla} VOR){m.Groups[3].Value}{sigla}{m.Groups[5].Value}";
+        });
+        // Senza la stazione da nessuna parte («ILOWE – TR 199° (RDL 019 VOR) bound NOLHE.», LIRS ILOWE 1W): vale la rotta.
+        t = RxRadialeSenzaStazioneFraParentesi().Replace(t, m =>
+        {
+            avvisi.Add($"«RDL {m.Groups[1].Value} VOR» senza la stazione è un errore di stampa: vale la rotta");
+            return "";
         });
         return (t, avvisi);
     }
@@ -181,10 +187,10 @@ public static partial class ItalianAd2Prose
         var nuove = procedure.Select(p =>
         {
             if (p.Legs.Count > 0 || p.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition)) return p;
-            var pista = (document.Aerodromes ?? []).FirstOrDefault(a => a.Icao == p.Aerodrome)?.Runways
-                .FirstOrDefault(r => p.Runways.Count > 0 && r.Designator == p.Runways[0]) is { Threshold: { } soglia } r
-                && Gradi(r.TrueBearing) is { } vera ? new Runway(soglia, vera) : null;
-            var (tratti, problema, avvisi) = DecodeWithWarnings(p, n => punti.TryGetValue(n, out var x) ? x : null, n => stazioni.GetValueOrDefault(n), pista);
+            var scalo = (document.Aerodromes ?? []).FirstOrDefault(a => a.Icao == p.Aerodrome);
+            var pista = Pista(scalo, p.Runways.Count > 0 ? p.Runways[0] : null);
+            var (tratti, problema, avvisi) = DecodeWithWarnings(p, n => punti.TryGetValue(n, out var x) ? x : null, n => stazioni.GetValueOrDefault(n), pista,
+                DeclinazioneDelloScalo(scalo, document.Aerodromes ?? []));
             if (problema is not null)
             {
                 nonLette.Add((p, problema));
@@ -194,6 +200,46 @@ public static partial class ItalianAd2Prose
             return p with { Legs = tratti, LegsFromDescription = true };
         }).ToList();
         return (document with { Procedures = nuove }, nonLette, approssimate);
+    }
+
+    /// <summary>
+    /// La pista <paramref name="designatore"/> di <paramref name="scalo"/>: la soglia e la rotta vera. SC3 della revisione col
+    /// committente: dove AD 2.12 stampa «NIL» per la rotta vera (LICG, LIDT, LIBD, LIPY) la direzione va dalla soglia a quella
+    /// della pista opposta, che c'è.
+    /// </summary>
+    internal static Runway? Pista(Aerodrome? scalo, string? designatore)
+    {
+        if (scalo is null || designatore is null) return null;
+        if (scalo.Runways.FirstOrDefault(r => r.Designator == designatore) is not { Threshold: { } soglia } pista) return null;
+        if (Gradi(pista.TrueBearing) is { } vera) return new Runway(soglia, vera);
+        return PistaOpposta(designatore) is { } opposta && scalo.Runways.FirstOrDefault(r => r.Designator == opposta) is { Threshold: { } altra }
+            ? new Runway(soglia, Sphere.BearingDeg(soglia, altra))
+            : null;
+    }
+
+    /// <summary>La pista dall'altra parte: 07 → 25, 22L → 04R, 18 → 36.</summary>
+    internal static string? PistaOpposta(string designatore)
+    {
+        if (RxDesignatoreDiPista().Match(designatore) is not { Success: true } m) return null;
+        var numero = (int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) + 17) % 36 + 1;
+        var lato = m.Groups[2].Value switch { "L" => "R", "R" => "L", var x => x };
+        return $"{numero:00}{lato}";
+    }
+
+    [GeneratedRegex(@"^(\d{2})([LRC]?)$", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDesignatoreDiPista();
+
+    /// <summary>
+    /// La declinazione dello scalo (AD 2.2), o quella dello scalo più vicino che la stampa (committente, 23 ottobre): serve
+    /// alla rotta di una procedura il cui testo non nomina una radioassistenza con la declinazione.
+    /// </summary>
+    private static double? DeclinazioneDelloScalo(Aerodrome? scalo, IReadOnlyList<Aerodrome> scali)
+    {
+        if (scalo is null) return null;
+        if (Variation(scalo.MagneticVariation) is { } sua) return sua;
+        if (scalo.Arp is not { } qui) return null;
+        return scali.Where(a => a.Arp is not null && Variation(a.MagneticVariation) is not null)
+            .MinBy(a => Sphere.DistanceNm(qui, a.Arp!.Value)) is { } vicino ? Variation(vicino.MagneticVariation) : null;
     }
 
     /// <summary>La declinazione stampata, est positivo: <c>3° E-2010.0</c> → 3; null se non c'è.</summary>
@@ -359,7 +405,8 @@ public static partial class ItalianAd2Prose
     /// <summary>La quota come nelle tabelle: «FL 110» → FL110, «2100 ft» → 2100.</summary>
     private static string Quota(string scritta) => RxSpazi().Replace(scritta, "").Replace("ft", "", StringComparison.OrdinalIgnoreCase);
 
-    private sealed class Lettore(string testo, Func<string, Position?> punto, Func<string, Station?> stazione, Runway? pista, bool dallaPista = false)
+    private sealed class Lettore(string testo, Func<string, Position?> punto, Func<string, Station?> stazione, Runway? pista, bool dallaPista = false,
+        double? declinazioneDelloScalo = null)
     {
         private readonly List<ProcedureLeg> _tratti = [];
         private Position? _qui;
@@ -766,20 +813,23 @@ public static partial class ItalianAd2Prose
             return null;
         }
 
-        /// <summary>Come <see cref="DeclinazioneDelTesto"/>, ma senza fermare la lettura se non c'è una stazione.</summary>
+        /// <summary>
+        /// Come <see cref="DeclinazioneDelTesto"/>, ma senza fermare la lettura se non c'è una stazione. Prima un VOR nominato
+        /// nel testo; se non c'è, un NDB (la sua declinazione è quella della B1); se no quella dello scalo (revisione col
+        /// committente, gruppo 7: LIRS ILOWE 1W, LIEE KOVAS 2C e LEDRO 2C).
+        /// </summary>
         private double? DeclinazioneSenzaProblema()
         {
-            foreach (Match m in RxStazioneNelTesto().Matches(testo))
-                if (stazione(m.Groups[1].Value) is { } s)
-                    return s.Variation;
-            return null;
+            foreach (var rx in new[] { RxStazioneNelTesto(), RxNdbNelTesto() })
+                foreach (Match m in rx.Matches(testo))
+                    if (stazione(m.Groups[1].Value) is { } s)
+                        return s.Variation;
+            return declinazioneDelloScalo;
         }
 
         private double? DeclinazioneDelTesto()
         {
-            foreach (Match m in RxStazioneNelTesto().Matches(testo))
-                if (stazione(m.Groups[1].Value) is { } s)
-                    return s.Variation;
+            if (DeclinazioneSenzaProblema() is { } v) return v;
             _problema = "una rotta senza una radioassistenza da cui prendere la declinazione";
             return null;
         }
@@ -937,6 +987,9 @@ public static partial class ItalianAd2Prose
 
     [GeneratedRegex(@"\b(" + Nav + @")\s+VOR", RegexOptions.CultureInvariant)]
     private static partial Regex RxStazioneNelTesto();
+
+    [GeneratedRegex(@"\b(" + Nav + @")\s+NDB\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxNdbNelTesto();
 
     // Una riga dopo il percorso: le quote, le note, la WAYPOINT LIST.
     // U2 (revisione col committente): anche «…: TRL(1)» e la riga che comincia con un punto «RDL 131/34 NM SES VOR/DME (or …)
@@ -1214,6 +1267,9 @@ public static partial class ItalianAd2Prose
 
     [GeneratedRegex(@"\b([A-Z]{2,3})\s+DNE\b", RegexOptions.CultureInvariant)]
     private static partial Regex RxDne();
+
+    [GeneratedRegex(@"\s*\(\s*RDL\s+(\d{3})\s+VOR\s*\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRadialeSenzaStazioneFraParentesi();
 
     // «TR 199° (RDL 019 VOR) bound GRO VOR»: la radiale senza la sigla, che la frase nomina subito dopo.
     [GeneratedRegex(@"\bTR\s+(\d{3})°\s*\(\s*RDL\s+(\d{3})\s+VOR\s*\)(\s*bound\s+(?:to\s+)?)([A-Z]{2,3})(\s+VOR)", RegexOptions.CultureInvariant)]
