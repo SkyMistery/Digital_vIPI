@@ -2974,6 +2974,22 @@
     asserzioni restano le stesse (2 chiamate, METAR per tutti). Ricontrollato con un carico finto di 6 s: verde su
     net8 e net10.
   - Solo `tests/`: niente `src/`, niente pacchetto. Conteggi invariati.
+- 🟢 **S131** (23-ott, assegnato dal committente tramite il Master): E2E `RegistroAvviiTests.
+  Lhost_vero_conta_la_richiesta_e_la_scrive_nella_riga_darresto` reso stabile. Era caduto nella suite intera con
+  `Assert.NotNull(arresto)` alla riga 450, e da solo passava.
+  - **Causa, riprodotta, e non era il carico**: il test segnava dove finiva `diagnostica/avvii.txt` col NUMERO di
+    righe, e dopo il giro faceva `Skip(n)`. Il file della cartella `bin` cresce di corsa in corsa: oltre le 2 000
+    righe il primo AVVIO lo pota alle ultime 1 000 (`RegistroAvvii.Pota`). Quando quell'AVVIO era l'host del test,
+    lo `Skip` saltava tutto il file potato. Nel file della corsa caduta la riga d'ARRESTO del test c'era, giusta
+    («richieste 1, svegliato da /vsop/health»), subito dopo la potatura delle 14:11:39Z. Rosso riprodotto portando
+    il file a 2 010 righe e lanciando il test da solo, con la stessa asserzione.
+  - **Il registro è giusto e non si tocca**: potare all'avvio è voluto. Gli E2E girano in fila, quindi non c'erano
+    altri host in mezzo.
+  - **Correzione**: il punto di partenza si segna con l'ULTIMA RIGA di prima del giro, che la potatura tiene, e si
+    legge da lì in poi. Se quel segno sparisse il test lo dice, invece di leggere l'arresto di un altro giro. Le
+    asserzioni restano le stesse (riga ARRESTO, richieste non 0, svegliato da /vsop/health). Verde col file sopra il
+    tetto, da solo e con la classe intera.
+  - Solo `tests/`: niente `src/`, niente pacchetto. Conteggi invariati.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
