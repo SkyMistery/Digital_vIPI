@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 22 ottobre 2026, sera
+> ## ▶ Il punto — 23 ottobre 2026
+>
+> **📦 Pronta da caricare: 1.74.0** (§A167, timbro `1.74.0 · 4fdc3ac`, 7 file, zip `7c6ff4bf…`, MINOR senza
+> migrazioni, misurata dalla 1.73.0): Sito S129, l'API aeroporti porta la torre radar e le regole di scelta della pista.
+> Online è la **1.73.0** finché il committente non carica. ⚠️ Test del meteo instabile (secondo episodio). ⚠️ Aperto:
+> SDK 10.0.402.
+>
+> ## Il punto — 22 ottobre 2026, sera
 >
 > **✅ Online: 1.73.0** (`Schema 0` confermato; health Healthy; **in `main` non resta codice fuori pacchetto**) (§A166,
 > timbro `1.73.0 · f7baf05`, 7 file, zip `8d28374f…`, MINOR senza migrazioni, misurata dalla 1.72.0): Sito S128, il
