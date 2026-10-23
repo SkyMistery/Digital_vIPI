@@ -79,6 +79,48 @@ public sealed class Ad2ProseTests
         Assert.Equal(286, Rotta(Stazioni["LMT"].Position, arco.Position!.Value), 1);
     }
 
+    // Segnalazioni 2611, B5: lo stesso arco con le parole che usano le altre pagine — «Crossing» maiuscolo (prima l'arco
+    // restava senza la radiale dove finisce), «to intercept and follow ARC», «(IAS MAX 200 kt during turn)», «(ARC 15 NM … DME)»
+    // letto da un altro DME, «inbound to».
+    [Fact]
+    public void UnArcoDme_ScrittoAltrimenti_StessiTratti()
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Star, "ARBUM 4F",
+            "ARBUM – TR 132° (RDL 312 LMT VOR) until 17 NM LMT DME, then turn right (IAS MAX 200 kt during turn) to intercept and follow ARC 15 NM LMT DME\n"
+            + "(ARC 15 NM IBXY DME). Crossing RDL 283 LMT VOR turn left until intercepting and following RDL 273 LMT VOR (TR 093°) inbound to SUGEP.", "10"));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF ARBUM", "CF RDL 312/17 NM LMT", "CF RDL 312/15 NM LMT", "AF RDL 283/15 NM LMT", "CF SUGEP"],
+            tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal("L", tratti[4].Turn);
+    }
+
+    // B5: «Crossing» maiuscolo dopo una radiale: l'incrocio (LIEE CAR 1F andava dritta al punto dopo).
+    [Fact]
+    public void CrossingMaiuscolo_ELIncrocio()
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Star, "LMT 1F", "LMT VOR/DME - TR 120° (RDL 120 LMT VOR). Crossing RDL 020 RCA VOR turn right bound to SUGEP."));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF LMT", "CF INT RDL 120 LMT/RDL 020 RCA", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal("R", tratti[2].Turn);
+    }
+
+    // B5: «Over TOP VOR proceed …», «Initial climb procedure completed …», «as soon as practicable», «Leave LMT VOR on RDL 130»:
+    // si leggono come «da LMT», «dopo il decollo», niente, «LMT, poi la radiale 130 di LMT».
+    [Theory]
+    [InlineData("Over LMT VOR proceed on RDL 130 LMT VOR (TR 130°) until 14 NM LMT DME, then turn right bound to SUGEP.", "IF LMT|CF RDL 130/14 NM LMT|CF SUGEP")]
+    [InlineData("Initial climb procedure completed turn left (IAS MAX 200 kt during turn) bound to LMT VOR. Leave LMT VOR on RDL 130. At 14NM LMT DME turn right bound to SUGEP.", "IF LMT|CF RDL 130/14 NM LMT|TF SUGEP")]
+    [InlineData("After take-off, as soon as practicable, turn left bound to LMT VOR/DME, to be left on RDL 130 LMT VOR until 14 NM LMT DME, then turn right bound to SUGEP.", "IF LMT|CF RDL 130/14 NM LMT|TF SUGEP")]
+    // (TF dove la rotta verso SUGEP non è scritta: niente «TR …»).
+    public void LeFrasiDiPassaggio_SiLeggono(string prosa, string attesi)
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Sid, "SUGEP 1A", prosa));
+
+        Assert.Null(problema);
+        Assert.Equal(attesi.Split('|'), tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+    }
+
     [Fact]
     public void DueRadialiCheSiIncrociano()
     {

@@ -158,6 +158,12 @@ public static partial class ItalianAd2Prose
         t = RxAlternativaNdb().Replace(t, "");
         t = RxRadialeOQdr().Replace(t, "RDL");
         t = RxVorONdb().Replace(t, "VOR");
+        // B5: «as soon as practicable» dice quando, non dove; «Initial climb procedure completed» è «After take-off» per il
+        // disegno (la salita iniziale è una procedura sua: la SID si disegna dal primo punto che si sa calcolare, come
+        // sempre dopo il decollo); «Leave AEA VOR on RDL 149» è «AEA VOR, poi la radiale 149 di AEA».
+        t = RxAppenaPossibile().Replace(t, " ");
+        t = RxFineSalitaIniziale().Replace(t, "After take-off");
+        t = RxLasciaSullaRadiale().Replace(t, "$1 $2 - RDL $3 $1 VOR");
         t = RxVorDme().Replace(t, "VOR/DME");
         t = RxVorSpezzato().Replace(t, "VOR");
         t = RxRadialeColGrado().Replace(t, "RDL $1");
@@ -533,7 +539,8 @@ public static partial class ItalianAd2Prose
         + @"|(?<loc>\b[A-Z]{3,5}\s+LOC\b)"
         + @"|(?:(?<lasciaN1>" + Nav + @")\s+VOR(?:/DME)?\s+to\s+be\s+left\s+on|\bLeave\s+(?<lasciaN2>" + Nav + @")\s+VOR(?:/DME)?\s+on)\s+RDL\s+(?<lasciaR>\d{3})(?:\s+" + Nav + @"\s+VOR)?\s+until\s+(?<lasciaD>" + D + @")\s+NM\s+(?<lasciaN3>" + Nav + @")\s+DME"
         + @"|\bARC\s+(?<arcoD>" + D + @")\s+NM\s+(?<arcoN>" + Nav + @")\s+DME"
-        + @"|(?:\bcrossing|\bINT\s+TR\s+\d{3}°\s*/)\s+RDL\s+(?<incrocioR>\d{3})\s+(?<incrocioN>" + Nav + @")(?:\s+VOR)?"
+        // «Crossing RDL 177 CRN VOR turn left»: anche con la maiuscola (B5: prima diventava una rotta, e l'arco restava aperto).
+        + @"|(?:\b[Cc]rossing|\bINT\s+TR\s+\d{3}°\s*/)\s+RDL\s+(?<incrocioR>\d{3})\s+(?<incrocioN>" + Nav + @")(?:\s+VOR)?"
         + @"|\b(?:INT\s+)?RDL\s+(?<puntoR>\d{3})\s*/\s*(?<puntoD>" + D + @")\s+NM\s+(?<puntoN>" + Nav + @")\s+VOR/DME"
         + @"|\bTR\s+(?<lineaT>\d{3})°\s*\(\s*RDL\s+(?<lineaR>\d{3})\s+(?<lineaN>" + Nav + @")\s+VOR(?:\s+or\s+RDL\s+\d{3}\s+" + Nav + @"\s+VOR)?\s*\)"
         + @"|\bRDL\s+(?<lineaR2>\d{3})\s+(?<lineaN2>" + Nav + @")(?:\s+VOR(?:/DME)?)?(?:\s*\(\s*RDL\s+\d{3}\s+" + Nav + @"\s+VOR\s*\))?(?:\s*\(\s*TR\s+(?<lineaT2>\d{3})°\s*\))?"
@@ -547,7 +554,10 @@ public static partial class ItalianAd2Prose
     private static partial Regex RxPezzo();
 
     // Quel che può restare fra i pezzi senza dire niente.
-    [GeneratedRegex(@"\b(?:then|and|proceed|on|to|bound|direct|until|till|point|via|join|joining|intercept|follow|at|from|after|take-off|continue|the|be|or|turn|left|right|crossing|maintain|From|Proceed|Turn|Join|At|Then|And|After|Crossing)\b|[,;.\-()]",
+    // Segnalazioni 2611, B5: «until intercepting and following RDL …» = «until joining», «inbound to» = «bound to», «Over TOP
+    // VOR proceed …» = «da TOP VOR».
+    [GeneratedRegex(@"\b(?:then|and|proceed|on|to|bound|direct|until|till|point|via|join|joining|intercept|follow|at|from|after|take-off|continue|the|be|or|turn|left|right|crossing|maintain|From|Proceed|Turn|Join|At|Then|And|After|Crossing"
+        + @"|intercepting|following|Intercept|Intercepting|inbound|Inbound|Over)\b|[,;.\-()]",
         RegexOptions.CultureInvariant)]
     private static partial Regex RxRiempitivo();
 
@@ -591,7 +601,7 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"VOR\s*/\s*DME|VOR\s+DME")]
     private static partial Regex RxVorDme();
 
-    [GeneratedRegex(@"(?<=\b(?:DME|TACAN)\s*)\(\s*(?:or\s+)?\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,4}\s+(?:DME|TACAN)\s*\)")]
+    [GeneratedRegex(@"(?<=\b(?:DME|TACAN)\s*)\(\s*(?:or\s+)?(?:ARC\s+)?\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,4}\s+(?:DME|TACAN)\s*\)")]
     private static partial Regex RxDistanzaAlternativa();
 
     [GeneratedRegex(@"\(\s*[A-Z]{2,4}\s*\)\s*(?=DME\b)")]
@@ -614,13 +624,24 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\s*\b(?:or|OR)\s+QDR\s+\d{3}°?\s+[A-Z]{2,3}\s+NDB\b(?:\s*\(\s*TR\s+\d{3}°\s*\))?")]
     private static partial Regex RxAlternativaNdb();
 
+    [GeneratedRegex(@",?\s*\bas\s+soon\s+as\s+(?:practicable|possible)\b,?", RegexOptions.IgnoreCase)]
+    private static partial Regex RxAppenaPossibile();
+
+    [GeneratedRegex(@"\bInitial\s+climb\s+(?:procedure\s+)?(?:completed|executed)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex RxFineSalitaIniziale();
+
+    // «Leave AEA VOR on RDL 149», «Leave CAG VOR on RDL 360 CAG»; non la forma con «until … DME», che ha il suo pezzo.
+    [GeneratedRegex(@"\b[Ll]eave\s+([A-Z]{2,3})\s+(VOR(?:/DME)?|VORTAC)\s+on\s+RDL\s+(\d{3})°?(?:\s+\1(?:\s+VOR(?:/DME)?)?)?(?!\s*(?:\([^)]*\)\s*)?until\b)")]
+    private static partial Regex RxLasciaSullaRadiale();
+
     [GeneratedRegex(@"\bRDL\s*/\s*QDR\b")]
     private static partial Regex RxRadialeOQdr();
 
     [GeneratedRegex(@"\bVOR\s*/\s*NDB\b")]
     private static partial Regex RxVorONdb();
 
-    [GeneratedRegex(@"\(\s*IAS\s+MAX\s+\d+\s*KT\s*\)", RegexOptions.IgnoreCase)]
+    // «(IAS MAX 210KT)», «(IAS MAX 200 kt during turn)»: una velocità, non un pezzo del percorso.
+    [GeneratedRegex(@"\(\s*IAS\s+MAX\s+\d+\s*KT\b[^)]*\)", RegexOptions.IgnoreCase)]
     private static partial Regex RxIas();
 
     [GeneratedRegex(@"\bto\s+be\s+(?:reached|crossed)\s+at\s+or\s+above\s+\d+\s*(?:ft|FT)\b")]
