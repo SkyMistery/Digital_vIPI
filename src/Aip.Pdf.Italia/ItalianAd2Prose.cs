@@ -124,15 +124,19 @@ public static partial class ItalianAd2Prose
     {
         if (string.IsNullOrWhiteSpace(description)) return null;
         var righe = new List<string>();
+        var colPunto = false;
         foreach (var grezza in description.Split('\n'))
         {
             var riga = grezza.Trim();
             if (riga.Length == 0) continue;
             if (righe.Count == 0 && (riga.StartsWith('(') || riga.StartsWith("Minimum", StringComparison.Ordinal))) continue;
+            // B5: dopo una riga che finisce col punto il percorso continua solo se la riga dopo comincia come un pezzo di
+            // percorso («After take-off proceed on RDL172 CRN VOR. / At 5 NM CRN DME turn left …»).
+            if (colPunto && !RxRigaCheContinua().IsMatch(riga)) break;
             // Una riga con le quote e senza verbi è sotto il percorso; una con un verbo ne fa ancora parte («Leaving 4000 FT turn»).
             if (righe.Count > 0 && RxRigaDopo().IsMatch(riga) && !RxVerbo().IsMatch(riga)) break;
             righe.Add(riga);
-            if (riga.EndsWith('.')) break;
+            colPunto = riga.EndsWith('.');
         }
         return righe.Count == 0 ? null : Normalizza(string.Join(' ', righe));
     }
@@ -164,6 +168,10 @@ public static partial class ItalianAd2Prose
         t = RxAppenaPossibile().Replace(t, " ");
         t = RxFineSalitaIniziale().Replace(t, "After take-off");
         t = RxLasciaSullaRadiale().Replace(t, "$1 $2 - RDL $3 $1 VOR");
+        // B5: «RDL 273 (TR 093°)» senza la stazione: vale la rotta stampata fra parentesi (la stazione non si indovina);
+        // «(74 VIE DME)» fra parentesi è la definizione del punto letta da un altro DME.
+        t = RxRadialeSenzaStazione().Replace(t, "TR $1°");
+        t = RxDefinizioneDme().Replace(t, " ");
         t = RxVorDme().Replace(t, "VOR/DME");
         t = RxVorSpezzato().Replace(t, "VOR");
         t = RxRadialeColGrado().Replace(t, "RDL $1");
@@ -280,29 +288,14 @@ public static partial class ItalianAd2Prose
                 var radiale = Numero(g["incrocioR"]);
                 if (_arco is { } arco)
                 {
-                    // La fine dell'arco DME.
-                    var c = Stazione(arco.Stazione)!;
-                    var fine = Sphere.Destination(c.Position, radiale + s.Variation, arco.Raggio);
-                    var definizione = $"RDL {radiale:000}/{Dist(arco.Raggio)} NM {arco.Stazione}";
-                    if (_qui is { } qui)
+                    // La fine dell'arco DME: la radiale della stazione dell'arco. Una radiale di un'altra stazione taglia
+                    // l'arco altrove, e questo calcolo non la sa: si dice (prima la si prendeva come se fosse del centro).
+                    if (nome != arco.Stazione)
                     {
-                        var inizio = Sphere.BearingDeg(c.Position, qui);
-                        var delta = Sphere.Normalize(radiale + s.Variation - inizio);
-                        _tratti.Add(new ProcedureLeg
-                        {
-                            PathTerminator = "AF", Computed = definizione, Position = fine, ArcCenter = arco.Stazione, ArcRadiusNm = arco.Raggio,
-                            Turn = delta < 180 ? "R" : "L",
-                        });
-                        _qui = fine;
-                        _quiNome = null;
-                        _virata = null;
+                        _problema = $"l'arco di {arco.Stazione} finisce su una radiale di {nome}: il punto non si calcola";
+                        return;
                     }
-                    else
-                    {
-                        // Una SID che comincia sull'arco: si parte da dove l'arco finisce.
-                        Calcolato(fine, definizione, null);
-                    }
-                    _arco = null;
+                    ChiudiLArco(Sphere.Destination(s.Position, radiale + s.Variation, arco.Raggio), $"RDL {radiale:000}/{Dist(arco.Raggio)} NM {arco.Stazione}");
                     return;
                 }
                 if (_linea is null)
@@ -333,6 +326,10 @@ public static partial class ItalianAd2Prose
                 var nome = g["lineaR"].Success ? g["lineaN"].Value : g["lineaN2"].Value;
                 if (Stazione(nome) is not { } s) return;
                 var radiale = g["lineaR"].Success ? Numero(g["lineaR"]) : Numero(g["lineaR2"]);
+                // B5: sull'arco, «then intercepting RDL 272 CTF VOR turn left …»: una radiale della stazione dell'arco è dove
+                // l'arco finisce (UXUTA 1F/1G, NELDA 8A).
+                if (_arco is { } arco && arco.Stazione == nome)
+                    ChiudiLArco(Sphere.Destination(s.Position, radiale + s.Variation, arco.Raggio), $"RDL {radiale:000}/{Dist(arco.Raggio)} NM {nome}");
                 var tr = g["lineaT"].Success ? Numero(g["lineaT"]) : g["lineaT2"].Success ? Numero(g["lineaT2"]) : (double?)null;
                 bool? fuori = tr is { } t ? Math.Abs(Sphere.Normalize(t - radiale + 180) - 180) < 90 : null;
                 _linea = Linea.SuRadiale(nome, s, radiale, fuori, tr);
@@ -394,9 +391,52 @@ public static partial class ItalianAd2Prose
             }
         }
 
+        /// <summary>
+        /// La fine dell'arco DME in corso: un tratto AF dal punto dove si è a <paramref name="fine"/>, col verso dato dai due
+        /// rilevamenti dal centro; per una SID che comincia sull'arco si parte da dove l'arco finisce.
+        /// </summary>
+        private void ChiudiLArco(Position fine, string definizione, string? fix = null)
+        {
+            var arco = _arco!.Value;
+            _arco = null;
+            var c = stazione(arco.Stazione)!;
+            if (_qui is { } qui)
+            {
+                var delta = Sphere.Normalize(Sphere.BearingDeg(c.Position, fine) - Sphere.BearingDeg(c.Position, qui));
+                _tratti.Add(new ProcedureLeg
+                {
+                    PathTerminator = "AF", Fix = fix, Computed = fix is null ? definizione : null, Position = fine,
+                    ArcCenter = arco.Stazione, ArcRadiusNm = arco.Raggio, Turn = delta < 180 ? "R" : "L",
+                });
+                _qui = fine;
+                _quiNome = fix;
+                _virata = null;
+            }
+            else if (fix is not null)
+            {
+                VersoUnNome(fix, fine);
+            }
+            else
+            {
+                Calcolato(fine, definizione, null);
+            }
+        }
+
         private void VersoUnNome(string nome, Position posizione)
         {
             if (_quiNome == nome) return;
+            // B5: «until joining ARC 20 NM BAR DME bound to LUXIL»: l'arco finisce sul punto, se il punto sta sull'arco
+            // (mezzo miglio); se no l'arco resta aperto e si dice.
+            if (_arco is { } arco && stazione(arco.Stazione) is { } centro)
+            {
+                if (Math.Abs(Sphere.DistanceNm(centro.Position, posizione) - arco.Raggio) <= 0.5)
+                {
+                    ChiudiLArco(posizione, nome, nome);
+                    return;
+                }
+                _problema = $"l'arco di {arco.Stazione} a {Dist(arco.Raggio)} NM non passa per {nome}";
+                return;
+            }
             var primo = _tratti.Count == 0 && _qui is null;
             _tratti.Add(new ProcedureLeg
             {
@@ -571,6 +611,10 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\b(?:turn|proceed|join|bound|until|then|direct|crossing|intercept)\b")]
     private static partial Regex RxVerbo();
 
+    // La riga dopo un punto che continua il percorso: comincia con un verbo o con «At N NM …»; non con REMARK, Minimum, quote.
+    [GeneratedRegex(@"^(?:At\s+\d|Then\b|Turn\b|Proceed\b|Leave\b|Crossing\b|Continue\b|Join\b|Intercept)")]
+    private static partial Regex RxRigaCheContinua();
+
     [GeneratedRegex(@"\bD(?<d>\d+(?:\.\d+)?)\s+(?<n>[A-Z]{2,3})\s+DME\b|\b(?<d>\d+(?:\.\d+)?)\s+NM\s+(?<n>[A-Z]{2,3})\s+TAC\b")]
     private static partial Regex RxDmeAbbreviato();
 
@@ -624,6 +668,12 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\s*\b(?:or|OR)\s+QDR\s+\d{3}°?\s+[A-Z]{2,3}\s+NDB\b(?:\s*\(\s*TR\s+\d{3}°\s*\))?")]
     private static partial Regex RxAlternativaNdb();
 
+    [GeneratedRegex(@"\bRDL\s+\d{3}\s*\(\s*TR\s*-?\s*(\d{3})°\s*\)")]
+    private static partial Regex RxRadialeSenzaStazione();
+
+    [GeneratedRegex(@"\(\s*\d+(?:\.\d+)?\s*(?:NM\s+)?[A-Z]{2,4}\s+DME\s*\)")]
+    private static partial Regex RxDefinizioneDme();
+
     [GeneratedRegex(@",?\s*\bas\s+soon\s+as\s+(?:practicable|possible)\b,?", RegexOptions.IgnoreCase)]
     private static partial Regex RxAppenaPossibile();
 
@@ -644,7 +694,8 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\(\s*IAS\s+MAX\s+\d+\s*KT\b[^)]*\)", RegexOptions.IgnoreCase)]
     private static partial Regex RxIas();
 
-    [GeneratedRegex(@"\bto\s+be\s+(?:reached|crossed)\s+at\s+or\s+above\s+\d+\s*(?:ft|FT)\b")]
+    // «to be reached at or above 4000 ft», «(to be crossed at 2800 ft or above)»: una quota, non un pezzo del percorso.
+    [GeneratedRegex(@"\(?\s*\bto\s+be\s+(?:reached|crossed)\s+at\s+(?:or\s+above\s+)?\d+\s*(?:ft|FT)\b(?:\s+or\s+above)?\s*\)?")]
     private static partial Regex RxQuotaDaRaggiungere();
 
     [GeneratedRegex(@"\((?:ATC\s+discretion|to\s+be\s+used\s+only)[^)]*\)", RegexOptions.IgnoreCase)]

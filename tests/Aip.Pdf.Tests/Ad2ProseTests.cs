@@ -121,6 +121,50 @@ public sealed class Ad2ProseTests
         Assert.Equal(attesi.Split('|'), tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
     }
 
+    // B5, secondo giro: dove finisce un arco. Una radiale della stessa stazione («then intercepting RDL 283 LMT VOR»); un punto
+    // che sta sull'arco («bound to SUGEP»); non un punto fuori dall'arco, né la radiale di un'altra stazione: lì si ferma.
+    [Theory]
+    [InlineData("then intercepting RDL 283 LMT VOR turn left until joining RDL 273 LMT VOR (TR 093°) bound to SUGEP.", null)]
+    [InlineData("bound to ULSOM.", null)]
+    [InlineData("bound to SUGEP.", "non passa per SUGEP")]
+    [InlineData("crossing RDL 300 RCA VOR turn left bound to SUGEP.", "finisce su una radiale di RCA")]
+    public void LaFineDellArco(string fine, string? problemaAtteso)
+    {
+        // ULSOM: un punto sull'arco di 15 NM da LMT, sulla radiale 290 magnetica.
+        var sullArco = new Position(39.0 + 15 / 60.0 * Math.Cos(293 * Math.PI / 180), 16.0 + 15 / 60.0 * Math.Sin(293 * Math.PI / 180) / Math.Cos(39 * Math.PI / 180));
+        Punti.TryAdd("ULSOM", sullArco);
+        var (tratti, problema) = Leggi(P(ProcedureKind.Star, "ARBUM 4F",
+            "ARBUM – TR 132° (RDL 312 LMT VOR) until 17 NM LMT DME, then turn right to join ARC 15 NM LMT DME, " + fine, "10"));
+
+        if (problemaAtteso is null)
+        {
+            Assert.Null(problema);
+            var arco = tratti.Single(t => t.PathTerminator == "AF");
+            Assert.Equal(("LMT", "L"), (arco.ArcCenter, arco.Turn));
+            Assert.Equal(15, Distanza(Stazioni["LMT"].Position, arco.Position!.Value), 1);
+        }
+        else
+        {
+            Assert.Contains(problemaAtteso, problema, StringComparison.Ordinal);
+        }
+    }
+
+    // B5: un percorso che continua dopo una riga col punto («… CRN VOR.» / «At 5 NM …»); «(to be crossed at 2800 ft or above)»;
+    // «RDL 273 (TR 093°)» senza la stazione vale la rotta stampata; «(74 VIE DME)» fra parentesi è la definizione del punto.
+    [Fact]
+    public void IlPercorsoSuPiuRighe_ELeQuoteFraParentesi()
+    {
+        var (tratti, problema) = Leggi(P(ProcedureKind.Sid, "SUGEP 9G",
+            "After take-off proceed on RDL 130 LMT VOR.\nAt 14 NM LMT DME (to be crossed at 2800 ft or above) turn right to join RDL 093 (TR 093°)\n"
+            + "bound to SUGEP.\nMinimum climb gradient: 510 ft/NM (8.4%) until leaving FL90."));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF RDL 130/14 NM LMT", "CF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal("093°", tratti[1].Course);
+        Assert.Contains("crossing RDL 020 RCA VOR", ItalianAd2Prose.Normalizza("crossing RDL 020 RCA VOR (74 LMT DME) turn left"), StringComparison.Ordinal);
+        Assert.DoesNotContain("74", ItalianAd2Prose.Normalizza("crossing RDL 020 RCA VOR (74 LMT DME) turn left"), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void DueRadialiCheSiIncrociano()
     {
