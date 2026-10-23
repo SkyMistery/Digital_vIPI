@@ -594,6 +594,9 @@ public static partial class ItalianAd2Procedures
         var punti = new List<SignificantPoint>();
         var decimali = new Dictionary<string, int>(StringComparer.Ordinal);
         var attese = new List<Holding>();
+        // Il testo che non sta in una procedura (fra il titolo della sezione e la prima SID: «Minimum climb gradient: For the
+        // following SIDs: OSKOR 7W and UVNIB 1W – 365 ft/NM…», LIPO 6): prima si perdeva; ora si leggono le pendenze (passo 5).
+        var senzaProcedura = new Dictionary<int, List<string>>();
 
         var genere = genereDelFile;
         IReadOnlyList<string> piste = [];
@@ -731,13 +734,22 @@ public static partial class ItalianAd2Procedures
                     continue;
                 }
 
-                if (corrente is null) continue;
+                if (corrente is null)
+                {
+                    if (!senzaProcedura.TryGetValue(page.Number, out var righeSenza)) senzaProcedura[page.Number] = righeSenza = [];
+                    righeSenza.Add(riga);
+                    continue;
+                }
                 if (RxMinime().IsMatch(riga)) corrente.Minime.Add(riga);
                 else if (corrente.Tratti.Count == 0) corrente.Prima.Add(riga);
                 else corrente.Dopo.Add(riga);
             }
         }
 
+        // Le pendenze del testo senza procedura: quelle che nominano le SID valgono per loro in tutto il file, le altre per quelle
+        // della stessa pagina.
+        var pendenzeSenzaProcedura = senzaProcedura.ToDictionary(x => x.Key, x => ItalianClimbGradients.Read(string.Join("\n", x.Value)));
+        var nominate = pendenzeSenzaProcedura.Values.SelectMany(x => x).Where(l => l.Sid.Count > 0).ToList();
         var lette = new List<Procedure>();
         foreach (var p in procedure)
         {
@@ -747,6 +759,11 @@ public static partial class ItalianAd2Procedures
                 problemi.Add(new ImportIssue(ImportIssueKind.Procedure, p.Designatore, p.Pagina.Number, "né tratti né descrizione"));
                 continue;
             }
+            var pendenze = ItalianClimbGradients.Per(ItalianClimbGradients.Read(string.Join("\n", p.Prima.Concat(p.Minime).Concat(p.Dopo))), p.Designatore, ancheSenzaNomi: true)
+                .Concat(ItalianClimbGradients.Per(nominate, p.Designatore, ancheSenzaNomi: false))
+                .Concat(ItalianClimbGradients.Per(pendenzeSenzaProcedura.GetValueOrDefault(p.Pagina.Number) ?? [], p.Designatore, ancheSenzaNomi: true)
+                    .Where(x => p.Genere != ProcedureKind.InitialClimb))
+                .DistinctBy(x => x.Text).ToList();
             lette.Add(new Procedure
             {
                 Aerodrome = icao,
@@ -759,6 +776,7 @@ public static partial class ItalianAd2Procedures
                 Minimums = Testo(p.Minime),
                 Remarks = Testo(p.Dopo),
                 Page = Pagina(p.Pagina),
+                ClimbGradients = pendenze.Count > 0 ? pendenze : null,
             });
         }
         return new ImportResult([], pagine, problemi) { Procedures = lette, Points = punti, Holdings = attese };

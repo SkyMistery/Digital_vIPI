@@ -84,6 +84,13 @@ public sealed record Procedure
     /// <summary>Quel che sta dopo la tabella: le note dei rimandi, la pendenza minima, gli avvisi, com'è.</summary>
     public string? Remarks { get; init; }
 
+    /// <summary>
+    /// Le pendenze minime di salita che valgono per la procedura (segnalazioni 2611, passo 5): dal suo testo, dai blocchi della
+    /// pagina che la nominano («For the following SIDs: OSKOR 7W and UVNIB 1W – 365 ft/NM…»), dalla salita iniziale della sua
+    /// pista. Null se l'AIP non ne dice.
+    /// </summary>
+    public IReadOnlyList<ClimbGradient>? ClimbGradients { get; init; }
+
     /// <summary>La pagina, con la <b>sua</b> data: nello stesso file le pagine hanno date diverse.</summary>
     public AipPage? Page { get; init; }
 
@@ -99,7 +106,8 @@ public sealed record Procedure
         && LegsFromDescription == other.LegsFromDescription
         && Description == other.Description && Minimums == other.Minimums && Remarks == other.Remarks && Page == other.Page
         && Segment == other.Segment && (Fixes ?? []).SequenceEqual(other.Fixes ?? []) && (Fixes is null) == (other.Fixes is null)
-        && (DataBlock ?? []).SequenceEqual(other.DataBlock ?? []) && (DataBlock is null) == (other.DataBlock is null);
+        && (DataBlock ?? []).SequenceEqual(other.DataBlock ?? []) && (DataBlock is null) == (other.DataBlock is null)
+        && (ClimbGradients ?? []).SequenceEqual(other.ClimbGradients ?? []) && (ClimbGradients is null) == (other.ClimbGradients is null);
 
     public override int GetHashCode() => HashCode.Combine(Aerodrome, Kind, Designator);
 }
@@ -177,3 +185,17 @@ public sealed record ProcedureLeg
 /// definizione, <c>INT LOC INPL/9.5NM NAP DME</c>), e la posizione dalle coordinate a destra.
 /// </summary>
 public sealed record ApproachFix(string Text, Position? Position);
+
+/// <summary>Perché una pendenza minima è quella: gli ostacoli, l'ATC, o non lo dice.</summary>
+public enum ClimbGradientReason
+{
+    Unspecified,
+    Obstacles,
+    Atc,
+}
+
+/// <summary>
+/// Una pendenza minima di salita com'è stampata: in piedi per miglio e in per cento (una delle due può mancare), fino a che
+/// quota («FL90», «6000 ft», «Transition Level»), il perché, e il testo da cui viene.
+/// </summary>
+public sealed record ClimbGradient(double? FeetPerNm, double? Percent, string? Until, ClimbGradientReason Reason, string Text);

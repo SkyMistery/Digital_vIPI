@@ -208,13 +208,30 @@ public static partial class ItalianAd2Prose
 
         List<Procedure> Leggi(Procedure p)
         {
-            if (p.Legs.Count > 0 || p.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition or ProcedureKind.InitialClimb)) return [p];
+            if (p.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition or ProcedureKind.InitialClimb)) return [p];
             var scalo = scali.FirstOrDefault(a => a.Icao == p.Aerodrome);
             var declinazione = DeclinazioneDelloScalo(scalo, scali);
             (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) Decodifica(Procedure q, string? pista, string? salita) =>
                 DecodeWithWarnings(q, Punto, Stazione, Pista(scalo, pista), declinazione, salita);
             IReadOnlyList<string> PisteDi(Procedure q) =>
                 q.Runways.Count > 0 ? q.Runways : PistaDallaRotta(q, scalo, declinazione, null) is { } r ? [r] : [];
+            // Passo 5: le pendenze delle salite iniziali valgono anche per le SID — quelle che le nominano («For LAKOX 7W, GITOD
+            // 8W…», «if cleared via SID KOVAS 6D») e quelle senza nomi della salita della sua pista (della stessa pagina, se ce
+            // n'è più d'una).
+            Procedure ConLePendenzeDelleSalite(Procedure q)
+            {
+                var lette = salite[q.Aerodrome].Select(s => (Salita: s, Lette: ItalianClimbGradients.Read(s.Description))).ToList();
+                var dellaPista = lette.Where(x => PisteDi(x.Salita).Intersect(q.Runways, StringComparer.Ordinal).Any()).ToList();
+                if (dellaPista.Count > 1 && dellaPista.Where(x => x.Salita.Page?.Reference == q.Page?.Reference).ToList() is [var stessa])
+                    dellaPista = [stessa];
+                var pendenze = (q.ClimbGradients ?? [])
+                    .Concat(lette.SelectMany(x => ItalianClimbGradients.Per(x.Lette, q.Designator, ancheSenzaNomi: false)))
+                    .Concat(dellaPista.Count == 1 ? ItalianClimbGradients.Per(dellaPista[0].Lette, q.Designator, ancheSenzaNomi: true) : [])
+                    .DistinctBy(x => x.Text).ToList();
+                return pendenze.Count == 0 ? q : q with { ClimbGradients = pendenze };
+            }
+            if (p.Kind == ProcedureKind.Sid) p = ConLePendenzeDelleSalite(p);
+            if (p.Legs.Count > 0) return [p];
             Procedure Letta(Procedure q, (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) esito, params string[] dette)
             {
                 var avvisi = esito.Avvisi.Concat(dette).Concat(QuoteFuoriDalPercorso(q, esito.Tratti, n => punti.ContainsKey(n))).ToList();
