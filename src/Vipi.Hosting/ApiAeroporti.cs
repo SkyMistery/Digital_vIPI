@@ -156,6 +156,8 @@ public static class ApiAeroporti
         /// <para>⚠️ Le soglie vengono da <see cref="AirportRulesView.Regole"/>, che le release scattate prima del
         /// 12 settembre 2026 non hanno: lì escono <c>null</c>, e resta il testo. Non si rileggono dall'anagrafica,
         /// o la scheda direbbe regole diverse da quelle che il documento mostra.</para>
+        /// <para>⚠️ Niente nota per regola: dal 21 ottobre 2026 il testo sta nei blocchi della sezione (S123a), e la
+        /// colonna se ne va con la migrazione seguente. Esporla darebbe a chi integra un campo nato per sparire.</para>
         /// </summary>
         public static IReadOnlyList<RegolaPistaApi> Regole(AirportRulesView regole)
         {
@@ -166,7 +168,6 @@ public static class ApiAeroporti
                 return new RegolaPistaApi(
                     riga.Position, c is null ? null : Valore(c.Name), Valore(riga.Condition),
                     AirportRunwayLists.Tokens(Valore(riga.Dep)), AirportRunwayLists.Tokens(Valore(riga.Arr)),
-                    Valore(riga.Note),
                     c?.MaxTailwindKt, c?.MaxCrosswindKt, c is null ? null : Nome(c.Surface),
                     Ora(c?.TimeFromLocalMin), Ora(c?.TimeToLocalMin), Giorni(c?.DaysOfWeekMask),
                     c is null ? null : Nome(c.DateParity),
@@ -263,7 +264,7 @@ public sealed record ProceduraApi(
 /// capodanno.</param>
 public sealed record RegolaPistaApi(
     int Position, string? Name, string? Condition,
-    IReadOnlyList<string> DepartureRunways, IReadOnlyList<string> ArrivalRunways, string? Note,
+    IReadOnlyList<string> DepartureRunways, IReadOnlyList<string> ArrivalRunways,
     int? MaxTailwindKt, int? MaxCrosswindKt, string? Surface,
     string? TimeFromLocal, string? TimeToLocal, IReadOnlyList<string>? DaysOfWeek, string? DateParity,
     string? SeasonFrom, string? SeasonTo);

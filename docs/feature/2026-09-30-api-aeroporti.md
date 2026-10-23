@@ -149,7 +149,7 @@ vivi dove è viva. Non si rileggono dall'anagrafica, o la scheda direbbe regole 
 "radarTower": true,
 "runwayRules": [
   { "position": 1, "name": "Notte", "condition": "Notte: vento in coda ≤ 5 kt, traverso ≤ 15 kt, pista bagnata, 23:00–06:00 LT, sab/dom",
-    "departureRunways": ["35L", "35R"], "arrivalRunways": ["35R"], "note": null,
+    "departureRunways": ["35L", "35R"], "arrivalRunways": ["35R"],
     "maxTailwindKt": 5, "maxCrosswindKt": 15, "surface": "wet",
     "timeFromLocal": "23:00", "timeToLocal": "06:00", "daysOfWeek": ["sat", "sun"], "dateParity": "any",
     "seasonFrom": null, "seasonTo": null }
@@ -166,6 +166,9 @@ vivi dove è viva. Non si rileggono dall'anagrafica, o la scheda direbbe regole 
   **ora locale italiana** come in AIP, estremi inclusi, e la finestra può passare la mezzanotte; `daysOfWeek` (null =
   tutti i giorni); `dateParity` (`any`/`even`/`odd`, cioè la parità del giorno del mese); `seasonFrom`/`seasonTo`
   («MM-DD», ogni anno, e la finestra può passare il capodanno).
+- ⚠️ **Niente nota per regola**: dal 21 ottobre il testo delle regole sta nei blocchi della sezione (S123a,
+  carta `2026-10-21-via-le-note.md`), e la colonna se ne va con la prossima migrazione. Il testo della sezione
+  l'API non lo porta: è prosa da leggere nel documento, non un dato.
 - ⚠️ Le release scattate **prima del 12 settembre 2026** congelavano solo il testo delle regole: lì le soglie escono
   `null` e resta `condition`. Dopo la pubblicazione seguente escono anche le soglie.
 

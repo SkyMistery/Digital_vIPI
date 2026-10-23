@@ -157,7 +157,8 @@ public class ApiAeroportiTests
         Assert.Equal(JsonValueKind.Null, seconda.GetProperty("daysOfWeek").ValueKind);
         Assert.Equal(JsonValueKind.Null, seconda.GetProperty("timeFromLocal").ValueKind);
         Assert.Equal("any", seconda.GetProperty("surface").GetString());
-        Assert.Equal("Configurazione di ripiego", seconda.GetProperty("note").GetString());
+        // La nota per regola è in pensione (S123a): non esce neanche dove l'anagrafica la porta ancora.
+        Assert.False(seconda.TryGetProperty("note", out _));
     }
 
     [Fact]
@@ -170,7 +171,6 @@ public class ApiAeroportiTests
 
         Assert.Equal("vento in coda ≤ 5 kt", regola.Condition);
         Assert.Equal(new[] { "16L" }, regola.DepartureRunways);
-        Assert.Null(regola.Note);
         Assert.Null(regola.MaxTailwindKt);
         Assert.Null(regola.Surface);
         Assert.Null(regola.DateParity);

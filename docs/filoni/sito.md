@@ -2953,8 +2953,8 @@
   scheda dell'API aeroporti (`GET /vsop/api/v1/airports/{icao}`) porta `radarTower` (`null` = non indicato) e
   `runwayRules`. Ogni regola ha il testo del documento e accanto le soglie una per una: coda, traverso, superficie,
   orario locale, giorni, parità, stagione. Si leggono dalla vista derivata, quindi seguono la release come la pagina.
-  Le release di prima del 12 settembre hanno il solo testo: lì le soglie escono `null`. Carta
-  `2026-09-30-api-aeroporti.md` §6.
+  Le release di prima del 12 settembre hanno il solo testo: lì le soglie escono `null`. Niente nota per regola: è
+  in pensione da S123a, e un campo nato per sparire non si dà a chi integra. Carta `2026-09-30-api-aeroporti.md` §6.
   - Nessuna migrazione, niente `deploy/`, niente codice comune (solo `Vipi.Hosting` e i due `.resx`: la descrizione
     della rotta nella pagina chiavi).
   - Test: Hosting 102 → 107; E2E `ChiaviApiTests` verdi. Dal vivo con curl su una copia del DB: 401 senza chiave,
