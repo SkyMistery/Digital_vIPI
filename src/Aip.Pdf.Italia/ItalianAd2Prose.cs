@@ -141,8 +141,22 @@ public static partial class ItalianAd2Prose
         // cui si va, se la rotta è la radiale al contrario.
         t = RxRadialeVersoLaStazione().Replace(t, m => stazione(m.Groups[3].Value) && (Numero(m.Groups[1]) + 180) % 360 == Numero(m.Groups[2])
             ? Stampa(m, $"RDL {m.Groups[1].Value} {m.Groups[3].Value} VOR (TR {m.Groups[2].Value}°) bound to {m.Groups[3].Value}") : m.Value);
+        // Revisione 4 (LIEE KOVAS 6R): «(TR Turn left … (TR QDR 298°)»: la parentesi aperta davanti a «Turn» si toglie, e la
+        // rotta col QDR in mezzo è la rotta.
+        t = RxParentesiDavantiAllaVirata().Replace(t, m =>
+        {
+            avvisi.Add("«(TR» davanti a «Turn» è un errore di stampa: tolto");
+            return "";
+        });
+        t = RxRottaColQdr().Replace(t, m => Stampa(m, $"(TR {m.Groups[1].Value}°)"));
         return (t, avvisi);
     }
+
+    [GeneratedRegex(@"\(\s*TR\s+(?=[Tt]urn\b)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxParentesiDavantiAllaVirata();
+
+    [GeneratedRegex(@"\(\s*TR\s+QDR\s+(\d{3})\s*°?\s*\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRottaColQdr();
 
     // R3: le parole del percorso che il PDF spezza dopo la prima lettera.
     private static readonly HashSet<string> ParoleDelPercorso = new(StringComparer.Ordinal)
@@ -510,6 +524,9 @@ public static partial class ItalianAd2Prose
     {
         if (printed is null || RxDeclinazione().Match(printed) is not { Success: true } m) return null;
         var gradi = double.Parse(m.Groups["g"].Value, CultureInfo.InvariantCulture);
+        // Revisione 4: in Italia la declinazione è di pochi gradi. Un numero grande non lo è (LIDT: l'AD 2.2 ha nel campo
+        // l'indirizzo dell'ENAC, e «fax … 946665 E-mail» si leggeva 946665° E): non c'è, vale lo scalo più vicino.
+        if (gradi > 30) return null;
         return m.Groups["v"].Value == "W" ? -gradi : gradi;
     }
 

@@ -878,6 +878,27 @@ public sealed class Ad2ProseTests
         Assert.Equal(erroreDiStampa, avvisi.Any(a => a.Contains("errore di stampa", StringComparison.Ordinal)));
     }
 
+    // Revisione 4 (LIDT): un numero grande non è una declinazione (il fax dell'ENAC nel campo dell'AD 2.2).
+    [Theory]
+    [InlineData("3° E-2010.0", 3.0)]
+    [InlineData("1°W (2015)", -1.0)]
+    [InlineData("TRENTINO TRASPORTI S.p.A Tel +39 0461 944355 fax +39 0461 946665 E-mail: airport@trentinotrasporti.it", null)]
+    public void LaDeclinazioneDelloScalo(string stampata, double? attesa) => Assert.Equal(attesa, ItalianAd2Prose.Variation(stampata));
+
+    // Revisione 4 (LIEE KOVAS 6R): «(TR Turn left … (TR QDR 298°)» è un errore di stampa, letto e detto.
+    [Fact]
+    public void LaRottaColQdrEUnaParentesiDiTroppo_ErroriDiStampa()
+    {
+        var (tratti, problema, avvisi) = ItalianAd2Prose.DecodeWithWarnings(P(ProcedureKind.Star, "DELIK 1Q",
+            "DELIK - (TR Turn left on RDL 130 LMT VOR (TR QDR 310°) until 14 NM LMT DME, then turn right bound to SUGEP."),
+            n => Punti.TryGetValue(n, out var x) ? x : null, n => Stazioni.GetValueOrDefault(n));
+
+        Assert.Null(problema);
+        Assert.Equal(["IF DELIK", "FD RDL 130/14 NM LMT", "DF SUGEP"], tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Contains("«(TR» davanti a «Turn» è un errore di stampa: tolto", avvisi);
+        Assert.Contains(avvisi, a => a.Contains("«(TR QDR 310°)» è un errore di stampa", StringComparison.Ordinal));
+    }
+
     // Revisione 3: la salita a vista della 05 di LIRQ comincia dopo «as follows:», senza «After take-off»; la prima rotta dopo il
     // decollo dice di che pista è una SID che comincia come una salita (LICR).
     [Fact]

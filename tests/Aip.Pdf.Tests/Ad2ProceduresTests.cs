@@ -390,6 +390,29 @@ public sealed class Ad2ProceduresTests
         Assert.Empty(r.Procedures.Single(p => p.Designator == "OBAXU 5A").Runways);
     }
 
+    // Revisione 4 (LIME 6): il titolo della sezione spezzato dal PDF, «TRANSIT ION SEGMENTS TO ENROUTE VOR DESCRIPTION», è un
+    // titolo: non finisce in coda alla SID di prima, e quel che segue sono transizioni.
+    [Fact]
+    public void IlTitoloDelleTransizioniSpezzato_EUnTitolo()
+    {
+        var pagina = new Pagina([], [],
+        [
+            .. Testa("AD 2 LIXX 6 - 5"),
+            (60, 50, "SID VOR RWY 28 DESCRIPTION"),
+            (60, 60, "SRN 1Z"),
+            (60, 70, "After take-off proceed on RWY heading until leaving 1350 ft, then turn left until joining RDL 264 BRL VOR bound to SRN VOR"),
+            (60, 80, "TRANSIT ION SEGMENTS TO ENROUTE VOR DESCRIPTION"),
+            (60, 90, "OSKOR 1K"),
+            (60, 100, "From BRL VOR proceed on RDL 091 BRL VOR bound to OSKOR, as published for the transition segments."),
+        ]);
+
+        var r = ItalianAd2Procedures.Read(PdfText.Read(Enr4Tests.Pdf(pagina)), "LIXX", ProcedureKind.Sid);
+
+        var srn = r.Procedures.Single(p => p.Designator == "SRN 1Z");
+        Assert.DoesNotContain("TRANSIT", srn.Description, StringComparison.Ordinal);
+        Assert.Equal(ProcedureKind.Transition, r.Procedures.Single(p => p.Designator == "OSKOR 1K").Kind);
+    }
+
     // Revisione 3 (LIRQ 6): «VISUAL INITIAL CLIMB PROCEDURE RWY 05» e «NOISE ABATEMENT INITIAL CLIMB PROCEDURES RWY 23» sono
     // titoli di salita; il secondo titolo senza pista sotto quello della 23, prima del testo, è la stessa salita.
     [Fact]

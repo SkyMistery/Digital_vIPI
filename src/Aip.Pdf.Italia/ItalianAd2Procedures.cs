@@ -46,7 +46,8 @@ public static partial class ItalianAd2Procedures
         ["Bearing"] = Colonna.Radiale,
     };
 
-    [GeneratedRegex(@"^(?<k>S\s?I\s?Ds?|S\s?T\s?A\s?R|TRANSITION\s+SEGMENTS?\s+TO\s+ENROUTE)\b(?!.*\bsubject\s+to\b)(?=.*(?:RWY|DESCRIPTIO\s?N|[Dd]iscretion))", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    // Revisione 4: anche «TRANSIT ION SEGMENTS TO ENROUTE …» spezzato dal PDF (LIME 6).
+    [GeneratedRegex(@"^(?<k>S\s?I\s?Ds?|S\s?T\s?A\s?R|TRANSIT\s?ION\s+SEGMENTS?\s+TO\s+ENROUTE)\b(?!.*\bsubject\s+to\b)(?=.*(?:RWY|DESCRIPTIO\s?N|[Dd]iscretion))", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxSezione();
 
     // Non la prima riga di una descrizione («Initial climb procedure completed, turn left…», LIEA e LIEE: passo 6); il titolo
@@ -682,7 +683,10 @@ public static partial class ItalianAd2Procedures
                     && RxPisteDelTitolo().IsMatch(riga) && !riga.StartsWith("DEPARTURE", StringComparison.Ordinal) && Piste(riga) is { Count: > 0 } dellaRiga)
                 {
                     piste = dellaRiga;
-                    corrente = new InCorso("RWY " + string.Join("/", piste), genere, piste, sezione, pagina, dalTitolo: true);
+                    // Come per i titoli: la seconda salita della stessa pista è «RWY 20 (2)» (LICJ 6-3 e 6-17).
+                    var nomeDellaPista = "RWY " + string.Join("/", piste);
+                    var giaDellaPista = procedure.Count(x => x.Genere == ProcedureKind.InitialClimb && (x.Designatore == nomeDellaPista || x.Designatore.StartsWith(nomeDellaPista + " (", StringComparison.Ordinal)));
+                    corrente = new InCorso(giaDellaPista == 0 ? nomeDellaPista : $"{nomeDellaPista} ({giaDellaPista + 1})", genere, piste, sezione, pagina, dalTitolo: true);
                     procedure.Add(corrente);
                     continue;
                 }
