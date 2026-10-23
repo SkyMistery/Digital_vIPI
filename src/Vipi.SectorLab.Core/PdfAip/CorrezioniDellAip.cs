@@ -202,10 +202,7 @@ public static class CorrezioniDellAip
         var correzioni = file.Corrections.ToList();
         correzioni.Add(Nuova(id, tipo, chiave, CorrectionOp.Add, null, AipCorrections.ToNode(nuova), perche!, fonte!, ciclo));
         voci.Add(nuova);
-        // Segnalazioni 2611, passo 7: una radioassistenza aggiunta (una stazione straniera, AJO) serve alla prosa delle procedure,
-        // che si legge con «Rileggi».
-        var fatta = Fatta(modello, tipo, voci, file, correzioni, $"Aggiunta all'AIP espanso: {chiave}", perche!, fonte!);
-        return (tipo == CorrectionKind.Navaid ? fatta with { Messaggio = fatta.Messaggio + ". Le procedure che la nominano si leggono al prossimo «Rileggi»." } : fatta, null);
+        return (Fatta(modello, tipo, voci, file, correzioni, $"Aggiunta all'AIP espanso: {chiave}", perche!, fonte!), null);
     }
 
     /// <summary>«Togli» un'area: vedi <see cref="Togli(AipDocument, AipCorrectionFile, CorrectionKind, string, string?, string?, string, DateOnly)"/>.</summary>

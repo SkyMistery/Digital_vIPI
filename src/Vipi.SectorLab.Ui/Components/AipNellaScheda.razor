@@ -17,6 +17,12 @@
         @if (Correzione is { } c)
         {
             <p class="lab-nota" data-correzione-aip="@c.Id">✎ @(c.Op == Aip.CorrectionOp.Add ? "Aggiunta" : "Corretta") (@c.Id, dal ciclo @c.Since): @c.Reason — fonte: @c.Source</p>
+            @* Segnalazioni 2611, passo 7: una stazione straniera (AJO) si aggiunge per la prosa delle procedure, che la usa solo
+               rileggendo. Prima lo diceva il messaggio del gesto, che però va nel commit del repo dell'AIP e a schermo non si vede. *@
+            @if (c is { Op: Aip.CorrectionOp.Add, Kind: Aip.CorrectionKind.Navaid })
+            {
+                <p class="lab-nota" data-rileggi-aip>Le procedure che la nominano la usano dalla prossima lettura: «Rileggi» il ciclo.</p>
+            }
         }
         <dl class="lab-campi-aip">
             @foreach (var (nome, valore) in voce.Campi)

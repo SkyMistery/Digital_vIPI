@@ -4831,6 +4831,14 @@ public sealed class SessioneDelLab
             // Il ciclo appena letto si guarda sulla mappa, anche se non è quello dei confronti (il successivo).
             CicloGuardatoDellAip = nome == CicloDeiConfronti(espanso) ? null : nome;
             MessaggioDellAip = Core.PdfAip.RepoDellAip.MessaggioProposto(esito);
+            // La mappa e l'Indice si rifanno sulla lettura nuova, accesi o spenti com'erano (prova a schermo del 23 ottobre:
+            // dopo «Rileggi» restavano quelli della lettura prima, finché una correzione non li ricaricava).
+            if (StratoDellAip is not null)
+            {
+                var spento = !_mappe[SpazioDiLavoro.Aip].Accesi.Contains(Core.PdfAip.AipSullaMappa.Tipo.Id);
+                if (await MostraLAipAsync(true).ConfigureAwait(false) && spento)
+                    await MostraLAipAsync(false).ConfigureAwait(false);
+            }
             Rifiuto = null;
             await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
             return true;

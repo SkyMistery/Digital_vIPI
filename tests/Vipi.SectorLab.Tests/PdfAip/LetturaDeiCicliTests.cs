@@ -123,6 +123,23 @@ public sealed class LetturaDeiCicliTests : IDisposable
         Assert.EndsWith("/AIP%202611/LI-ENR%205.1.2.pdf#page=1", Assert.Single(_aperti).AbsoluteUri, StringComparison.Ordinal);
     }
 
+    // Prova a schermo del 23 ottobre: dopo «Rileggi» la mappa e l'Indice restavano quelli della lettura prima.
+    [Fact]
+    public async Task Rileggere_RifaLaMappaDellAip()
+    {
+        var lab = Lab();
+        var cartella = EmendamentoDellAip.CartellaDelCiclo(Pdf, "2611");
+        Scrivi(cartella, "29 OCT 2026");
+        Assert.True(await lab.LeggiLAipAsync("2611"), lab.Rifiuto);
+        Assert.True(await lab.MostraLAipAsync(true), lab.Rifiuto);
+        var prima = lab.StratoDellAip!.Strato.Forme.Count;
+        File.WriteAllBytes(Path.Combine(cartella, "LI-ENR 5.1.1.pdf"), PdfAipFinto.Enr51("29 OCT 2026", "LI R902 - Prova Due"));
+
+        Assert.True(await lab.LeggiLAipAsync("2611"), lab.Rifiuto);
+
+        Assert.Equal(prima + 1, lab.StratoDellAip!.Strato.Forme.Count);
+    }
+
     private sealed class Riferisci(Action<AvanzamentoDellaLettura> fai) : IProgress<AvanzamentoDellaLettura>
     {
         public void Report(AvanzamentoDellaLettura value) => fai(value);
