@@ -94,6 +94,86 @@ public class ApiAeroportiTests
         Assert.Equal(JsonValueKind.Null, pista.GetProperty("lda").ValueKind);
         Assert.Equal(JsonValueKind.Null, pista.GetProperty("threshold").ValueKind);
         Assert.True(json.GetProperty("frequencies")[0].GetProperty("primary").GetBoolean());
+        // Né torre radar né regole nella vista: «non indicato» e un elenco vuoto, non campi assenti.
+        Assert.Equal(JsonValueKind.Null, json.GetProperty("radarTower").ValueKind);
+        Assert.Equal(0, json.GetProperty("runwayRules").GetArrayLength());
+    }
+
+    // ─── Torre radar e regole piste ────────────────────────────────────────────────
+
+    private static AirportData Scalo(IReadOnlyList<RunwayRuleRow>? regole = null) => new()
+    {
+        AirportId = 1, Icao = "LIMC", Name = "Milano Malpensa", AccCode = "LIMM",
+        TransitionLevels = Array.Empty<TlRow>(), Runways = Array.Empty<RunwayRow>(),
+        Rules = regole ?? Array.Empty<RunwayRuleRow>(), Sids = Array.Empty<SidRow>(), Links = Array.Empty<FrequencyLinkRow>(),
+    };
+
+    [Theory]
+    [InlineData(true, JsonValueKind.True)]
+    [InlineData(false, JsonValueKind.False)]
+    [InlineData(null, JsonValueKind.Null)]
+    public void La_torre_radar_esce_con_il_non_indicato_distinto_dal_no(bool? dotata, JsonValueKind atteso)
+    {
+        var d = AirportDerived.Empty with { RadarTower = new AirportRadarTowerView(dotata) };
+
+        var json = Json(ApiAeroporti.Proiezione.Scheda(Scalo(), ReleaseTargetType.Airport, d));
+
+        Assert.Equal(atteso, json.GetProperty("radarTower").ValueKind);
+    }
+
+    [Fact]
+    public void Le_regole_piste_escono_in_ordine_con_il_testo_del_documento_e_le_soglie()
+    {
+        var regole = new[]
+        {
+            new RunwayRuleRow(1, "35L,35R", "35R", "Notte", 5, 15, RunwaySurface.Wet, null,
+                TimeFromLocalMin: 23 * 60, TimeToLocalMin: 6 * 60, DaysOfWeekMask: 0b110_0000,
+                DateParity: DateParity.Even, DateFromMonthDay: 1101, DateToMonthDay: 228),
+            new RunwayRuleRow(2, "17L", "17R", null, 10, null, RunwaySurface.Any, "Configurazione di ripiego"),
+        };
+        var data = Scalo(regole);
+
+        var json = Json(ApiAeroporti.Proiezione.Scheda(data, ReleaseTargetType.Airport,
+            AirportDerived.Empty with { Rules = AirportSectionProjection.Rules(data) }));
+
+        var prima = json.GetProperty("runwayRules")[0];
+        Assert.Equal(1, prima.GetProperty("position").GetInt32());
+        Assert.Equal("Notte", prima.GetProperty("name").GetString());
+        Assert.StartsWith("Notte: vento in coda ≤ 5 kt", prima.GetProperty("condition").GetString());
+        Assert.Equal(new[] { "35L", "35R" }, prima.GetProperty("departureRunways").EnumerateArray().Select(p => p.GetString()));
+        Assert.Equal(new[] { "35R" }, prima.GetProperty("arrivalRunways").EnumerateArray().Select(p => p.GetString()));
+        Assert.Equal(15, prima.GetProperty("maxCrosswindKt").GetInt32());
+        Assert.Equal("wet", prima.GetProperty("surface").GetString());
+        Assert.Equal("23:00", prima.GetProperty("timeFromLocal").GetString());
+        Assert.Equal("06:00", prima.GetProperty("timeToLocal").GetString());
+        Assert.Equal(new[] { "sat", "sun" }, prima.GetProperty("daysOfWeek").EnumerateArray().Select(g => g.GetString()));
+        Assert.Equal("even", prima.GetProperty("dateParity").GetString());
+        Assert.Equal("11-01", prima.GetProperty("seasonFrom").GetString());
+        Assert.Equal("02-28", prima.GetProperty("seasonTo").GetString());
+
+        var seconda = json.GetProperty("runwayRules")[1];
+        Assert.Equal(JsonValueKind.Null, seconda.GetProperty("name").ValueKind);
+        Assert.Equal(JsonValueKind.Null, seconda.GetProperty("maxCrosswindKt").ValueKind);
+        Assert.Equal(JsonValueKind.Null, seconda.GetProperty("daysOfWeek").ValueKind);
+        Assert.Equal(JsonValueKind.Null, seconda.GetProperty("timeFromLocal").ValueKind);
+        Assert.Equal("any", seconda.GetProperty("surface").GetString());
+        // La nota per regola è in pensione (S123a): non esce neanche dove l'anagrafica la porta ancora.
+        Assert.False(seconda.TryGetProperty("note", out _));
+    }
+
+    [Fact]
+    public void Una_release_senza_le_regole_calcolabili_da_il_testo_e_soglie_null()
+    {
+        // Le fotografie di prima del 12 settembre 2026 hanno le sole righe leggibili.
+        var vecchia = new AirportRulesView(new[] { new AirportRuleRowView(1, "vento in coda ≤ 5 kt", "16L", "16R", "—") });
+
+        var regola = Assert.Single(ApiAeroporti.Proiezione.Regole(vecchia));
+
+        Assert.Equal("vento in coda ≤ 5 kt", regola.Condition);
+        Assert.Equal(new[] { "16L" }, regola.DepartureRunways);
+        Assert.Null(regola.MaxTailwindKt);
+        Assert.Null(regola.Surface);
+        Assert.Null(regola.DateParity);
     }
 
     // ─── Le procedure ──────────────────────────────────────────────────────────────
