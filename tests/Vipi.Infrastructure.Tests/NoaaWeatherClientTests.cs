@@ -51,12 +51,27 @@ public class NoaaWeatherClientTests
             new(_handler, disposeHandler: false) { BaseAddress = new Uri("https://example.test") };
     }
 
+    /// <summary>
+    /// Le opzioni del banco. ⚠️ Il tetto d'attesa della sorgente principale si ALZA (120 s invece dei 5 di
+    /// produzione), e non è indebolire i test: nessuno di questi prova quel tetto (lo prova
+    /// <see cref="La_Scorta_Aspetta_Meno_Della_Principale"/>, su <see cref="WeatherOptions"/> direttamente). Col
+    /// tetto vero i banchi misuravano anche il tempo: nella suite intera sotto carico
+    /// <see cref="Richieste_Concorrenti_Sullo_Stesso_Icao_Fanno_Una_Sola_Fetch"/> è caduto due volte (19 e
+    /// 23 ottobre 2026, dopo 6 e 8 s). La risposta arrivava oltre i 5 s, il fetch condiviso finiva vuoto, e i 16
+    /// chiamanti ricevevano tutti quel report. Riprodotto aprendo il gate dopo il tetto. Così a far cadere un banco
+    /// è un guasto vero e non una macchina lenta, e i suoi limiti restano quelli dei suoi handler (30 s).
+    /// </summary>
+    private static WeatherOptions Opzioni(int fallbackTimeoutSeconds = 3) =>
+        new() { BaseUrl = "https://example.test", TimeoutSeconds = 120, FallbackTimeoutSeconds = fallbackTimeoutSeconds };
+
     private static NoaaWeatherClient Build(HttpMessageHandler handler, WeatherOptions? opt = null) =>
-        new(new StubFactory(handler), Options.Create(opt ?? new WeatherOptions { BaseUrl = "https://example.test" }));
+        new(new StubFactory(handler), Options.Create(opt ?? Opzioni()));
 
     private const string MetarJson = """[{"rawOb":"LIRF 121250Z 22008KT CAVOK 24/12 Q1018"}]""";
     private const string TafJson = """[{"rawTAF":"TAF LIRF 121100Z 1212/1312 22010KT CAVOK"}]""";
 
+    /// <summary>Coalescenza: 16 chiamanti in volo sullo stesso ICAO, una sola fetch. ⚠️ Perché il tetto del banco è
+    /// alzato: vedi <see cref="Opzioni"/>.</summary>
     [Fact]
     public async Task Richieste_Concorrenti_Sullo_Stesso_Icao_Fanno_Una_Sola_Fetch()
     {
@@ -305,7 +320,7 @@ public class NoaaWeatherClientTests
     /// zero, una e due — e l'ordine è parte di quel che si presidia.</summary>
     private static NoaaWeatherClient Build(HttpMessageHandler handler,
         params Vipi.Application.Abstractions.IMetarFallback[] scorte) =>
-        new(new StubFactory(handler), Options.Create(new WeatherOptions { BaseUrl = "https://example.test" }), scorte);
+        new(new StubFactory(handler), Options.Create(Opzioni()), scorte);
 
     /// <summary>Come <see cref="Build(HttpMessageHandler, Vipi.Application.Abstractions.IMetarFallback[])"/>,
     /// ma col tetto d'attesa delle scorte al minimo (1 s): i banchi che provano un'attesa devono costare
@@ -313,7 +328,7 @@ public class NoaaWeatherClientTests
     private static NoaaWeatherClient BuildScorteImpazienti(HttpMessageHandler handler,
         params Vipi.Application.Abstractions.IMetarFallback[] scorte) =>
         new(new StubFactory(handler),
-            Options.Create(new WeatherOptions { BaseUrl = "https://example.test", FallbackTimeoutSeconds = 1 }),
+            Options.Create(Opzioni(fallbackTimeoutSeconds: 1)),
             scorte);
 
     [Fact]
