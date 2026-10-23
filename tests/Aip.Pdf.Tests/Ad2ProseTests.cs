@@ -714,4 +714,95 @@ public sealed class Ad2ProseTests
         Assert.Contains(avvisi, a => a.Contains("senza la stazione", StringComparison.Ordinal));
         Assert.Contains("declinazione", senza, StringComparison.Ordinal);
     }
+
+    // Passo 4 della revisione col committente (SC1): la salita iniziale divisa in parte comune e rami per SID.
+    [Fact]
+    public void LaSalitaIniziale_LaParteComuneEIRami()
+    {
+        var divisa = ItalianAd2Prose.Dividi("After take-off proceed runway heading and passing 1100 ft turn right to join assigned SID as reported below: "
+            + "a) on TR 262° if cleared via SID EKTOL 6A; b) on TR 010° if cleared via SID URIPI 6A. Turn and climb parameters: a) Departure turn limited to 210 KT; "
+            + "b) Minimum climb gradient: 6.8%.");
+
+        Assert.StartsWith("After take-off proceed runway heading and passing 1100 ft turn right", divisa.Comune, StringComparison.Ordinal);
+        Assert.Equal(2, divisa.Rami.Count);
+        Assert.Contains("URIPI 6A", divisa.Rami[1].Condizione, StringComparison.Ordinal);
+        Assert.Contains("on TR 010°", divisa.Rami[1].Testo, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("OTRET 8G", "turn right on TR 043°")]
+    [InlineData("INKIM9G", "turn right on TR 043°")]
+    [InlineData("ASPIR 8G", "turn left on TR 160°")]   // «if cleared for other SID»
+    public void LaSalitaIniziale_IlRamoDellaSid(string sid, string atteso)
+    {
+        var salita = new Procedure
+        {
+            Aerodrome = "LIXX", Kind = ProcedureKind.InitialClimb, Designator = "RWY 22", Runways = ["22"],
+            Description = "After take-off, proceed on RDL 213 PES VOR until 4 NM PES DME, then: - if cleared for SID INKIM 9G or OTRET 8G: turn right on TR 043°; "
+                + "- if cleared for other SID: turn left on TR 160°.",
+        };
+
+        var (testo, perche) = ItalianAd2Prose.SalitaPerLaSid(sid, [salita]);
+
+        Assert.Null(perche);
+        Assert.StartsWith("After take-off, proceed on RDL 213 PES VOR until 4 NM PES DME", testo, StringComparison.Ordinal);
+        Assert.Contains(atteso, testo, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("At 13NM PRU DME (12.4NM IPER DME) turn right until joining RDL 224 ANC VOR/DME (TR 224°) bound to GITOD.", true)]
+    [InlineData("Turn left on TR 132°. Crossing RDL 166 BSM VOR turn left on RDL 133 BSM VOR.", true)]
+    [InlineData("(ATC discretion)\nInitial climb procedure completed turn left until joining RDL 003 ALG VOR (TR 183°).", true)]
+    [InlineData("Proceed on TR 041° until 7 NM IFA DME, then turn right to join RDL 039 ANC VOR (TR 219°).", false)]
+    [InlineData("After take-off proceed on RWY heading until 2 NM TES DME.", false)]
+    public void UnaSidCheNonPorteDallaPista(string testo, bool continua) => Assert.Equal(continua, ItalianAd2Prose.ContinuaLaSalita(testo));
+
+    // SC1 e SC2 dentro DecodeAll: la salita iniziale ha i suoi tratti; la SID che comincia «At 14NM LMT DME» la continua; una
+    // SID per due piste con salite diverse si legge una volta per pista; le quote che nominano un punto fuori dal percorso
+    // si dicono (N2, LIPH ADOSA 1A).
+    [Fact]
+    public void LaSidContinuaLaSalitaIniziale_UnaPerPista()
+    {
+        Procedure Salita(string pista, string testo) => new() { Aerodrome = "LIXX", Kind = ProcedureKind.InitialClimb, Designator = "RWY " + pista, Runways = [pista], Description = testo };
+        Procedure Sid(string nome, string testo, params string[] piste) => new() { Aerodrome = "LIXX", Kind = ProcedureKind.Sid, Designator = nome, Runways = piste, Description = testo };
+        var documento = new AipDocument
+        {
+            State = "LI", Airac = "2611", Airspaces = [],
+            Points = [new SignificantPoint { Section = "ENR 4.4", Designator = "SUGEP", Position = Punti["SUGEP"] },
+                new SignificantPoint { Section = "ENR 4.4", Designator = "DELIK", Position = Punti["DELIK"] }],
+            Aerodromes =
+            [
+                new Aerodrome
+                {
+                    Icao = "LIXX", Name = "Prova", MagneticVariation = "3° E (2020.0)",
+                    NavigationAids = [new Navaid { Section = "AD 2.19", Designator = "LMT", Name = "LAMEZIA", Type = "DVOR/DME", MagneticVariation = "3° E-2010.0", Position = Stazioni["LMT"].Position, Components = [] }],
+                    Runways =
+                    [
+                        new() { Designator = "13", TrueBearing = "133°", Threshold = new Position(38.95, 15.90) },
+                        new() { Designator = "31", TrueBearing = "313°", Threshold = new Position(38.90, 15.97) },
+                    ],
+                },
+            ],
+            Procedures =
+            [
+                Salita("13", "After take off turn right until joining RDL 130 LMT VOR (TR 130°) until 8NM LMT DME. REMARKS 1. Minimum climb gradient: 5.8%."),
+                Salita("31", "After take-off proceed on RDL 093 LMT VOR (TR 093°) until 10 NM LMT DME, then turn right to join the assigned SID."),
+                Sid("SUGEP 1A", "At 14NM LMT DME turn right bound to SUGEP.\nSUGEP: 5000 FT; DELIK – SUGEP: 4000 FT", "13"),
+                Sid("SUGEP 1B", "At 10 NM LMT DME turn right bound to SUGEP.", "13", "31"),
+            ],
+        };
+
+        var (letto, nonLette, avvisi) = ItalianAd2Prose.DecodeAll(documento);
+
+        Assert.Equal(["RDL 130/8 NM LMT"], letto.Procedures![0].Legs.Select(t => t.Fix ?? t.Computed));
+        Assert.Equal(["RDL 093/10 NM LMT"], letto.Procedures[1].Legs.Select(t => t.Fix ?? t.Computed));
+        Assert.Equal(["RDL 130/8 NM LMT", "RDL 130/14 NM LMT", "SUGEP"], letto.Procedures[2].Legs.Select(t => t.Fix ?? t.Computed));
+        Assert.Contains(avvisi, a => a.Procedure.Designator == "SUGEP 1A" && a.Warning.Contains("nominano DELIK", StringComparison.Ordinal));
+        // SUGEP 1B vale per due piste con salite diverse: una per pista, ognuna con la sua.
+        var unoB = letto.Procedures.Where(p => p.Designator == "SUGEP 1B").ToList();
+        Assert.Equal([["13"], ["31"]], unoB.Select(p => p.Runways.ToArray()));
+        Assert.Equal(["RDL 093/10 NM LMT", "SUGEP"], unoB[1].Legs.Select(t => t.Fix ?? t.Computed));
+        Assert.Equal(["RDL 130/8 NM LMT", "RDL 130/10 NM LMT", "SUGEP"], unoB[0].Legs.Select(t => t.Fix ?? t.Computed));
+        Assert.Empty(nonLette);
+    }
 }

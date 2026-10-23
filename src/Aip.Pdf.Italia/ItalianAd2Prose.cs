@@ -40,20 +40,33 @@ public static partial class ItalianAd2Prose
     /// come rotta, senza vento (committente, 23 ottobre: «disegnalo come se non ci fosse vento e segnalo»).
     /// </summary>
     public static (IReadOnlyList<ProcedureLeg> Legs, string? Problem, IReadOnlyList<string> Warnings) DecodeWithWarnings(
-        Procedure procedure, Func<string, Position?> point, Func<string, Station?> station, Runway? runway = null, double? aerodromeVariation = null)
+        Procedure procedure, Func<string, Position?> point, Func<string, Station?> station, Runway? runway = null, double? aerodromeVariation = null,
+        string? initialClimb = null)
     {
         ArgumentNullException.ThrowIfNull(procedure);
         ArgumentNullException.ThrowIfNull(point);
         ArgumentNullException.ThrowIfNull(station);
-        if (procedure.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition))
+        if (procedure.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition or ProcedureKind.InitialClimb))
             return ([], "non è una SID, una STAR o una transizione", []);
         // Una STAR che non dice da dove comincia («Proceed on TR 119° … bound to TAQ VOR/DME») parte dal punto del suo nome.
         var inizio = procedure.Kind == ProcedureKind.Star ? procedure.Designator.Split(' ')[0] : null;
-        var (ricucito, ricuciture) = Ricuci(procedure.Description, n => station(n) is not null,
-            n => station(n) is not null || point(n) is not null, inizio);
+        bool EStazione(string n) => station(n) is not null;
+        bool EConosciuto(string n) => station(n) is not null || point(n) is not null;
+        // Una salita iniziale si legge per la sua parte comune (i rami sono per le SID, SC1).
+        var descrizione = procedure.Kind == ProcedureKind.InitialClimb && procedure.Description is { } d ? Dividi(d).Comune : procedure.Description;
+        var (ricucito, ricuciture) = Ricuci(descrizione, EStazione, EConosciuto, inizio);
         var testo = Route(ricucito);
         if (testo is null) return ([], "senza testo", []);
-        var lettore = new Lettore(testo, point, station, runway, dallaPista: procedure.Kind == ProcedureKind.Sid, declinazioneDelloScalo: aerodromeVariation);
+        // SC1: la SID che non parte dalla pista continua il percorso della salita iniziale (il testo che vale per lei).
+        if (initialClimb is not null)
+        {
+            var (salita, ricucitureDellaSalita) = Ricuci(initialClimb, EStazione, EConosciuto, null);
+            if (Route(salita) is not { } percorso) return ([], "la salita iniziale non ha un percorso", []);
+            testo = percorso + " " + testo;
+            ricuciture = [.. ricucitureDellaSalita, .. ricuciture];
+        }
+        var lettore = new Lettore(testo, point, station, runway, dallaPista: procedure.Kind is ProcedureKind.Sid or ProcedureKind.InitialClimb,
+            declinazioneDelloScalo: aerodromeVariation);
         var (tratti, problema) = lettore.Leggi(inizio, procedure.Kind == ProcedureKind.Sid ? procedure.Designator.Split(' ')[0] : null);
         return (tratti, problema, problema is null ? [.. ricuciture, .. lettore.Avvisi] : []);
     }
@@ -78,8 +91,11 @@ public static partial class ItalianAd2Prose
         }
         // R4: «M OROB –», «T ZO VOR/DME» in testa a una STAR; anche senza la prima lettera («ELDA –» per NELDA 3M).
         if (inizio is not null) t = NomeSpezzatoInTesta(t, inizio, conosciuto);
-        // R3: «P roceed» (LICR).
+        // R3: «P roceed» (LICR), «pro ceed» (LIRN RWY 06).
         t = RxParolaSpezzata().Replace(t, m => ParoleDelPercorso.Contains(m.Groups[1].Value + m.Groups[2].Value) ? m.Groups[1].Value + m.Groups[2].Value : m.Value);
+        foreach (var (prima, dopo) in RxParolaSpezzataMinuscola().Matches(t).Select(m => (m.Groups[1].Value, m.Groups[2].Value)).ToList())
+            if (ParoleDelPercorso.Contains(prima + dopo))
+                t = Regex.Replace(t, $@"\b{prima}\s{dopo}\b", prima + dopo, RegexOptions.CultureInvariant);
         // R1: «RDL 064LPD VOR»; R5: «RDL 07 8L PD VOR» (LICD PURZE 1Y). Tre cifre e una radioassistenza, o niente.
         t = RxSiglaAttaccataAllaRadiale().Replace(t, m => stazione(m.Groups[2].Value) ? $"RDL {m.Groups[1].Value} {m.Groups[2].Value}" : m.Value);
         t = RxRadialeSparsa().Replace(t, m => RxCifreESigla().Match(RxSpazi().Replace(m.Groups[1].Value, "")) is { Success: true } x && stazione(x.Groups[2].Value)
@@ -122,6 +138,7 @@ public static partial class ItalianAd2Prose
     {
         "Proceed", "Turn", "Join", "Intercept", "Continue", "Leave", "Follow", "Crossing", "Bound", "After", "Then", "Over",
         "Overflying", "Cross", "Maintain", "From",
+        "proceed", "intercept", "intercepting", "following", "joining", "crossing", "inbound",
     };
 
     /// <summary>
@@ -184,23 +201,146 @@ public static partial class ItalianAd2Prose
                 StringComparer.Ordinal);
         var nonLette = new List<(Procedure, string)>();
         var approssimate = new List<(Procedure, string)>();
-        var nuove = procedure.Select(p =>
+        var scali = document.Aerodromes ?? [];
+        var salite = procedure.Where(p => p.Kind == ProcedureKind.InitialClimb).ToLookup(p => p.Aerodrome, StringComparer.Ordinal);
+        Position? Punto(string n) => punti.TryGetValue(n, out var x) ? x : null;
+        Station? Stazione(string n) => stazioni.GetValueOrDefault(n);
+
+        List<Procedure> Leggi(Procedure p)
         {
-            if (p.Legs.Count > 0 || p.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition)) return p;
-            var scalo = (document.Aerodromes ?? []).FirstOrDefault(a => a.Icao == p.Aerodrome);
-            var pista = Pista(scalo, p.Runways.Count > 0 ? p.Runways[0] : null);
-            var (tratti, problema, avvisi) = DecodeWithWarnings(p, n => punti.TryGetValue(n, out var x) ? x : null, n => stazioni.GetValueOrDefault(n), pista,
-                DeclinazioneDelloScalo(scalo, document.Aerodromes ?? []));
-            if (problema is not null)
+            if (p.Legs.Count > 0 || p.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition or ProcedureKind.InitialClimb)) return [p];
+            var scalo = scali.FirstOrDefault(a => a.Icao == p.Aerodrome);
+            var declinazione = DeclinazioneDelloScalo(scalo, scali);
+            (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) Decodifica(Procedure q, string? pista, string? salita) =>
+                DecodeWithWarnings(q, Punto, Stazione, Pista(scalo, pista), declinazione, salita);
+            IReadOnlyList<string> PisteDi(Procedure q) =>
+                q.Runways.Count > 0 ? q.Runways : PistaDallaRotta(q, scalo, declinazione, null) is { } r ? [r] : [];
+            Procedure Letta(Procedure q, (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) esito, params string[] dette)
             {
-                nonLette.Add((p, problema));
-                return p;
+                var avvisi = esito.Avvisi.Concat(dette).Concat(QuoteFuoriDalPercorso(q, esito.Tratti, n => punti.ContainsKey(n))).ToList();
+                approssimate.AddRange(avvisi.Select(a => (q, a)));
+                return q with { Legs = esito.Tratti, LegsFromDescription = true };
             }
-            approssimate.AddRange(avvisi.Select(a => (p, a)));
-            return p with { Legs = tratti, LegsFromDescription = true };
-        }).ToList();
+
+            // SC1: la salita iniziale ha i suoi tratti, se ha un percorso (alcune sono solo avvertenze e pendenze).
+            if (p.Kind == ProcedureKind.InitialClimb)
+            {
+                if (!HaUnPercorso(p.Description)) return [p];
+                var salita = Decodifica(p, PisteDi(p).FirstOrDefault(), null);
+                if (salita.Problema is null) return [Letta(p, salita)];
+                // Una salita senza un punto suo («After take off proceed on track 135°», LIEE RWY 14) è aperta: la continua la SID.
+                if (salita.Problema != "nessun punto") nonLette.Add((p, salita.Problema));
+                return [p];
+            }
+
+            // Le salite iniziali che nominano la SID in un ramo («- if cleared for SID INKIM 9G or OTRET 8G: turn right on TR
+            // 043°», LIBP RWY 22): la SID le continua, comunque cominci il suo testo, e la pista è la loro.
+            var nominanti = p.Kind != ProcedureKind.Sid ? []
+                : salite[p.Aerodrome].Where(s => s.Description is { } d && Dividi(d).Rami.Any(r => Nomina(r.Condizione, p.Designator))).ToList();
+            // La pista: quella del nome; se la SID non la dice, quella della salita che la nomina, o della prima rotta del testo
+            // (entro 15°); se ne dice due, quella della prima rotta.
+            var pistaDellaSid = p.Kind != ProcedureKind.Sid ? p.Runways.FirstOrDefault()
+                : p.Runways.Count == 1 ? p.Runways[0]
+                : p.Runways.Count == 0 && nominanti.SelectMany(PisteDi).FirstOrDefault() is { } dallaSalita ? dallaSalita
+                : PistaDallaRotta(p, scalo, declinazione, p.Runways.Count > 0 ? p.Runways : null) ?? p.Runways.FirstOrDefault();
+            var da = Decodifica(p, pistaDellaSid, null);
+            if (p.Kind != ProcedureKind.Sid || !(ContinuaLaSalita(p.Description) || nominanti.Count > 0))
+            {
+                if (da.Problema is null) return [Letta(p, da)];
+                nonLette.Add((p, da.Problema));
+                return [p];
+            }
+
+            // SC1 e SC2: la SID che non parte dalla pista continua la salita iniziale della sua pista, una volta per pista se le
+            // piste hanno salite diverse. La pista, se il nome non la dice, è quella della salita che nomina la SID.
+            var dellaPista = (string pista) => salite[p.Aerodrome].Where(s => PisteDi(s).Contains(pista, StringComparer.Ordinal)).ToList();
+            IReadOnlyList<string> piste = p.Runways.Count > 0 ? p.Runways : nominanti.SelectMany(PisteDi).Distinct(StringComparer.Ordinal).ToList();
+            if (piste.Count == 0 && pistaDellaSid is { } dallaRotta) piste = [dallaRotta];
+            var gruppi = piste.Select(r => (Pista: r, Salita: SalitaPerLaSid(p.Designator, dellaPista(r), p.Page)))
+                .GroupBy(x => x.Salita.Testo ?? "", StringComparer.Ordinal).ToList();
+            if (gruppi.Count == 0)
+            {
+                if (da.Problema is null) return [Letta(p, da)];
+                nonLette.Add((p, $"{da.Problema}; la SID non parte dalla pista e la pista non si sa"));
+                return [p];
+            }
+            var esiti = gruppi.Select(g =>
+            {
+                var q = gruppi.Count == 1 ? p : p with { Runways = [.. g.Select(x => x.Pista)] };
+                var (testo, perche) = g.First().Salita;
+                var conLaSalita = testo is null ? default : Decodifica(q, g.First().Pista, testo);
+                return (Procedura: q, Testo: testo, Perche: perche, Esito: conLaSalita);
+            }).ToList();
+            if (gruppi.Count > 1 && esiti.All(e => e.Testo is null || e.Esito.Problema is not null))
+            {
+                // Nessuna pista si legge con la sua salita: resta com'era, una procedura sola.
+                if (da.Problema is null) return [Letta(p, da, $"la SID non parte dalla pista: {esiti[0].Perche ?? esiti[0].Esito.Problema}; disegnata da sola")];
+                nonLette.Add((p, da.Problema));
+                return [p];
+            }
+            var lette = new List<Procedure>();
+            foreach (var e in esiti)
+            {
+                if (e.Testo is not null && e.Esito.Problema is null)
+                {
+                    lette.Add(Letta(e.Procedura, e.Esito));
+                    continue;
+                }
+                var perche = e.Testo is null ? e.Perche : $"la salita iniziale non si legge ({e.Esito.Problema})";
+                if (gruppi.Count == 1 && da.Problema is null)
+                {
+                    // Se la pista una salita iniziale non ce l'ha, la SID è tutta lì: non c'è niente da dire.
+                    lette.Add(e.Testo is null && perche == NessunaSalita ? Letta(p, da) : Letta(p, da, $"la SID non parte dalla pista e {perche}: disegnata da sola"));
+                    continue;
+                }
+                nonLette.Add((e.Procedura, gruppi.Count == 1 && da.Problema is not null ? $"{da.Problema}; {perche}" : perche!));
+                lette.Add(e.Procedura);
+            }
+            return lette;
+        }
+
+        var nuove = procedure.SelectMany(Leggi).ToList();
         return (document with { Procedures = nuove }, nonLette, approssimate);
     }
+
+    /// <summary>
+    /// La pista della prima rotta stampata nel testo («Proceed on TR 041°» → 04): quella, fra <paramref name="fra"/> o fra
+    /// tutte quelle dello scalo, la cui rotta vera è entro 15° (SC2 della revisione col committente: LIPY, LIDT).
+    /// </summary>
+    private static string? PistaDallaRotta(Procedure p, Aerodrome? scalo, double? declinazione, IReadOnlyList<string>? fra)
+    {
+        if (scalo is null || declinazione is null || Route(p.Description) is not { } testo || RxPrimaRotta().Match(testo) is not { Success: true } m) return null;
+        var vera = Numero(m.Groups[1]) + declinazione.Value;
+        return scalo.Runways.Where(r => fra is null || fra.Contains(r.Designator, StringComparer.Ordinal))
+            .Select(r => (r.Designator, Pista: Pista(scalo, r.Designator)))
+            .Where(x => x.Pista is not null)
+            .Select(x => (x.Designator, Scarto: Math.Abs(Sphere.Normalize(x.Pista!.TrueBearing - vera + 180) - 180)))
+            .Where(x => x.Scarto <= 15).OrderBy(x => x.Scarto).Select(x => x.Designator).FirstOrDefault();
+    }
+
+    [GeneratedRegex(@"\bTR\s+(\d{3})°", RegexOptions.CultureInvariant)]
+    private static partial Regex RxPrimaRotta();
+
+    /// <summary>
+    /// N2 della revisione col committente (LIPH ADOSA 1A): le righe delle quote sotto il percorso nominano un punto che nel
+    /// percorso letto non c'è («PH006 – VIC VOR/DME: 5500 FT» dove il testo dice «PH005 – VIC»): si dice.
+    /// </summary>
+    private static IEnumerable<string> QuoteFuoriDalPercorso(Procedure p, IReadOnlyList<ProcedureLeg> tratti, Func<string, bool> eUnPunto)
+    {
+        if (p.Description is null) yield break;
+        var nelPercorso = tratti.Select(t => t.Fix).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var detti = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var riga in p.Description.Split('\n').Skip(1))
+        {
+            if (!RxRigaDopo().IsMatch(riga) || RxVerbo().IsMatch(riga)) continue;
+            foreach (Match m in RxNomeDiPunto().Matches(riga))
+                if (eUnPunto(m.Value) && !nelPercorso.Contains(m.Value) && detti.Add(m.Value))
+                    yield return $"le quote sotto il percorso nominano {m.Value}, che nel percorso non c'è";
+        }
+    }
+
+    [GeneratedRegex(@"\b(?:[A-Z]{2}\d{3}|[A-Z]{5})\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxNomeDiPunto();
 
     /// <summary>
     /// La pista <paramref name="designatore"/> di <paramref name="scalo"/>: la soglia e la rotta vera. SC3 della revisione col
@@ -305,6 +445,9 @@ public static partial class ItalianAd2Prose
         // B1: la stessa distanza letta da un altro DME, fra parentesi dopo la prima («16 NM BAR DME (or 17.5 NM BAP DME)»,
         // «13 NM PRU DME (12 NM IPER DME)»): il percorso è quello della prima. E «ARC 15 NM PRU (IPER) DME»: l'arco è di PRU.
         t = RxDistanzaAlternativa().Replace(t, "");
+        // Passo 4: anche senza parentesi, «At 4 NM PIS DME or 7 NM PIN TACAN turn right» (LIRP RWY 21: prima U1 la leggeva come
+        // un errore di stampa).
+        t = RxDistanzaAlternativaSenzaParentesi().Replace(t, "$1");
         // U5: «PRU(IPER) DME», senza lo spazio prima della parentesi: toglierla incollava «PRUDME» (LIRZ LAKOX 3B).
         t = RxSiglaFraParentesiPrimaDiDme().Replace(t, " ");
         // Revisione col committente (carta §6), gruppo 2: le distanze DME scritte in un altro modo. «4NM ALG/AHO TACAN» è la
@@ -326,6 +469,10 @@ public static partial class ItalianAd2Prose
         // L1: «(293° IBLN LOC)» dopo una radiale è un'alternativa; la rotta per quando il VOR non c'è anche (LIPZ: «(TR 218°
         // in case of TES VOR unavailability)», che prima diventava una rotta e poi un punto, TES).
         t = RxLocFraParentesi().Replace(t, "");
+        // Passo 4, nelle salite iniziali: «at 3 NM PIS DME or overhead PIN TACAN» è un'alternativa (LIRP); «on DR 160°» è la rotta
+        // (LIPZ RWY 04).
+        t = RxSopraInAlternativa().Replace(t, "");
+        t = RxRottaDr().Replace(t, "TR $1°");
         t = RxSeIlVorNonCe().Replace(t, m => Marca('N', m.Value.Trim().TrimStart('(').TrimEnd(')')));
         t = RxRadialeConLaR().Replace(t, "RDL $1");
         t = RxDvor().Replace(t, "VOR");
@@ -375,6 +522,9 @@ public static partial class ItalianAd2Prose
         // Passo 2 della revisione col committente (carta §6, gruppo 5): «non si butta niente». Quote, velocità, autorizzazioni
         // e condizioni non sono pezzi del percorso, ma restano: un segnaposto (⟦Q+2800⟧ la quota, ⟦V-210⟧ la velocità, ⟦N…⟧
         // una nota, ⟦A…⟧ un avviso, ⟦B+1500⟧ «not below» da controllare) che il lettore mette nel tratto dove sta.
+        // Una parentesi che vale per una SID sola («(1600 ft or above only for SID NUCRE 6G)», «(left on DR 234° for SID VIC
+        // 1V only)»): una nota, com'è.
+        t = RxParentesiPerUnaSid().Replace(t, m => Marca('N', m.Groups[1].Value));
         t = RxMca().Replace(t, m => m.Groups["q"].Success ? Marca('Q', "+" + m.Groups["q"].Value) : Marca('N', m.Value.Trim('(', ')', ' ')));
         t = RxIas().Replace(t, m => Marca('V', "-" + m.Groups["v"].Value)
             + (m.Groups["resto"].Value.Trim() is { Length: > 0 } resto ? Marca('N', $"IAS MAX {m.Groups["v"].Value} KT {resto}") : ""));
@@ -790,6 +940,13 @@ public static partial class ItalianAd2Prose
 
         private void Calcolato(Position p, string definizione, string? rotta)
         {
+            // Lo stesso punto detto due volte di fila: la salita iniziale finisce «until 13NM PRU DME» e la SID comincia «At
+            // 13NM PRU DME» (SC1). Un punto solo.
+            if (_qui is { } qui && _quiNome is null && Sphere.DistanceNm(qui, p) < 0.05)
+            {
+                _puntoAppena = true;
+                return;
+            }
             var primo = _tratti.Count == 0 && _qui is null;
             _tratti.Add(new ProcedureLeg
             {
@@ -978,7 +1135,7 @@ public static partial class ItalianAd2Prose
     // VOR proceed …» = «da TOP VOR».
     [GeneratedRegex(@"\b(?:then|and|proceed|on|to|bound|direct|until|till|point|via|join|joining|intercept|follow|at|from|after|take-off|continue|the|be|or|turn|left|right|crossing|maintain|From|Proceed|Turn|Join|At|Then|And|After|Crossing"
         // «Cross EKTOL» a fine riga, con la quota andata sulla riga delle quote (LIBF EKTOL 6A): passare sul punto.
-        + @"|intercepting|following|Intercept|Intercepting|inbound|Inbound|Over|over|overflying|cross)\b|[,;.\-()]",
+        + @"|intercepting|following|Intercept|Intercepting|inbound|Inbound|Over|over|overflying|cross|climb)\b|[,;.\-()]",
         RegexOptions.CultureInvariant)]
     private static partial Regex RxRiempitivo();
 
@@ -1141,8 +1298,16 @@ public static partial class ItalianAd2Prose
     private static partial Regex RxInOgniCasoEntro();
 
     // Il percorso finisce dove comincia una nota sulla stessa riga («bound to URIPI. Minimum climb gradient: …», LIBF URIPI 6A).
-    [GeneratedRegex(@"\.\s+(?:REMARKS?\b|Minimum\s+climb\s+gradient\b).*$", RegexOptions.CultureInvariant | RegexOptions.Singleline)]
+    // Passo 4, nelle salite iniziali: anche «. Turn and climb parameters: …», «. Turn as IAS MAX 220 kt», «… (or 7 NM FAL TACAN)
+    // Remark: Minimum climb gradient …» senza il punto.
+    [GeneratedRegex(@"(?:\.\s+(?:REMARKS?\b|Minimum\s+climb\s+gradient\b|Turn\s+and\s+climb\s+parameters\b|Turns?\s+as\s+IAS\b)|\s+Remarks?\s*:).*$", RegexOptions.CultureInvariant | RegexOptions.Singleline)]
     private static partial Regex RxNotaInCoda();
+
+    [GeneratedRegex(@"(\b\d+(?:\.\d+)?\s+NM\s+[A-Z]{2,3}\s+(?:DME|TACAN))\s+or\s+\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,4}\s+(?:DME|TACAN)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxDistanzaAlternativaSenzaParentesi();
+
+    [GeneratedRegex(@"\s*\(([^()]*\bSIDs?\s+[A-Z][^()]*)\)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxParentesiPerUnaSid();
 
     [GeneratedRegex(@"\((?:ATC\s+discretion|to\s+be\s+used\s+only)[^)]*\)", RegexOptions.IgnoreCase)]
     private static partial Regex RxParentesiDiNota();
@@ -1220,6 +1385,12 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"\s*\(\s*\d{3}°\s+[A-Z]{3,5}\s+LOC\s*\)", RegexOptions.CultureInvariant)]
     private static partial Regex RxLocFraParentesi();
 
+    [GeneratedRegex(@"\s+or\s+overhead\s+[A-Z]{2,3}\s+(?:TACAN|VORTAC|VOR(?:/DME)?|DME|NDB)\b", RegexOptions.CultureInvariant)]
+    private static partial Regex RxSopraInAlternativa();
+
+    [GeneratedRegex(@"\bDR\s+(\d{3})°", RegexOptions.CultureInvariant)]
+    private static partial Regex RxRottaDr();
+
     [GeneratedRegex(@"\s*\(\s*TR\s+\d{3}°\s+in\s+case\s+of[^)]*\)", RegexOptions.CultureInvariant)]
     private static partial Regex RxSeIlVorNonCe();
 
@@ -1229,6 +1400,10 @@ public static partial class ItalianAd2Prose
 
     [GeneratedRegex(@"(?<![A-Za-z])([A-Z])\s([a-z]{2,})\b", RegexOptions.CultureInvariant)]
     private static partial Regex RxParolaSpezzata();
+
+    // Le coppie anche sovrapposte («take-off pro ceed»: «off pro» non deve nascondere «pro ceed»).
+    [GeneratedRegex(@"\b(?=([a-z]{2,})\s([a-z]{2,})\b)", RegexOptions.CultureInvariant)]
+    private static partial Regex RxParolaSpezzataMinuscola();
 
     [GeneratedRegex(@"\bRDL\s*(\d{3})([A-Z]{2,3})\b", RegexOptions.CultureInvariant)]
     private static partial Regex RxSiglaAttaccataAllaRadiale();
