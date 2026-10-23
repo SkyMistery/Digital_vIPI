@@ -200,6 +200,11 @@ public sealed class AirportMemberLoader
         // ⚠️ IN FONDO, non appena caricato il documento: le sezioni derivate e le piste si leggono
         // dall'originale (ids, identificatori, JSON dei blocchi), la traduzione porta la PROSA. Tradurre prima
         // significherebbe cercare «regulated» in un documento che nel frattempo dice altro.
+        // Il testo comune delle torri radar (S127) in testa alla tecnica operativa, PRIMA della traduzione: sono
+        // blocchi della sezione come gli altri, e il lettore inglese li legge tradotti. Dalla vista derivata, quindi
+        // congelato con la release.
+        view = SezioniDocumentali.ConSezioni(view, TorreRadar.ConTestoComune(view.Sections, derived.RadarTower));
+
         var tradotto = await _translator.TranslateAsync(view, Language.It, lettore, ct);
         view = tradotto.View;
 

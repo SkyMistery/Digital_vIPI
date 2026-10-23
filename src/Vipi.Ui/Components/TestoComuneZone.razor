@@ -1,0 +1,194 @@
+@* ---- Il testo comune di una sezione, in testa alla sezione nell'editor (S127) -------------------------------
+   Carta: docs/feature/2026-10-22-testo-comune.md
+
+   Il testo che ogni documento con questa sezione mostra in testa ai blocchi suoi (oggi: la «Tecnica operativa» delle
+   torri radar). Chi scrive lo scalo lo vede in grigio e non lo tocca; un admin lo modifica qui, da qualunque scalo, e
+   cambia per tutti.
+
+   ⚠️ Gemella di PageIntroZone (stesso lock, stesso «Fine modifica» che salva, stesso editor di blocchi), con una
+   differenza che conta: questo testo SI CONGELA con la release. Salvare non cambia le pagine pubbliche; apre la riga
+   «Da rivedere» sugli scali da ripubblicare (ImpactKind.CommonTextChanged), e il passo parte subito.
+
+   ⚠️ Lo stato vive DENTRO l'isola e nel suo scope: l'editor del documento intorno sta leggendo e scrivendo il suo
+   DbContext, e due operazioni sullo stesso contesto di circuito sono il guasto «second operation». E ogni lettura e
+   scrittura passa da `InFilaAsync` (la terza porta): chi chiude l'editor con una lettura in volo non si porta via il
+   DbContext sotto la query.
+*@
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Content
+@using Vipi.Domain
+@inherits ScopeProprioCheAspetta
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+
+<div class="testo-comune">
+    <div class="section-title doc-head st-head">
+        <span class="tc-h"><Icon Name="link" Size="14" /> @L["TestoComune_Title"]</span>
+        <HelpHint Href="/services/vsop/guide#testo-comune" AriaLabel="@L["TestoComune_HelpAria"]">
+            @((MarkupString)L["TestoComune_HelpBody"].Value)
+        </HelpHint>
+        <span class="ln"></span>
+        <LiveRegion>
+            @if (_sporco)
+            {
+                <span class="st-msg warn"><Icon Name="warning" Size="14" /><span class="st-msg-t">@L["PageIntro_Unsaved"]</span></span>
+            }
+            @if (_msg is { } m)
+            {
+                <span class="st-msg ok"><Icon Name="check-circle" Size="14" /><span class="st-msg-t">@m</span></span>
+            }
+            @if (_errore is { } er)
+            {
+                <span class="st-msg warn"><Icon Name="warning" Size="14" /><span class="st-msg-t">@er</span></span>
+            }
+        </LiveRegion>
+        @if (Authz.IsAdmin)
+        {
+            <EditLockBar ResourceKey="@TestoComune.ChiaveLock(Sezione)" Acquired="RileggiAllaPresaAsync"
+                         LockChanged="OnLockChanged" BeforeRelease="SalvaSeSporcoAsync" />
+        }
+    </div>
+
+    @if (_blocchi is null)
+    {
+        @* Prima lettura: niente. *@
+    }
+    else if (_modifica)
+    {
+        <DocumentBlocksEditor Blocks="_blocchi" Editing="true" OnChanged="Sporca" />
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px">
+            <button class="btn primary" disabled="@(!_sporco || _salvando)" @onclick="SalvaAsync">@L["Common_Save"]</button>
+            <span class="muted" style="font-size:12px">@L["TestoComune_SaveHint"]</span>
+        </div>
+    }
+    else if (_vista.Count > 0)
+    {
+        @foreach (var b in _vista)
+        {
+            <BlockRenderer Block="b" />
+        }
+    }
+    else
+    {
+        <p class="muted" style="margin:6px 0">@L["TestoComune_Empty"]</p>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Il preludio delle sezioni che hanno un testo comune, per <c>DocumentSectionsEditor.SectionPrelude</c>: lo
+    /// passano l'editor della vIPI d'aeroporto e quello del vSOP militare, che hanno la stessa sezione. Un posto solo
+    /// dice quali sezioni ce l'hanno.
+    /// </summary>
+    public static RenderFragment? Preludio(EditableSection s) =>
+        string.Equals(s.SectionKey, SectionKeys.RadarTowerTechnique, StringComparison.OrdinalIgnoreCase)
+            ? @<TestoComuneZone Sezione="@SectionKeys.RadarTowerTechnique" />
+            : null;
+
+    /// <summary>La chiave della sezione di cui questo è il testo comune.</summary>
+    [Parameter, EditorRequired] public string Sezione { get; set; } = default!;
+
+    /// <summary>I blocchi come sono SCRITTI. null = non ancora letti.</summary>
+    private List<ExtraBlock>? _blocchi;
+    private IReadOnlyList<BlockView> _vista = Array.Empty<BlockView>();
+
+    private bool _modifica;
+    private bool _sporco;
+    private bool _salvando;
+    private string? _msg;
+    private string? _errore;
+    private string _caricata = "";
+
+    private ITestoComuneStore Deposito => ScopedServices.GetRequiredService<ITestoComuneStore>();
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira UNA VOLTA SOLA.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_caricata == Sezione) return;
+        _caricata = Sezione;
+        await CaricaAsync();
+    }
+
+    private Task CaricaAsync() => InFilaAsync(async () =>
+    {
+        _blocchi = (await Deposito.LeggiAsync(Sezione)).ToList();
+        _vista = TestoComune.Vista(_blocchi);
+    });
+
+    /// <summary>«Fine modifica» salva, come nelle intro: chi ha finito di scrivere non perde il lavoro in silenzio.</summary>
+    private async Task<bool> SalvaSeSporcoAsync()
+    {
+        if (!_sporco) return true;
+        await SalvaAsync();
+        return !_sporco;
+    }
+
+    /// <summary>Alla presa del lock si rilegge (U-117): chi aspettava aveva in mano il testo letto all'apertura.</summary>
+    private async Task RileggiAllaPresaAsync()
+    {
+        _sporco = false;
+        await CaricaAsync();
+    }
+
+    private async Task OnLockChanged(bool mio)
+    {
+        _modifica = mio;
+        _errore = null;
+        if (mio) _msg = null;
+        if (!mio)
+        {
+            if (_sporco) await CaricaAsync();
+            _sporco = false;
+        }
+    }
+
+    private void Sporca()
+    {
+        _sporco = true;
+        _msg = null;
+    }
+
+    private async Task SalvaAsync()
+    {
+        _salvando = true;
+        _msg = null;
+        _errore = null;
+        try
+        {
+            await InFilaAsync(() => Deposito.SalvaAsync(Sezione, _blocchi!));
+            await CaricaAsync();
+            _sporco = false;
+            // Il passo del «Da rivedere» subito, non al giro della notte: chi ha appena cambiato il testo di tutte le
+            // torri vuole sapere quali scali ripubblicare. ⚠️ Un suo errore non disfa il salvataggio, che è avvenuto:
+            // lo dice, e il giro della notte rifarà il conto.
+            try
+            {
+                var aperti = 0;
+                // ⚠️ Un BLOCCO, non un'espressione: `aperti = …` come espressione renderebbe la lambda un
+                // Func<Task<int>> e sceglierebbe l'altro overload (vedi ScopeProprioCheAspetta).
+                await InFilaAsync(async () =>
+                {
+                    aperti = (await ScopedServices.GetRequiredService<IImpactDriftUseCase>().RunTestoComuneAsync()).Aperti;
+                });
+                _msg = aperti > 0
+                    ? string.Format(L["TestoComune_SavedToRepublish"], aperti)
+                    : L["Ed_Saved"].Value;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _msg = L["Ed_Saved"].Value;
+                _errore = L["TestoComune_DriftFailed"].Value;
+            }
+        }
+        catch (EditNotAllowedException)
+        {
+            _errore = L["TestoComune_NotAllowed"].Value;
+        }
+        catch (EditConflictException ex)
+        {
+            _errore = ex.Message;
+        }
+        finally { _salvando = false; }
+    }
+}

@@ -214,6 +214,11 @@ public sealed class MilMemberLoader
         // ⚠️ Il vSOP militare nasce in ITALIANO (carta §1d): la lingua sorgente è quella in cui si REDIGE,
         // non quella dei quindici PDF di partenza. «It» qui è solo la lingua di NASCITA della famiglia: la
         // sorgente vera la porta il documento.
+        // Il testo comune delle torri radar (S127) in testa alla tecnica operativa, PRIMA della traduzione: sono
+        // blocchi della sezione come gli altri, e il lettore inglese li legge tradotti. Dalla vista derivata, quindi
+        // congelato con la release militare.
+        view = SezioniDocumentali.ConSezioni(view, TorreRadar.ConTestoComune(view.Sections, derivate.RadarTower));
+
         var tradotto = await _translator.TranslateAsync(view, Language.It, lettore, ct);
         view = tradotto.View;
 

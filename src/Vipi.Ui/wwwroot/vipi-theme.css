@@ -1203,6 +1203,12 @@
    sarebbero due posti a deciderlo e quello sbagliato sarebbe questo. Resta il respiro sotto, che separa
    l'intro dall'elenco che introduce. */
 :where(.vipi-root) .page-intro{margin:0 0 18px}
+/* ---- Testo comune di una sezione, nell'editor (S127, carta docs/feature/2026-10-22-testo-comune.md) ----
+   In testa alla sezione e DIVERSO dai blocchi dello scalo: chi scrive lo scalo deve vedere a colpo d'occhio che
+   quella parte non è sua. Fondo spento e bordo tratteggiato, come una cosa che arriva da fuori; i blocchi dentro
+   sono quelli di sempre. */
+:where(.vipi-root) .testo-comune{background:var(--surface-muted);border:1px dashed var(--line);border-radius:var(--radius);padding:8px 12px 10px;margin:0 0 12px}
+:where(.vipi-root) .testo-comune .tc-h{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-soft)}
 :where(.vipi-root) .staff-sec>summary{cursor:pointer;list-style:none;user-select:none}
 :where(.vipi-root) .staff-sec>summary::-webkit-details-marker{display:none}
 :where(.vipi-root) .staff-sec>summary .chev{display:inline-block;font-size:14px;color:var(--muted);transition:.2s}

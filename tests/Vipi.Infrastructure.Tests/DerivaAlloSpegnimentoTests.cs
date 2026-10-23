@@ -18,6 +18,8 @@ public class DerivaAlloSpegnimentoTests
         public Task<ImpactDriftResult> RunAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task<ImpactDriftResult> RunTestoComuneAsync(CancellationToken ct = default) =>
+            throw new NotSupportedException();
 
         public Task<ImpactDriftResult> RunAfterChangesAsync(FinestraDiModifiche finestra, CancellationToken ct = default)
         {

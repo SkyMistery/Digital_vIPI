@@ -43,6 +43,70 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### ✅ A166 — 1.73.0 ONLINE: il testo comune delle torri radar nel pannello Traduzione (S128) (22 ottobre 2026)
+
+✅ Online dal 22 ottobre 2026: il committente conferma la 1.73 e `Schema 0`. Da fuori, da anonimo, alle 21:23Z: `/` 302,
+porta «Entra con IVAO», Ricerca 401, `vipi-theme.css?v=e393251a` (invariato, come atteso), `/vsop/health` e
+`/vsop/health/ready` Healthy (la prima lettura di health 4,7 s, le altre sotto 0,3 s). Non guardato da qui, dietro il
+login: le frasi «testo comune» nel pannello Traduzione. `main` @ `47f6ad57` pushato dal committente a mano (il
+cancello rifiutava la chat che ha preparato il pacchetto: il ruolo era di un'altra chat Master).
+
+MINOR **senza migrazioni**, misurata dalla **1.72.0** (`0dc563d`) che gira. Timbro **`1.73.0 · f7baf05`**.
+Fusa da `sito/lavori` @ `9ef00af3` (cartellino 🟢, CI 4/4 run 39831115129), fusione `e116fad2` senza conflitti.
+- **S128**: le frasi del testo comune delle torri radar (S127) nel pannello «Traduzione» di ogni vIPI/vSOP italiano con
+  la «Tecnica operativa», in coda e segnate «testo comune»; le corregge solo un admin (servizio + pannello), la resa
+  vale per tutte le torri. Codice comune: Application (`DocumentTranslationReview`, `RigaDaRivedere.Comune`, parametro
+  in coda: la costruiscono solo Application e Ui, spediti insieme; il costruttore nuovo del servizio lo risolve la DI).
+  Storia in `docs/filoni/sito.md`.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone`). `lab/f3` non toccato.
+
+**7 file** (`solo-7-file-1.73.0`): Application, Ui, Host (dll + pdb) ed `en/Vipi.Ui.resources.dll`, confrontati col
+publish della **1.72.0** (`publish_old/20261022a`): 482 file, 19 con impronta diversa, `wwwroot` invariato (fuori
+anche l'indice degli asset). Nessuna `const` cambiata. Zip 4,44 MB, sha256
+`8d28374f3e214fab1d96f687b91b9377924b5929183f04e9ecb8d4062912b64e`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3466, Ui 2124). Prova sul publish win-x64 (copia del
+database di sviluppo, cancellata a fine prova): `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`); con LIRF
+a torre radar «sì» e un testo comune seminato nella copia, nel pannello «Traduzione» dell'editor di LIRF la frase in
+coda, segnata «common text», sotto «Common text of the radar towers». Non visto: il pannello di chi non è admin (il
+Sito l'ha provato in bUnit). Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.73.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; rileggere la traduzione inglese del testo comune. Rollback: le
+rinomine.
+
+### ✅ A165 — 1.72.0 ONLINE: il testo comune delle torri radar (S127) (22 ottobre 2026)
+
+✅ Online dal 22 ottobre 2026: il committente conferma la 1.72 e `Schema 0`. Da fuori, da anonimo, alle 17:26Z: `/` 302,
+porta «Entra con IVAO», Ricerca e API settori 401, `vipi-theme.css?v=e393251a` (quello del pacchetto), `/vsop/health` e
+`/vsop/health/ready` Healthy, tempi di nuovo normali (`/` 0,27 s). ⚠️ Caricata prima della CI di `main`: GitHub Actions era
+degradato (incidente dalle 15:28Z) e la corsa su `9b4c3742` è partita solo alle 17:2xZ; l'albero fuso era identico a
+`160b698a` del Sito, verde in CI. Non guardati da qui, dietro il login: il riquadro del testo comune.
+
+MINOR **senza migrazioni**, misurata dalla **1.71.0** (`21af7c1`) che gira. Timbro **`1.72.0 · 0dc563d`**. Fusa da
+`sito/lavori` @ `160b698a` (cartellino 🟢, CI verde run 39801636883), fusione `741abd91` senza conflitti.
+- **S127**: due callout scritti una volta (riga `SharedBlocks` `section-common:radartower:technique`) e mostrati in testa
+  alla «Tecnica operativa» di ogni scalo con torre radar; congelati con la release (`AirportRadarTowerView.Comune`),
+  iniettati prima della traduzione (`TorreRadar.ConTestoComune`), modificabili solo dagli admin (`TestoComuneZone`);
+  «Da fare» calcola `ImpactKind.CommonTextChanged` (in fondo all'enum: i valori esistenti non si spostano). Carta
+  `docs/feature/2026-10-22-testo-comune.md`.
+- Codice comune: Domain (enum), Application. `const` solo nuove (`ImpactKind`, `Prefisso`, `Sorgente`, `PrimoOrdine`).
+- ⚠️ Non guardato sulla copia di produzione (il Sito lo chiedeva): se qualche scalo aveva già copiato a mano quei
+  callout, li vedrebbe due volte. Scritto nel foglio per il committente.
+
+**15 file** (`solo-15-file-1.72.0`): Domain, Application, Infrastructure, Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`,
+`vipi-theme.css` (con `.br`/`.gz`) e `endpoints.json`, confrontati col publish della **1.71.0** (`publish_old/20261021c`):
+482 file, 23 con impronta diversa; fuori Hosting, Infrastructure.MySqlMigrations, AuroraBridge.Contracts e
+AuroraProfiles (sorgente invariato, solo MVID). Zip 6,23 MB, sha256
+`c94e91f7c4e92e4411493595b9c8401194392cae6168efa5d70a30782dc40d45`. Build Release senza avvisi; `dotnet test` 18
+riepiloghi tutti `Passed!`, conteggi identici all'atteso (App 3460, Infra 2250, Ui 2122). Prova sul percorso della
+produzione, su una copia del database di sviluppo (cancellata a fine prova): publish win-x64 della 1.71.0, poi LIRF con
+torre radar, poi publish win-x64 della 1.72.0: avvio pulito, `pacchetto-verifica.js` 11 controlli verdi (`TERMINE=LIBB`),
+nell'editor di LIRF la zona `testo-comune`, console e log del server puliti; `vipi-theme.css?v=e393251a`. Non visti sul
+pacchetto: il testo comune scritto e il «Da fare» che chiede di ripubblicare (provati dal Sito su DB nuovo). Foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.72.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`; scrivere il testo comune vero e ripubblicare gli scali che «Da fare»
+elenca. Rollback: le rinomine.
+
 ### ✅ A164 — 1.71.0 ONLINE: allegati nei callout, link, le note nei blocchi, via le note dei trasferimenti (S121–S126), migrazione DISTRUTTIVA (21 ottobre 2026)
 
 ✅ Online dal 21 ottobre 2026: il committente conferma la 1.71 e `Schema 0` (la migrazione `TogliNoteTrasferimenti` è

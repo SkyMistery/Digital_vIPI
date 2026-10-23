@@ -50,6 +50,16 @@ else
     /// <summary>Corpo che la pagina disegna per le sezioni rese da lei (contenuto calcolato live).</summary>
     [Parameter] public RenderFragment<EditableSection>? DerivedContent { get; set; }
 
+    /// <summary>
+    /// Quel che la pagina mette in TESTA al corpo di una sezione, prima di tutto il resto; <c>null</c> per le sezioni
+    /// che non ne hanno. Serve al testo comune (S127): nella «Tecnica operativa» delle torri radar, in grigio, il testo
+    /// che ogni scalo mostra in testa ai blocchi suoi.
+    /// <para>⚠️ Non è <see cref="DerivedContent"/>: quella è la scheda delle sezioni rese dalla pagina, e farne una per
+    /// la tecnica operativa avrebbe voluto dire cambiarle tipo nel catalogo — col segnaposto nelle sezioni già scritte
+    /// e il conteggio dei blocchi cambiato in ogni documento pubblicato.</para>
+    /// </summary>
+    [Parameter] public Func<EditableSection, RenderFragment?>? SectionPrelude { get; set; }
+
     /// <summary>Sezione obbligatoria: titolo bloccato (no rinomina/sposta/elimina), ma sotto-sezioni extra permesse.</summary>
     [Parameter] public Func<EditableSection, bool>? IsMandatory { get; set; }
     /// <summary>Sezione derivabile che espone il toggle Live/Frozen (doc 10 §3a/§S4c): tipicamente le sezioni derivate
@@ -885,6 +895,7 @@ else
     // corpo, figlie «dopo», e l'alternanza non si poteva scrivere.
     private RenderFragment SectionBody(EditableSection s, int relDepth) => __builder =>
     {
+        @SectionPrelude?.Invoke(s)
         var childOffsets = SectionOrdering.OffsetsFromStandard(Profile, s.Children);
         @foreach (var v in Fila(s))
         {

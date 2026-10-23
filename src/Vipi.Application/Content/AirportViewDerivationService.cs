@@ -63,9 +63,14 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
     private readonly IAirportSidDerivationService _sids;
     private readonly IFrozenSectionReader _frozen;
 
+    /// <summary>Il testo comune delle torri radar (S127), per la vista LIVE: la bozza mostra quello di adesso, la
+    /// pagina pubblica quello congelato. Opzionale: senza, la vista live non lo porta.</summary>
+    private readonly ITestoComuneStore? _comune;
+
     public AirportViewDerivationService(IAirportProfileReader repo, IAirportSectorService sectors,
-        IAirportSidDerivationService sids, IFrozenSectionReader frozen)
+        IAirportSidDerivationService sids, IFrozenSectionReader frozen, ITestoComuneStore? comune = null)
     {
+        _comune = comune;
         _repo = repo;
         _sectors = sectors;
         _sids = sids;
@@ -101,7 +106,14 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
         freqs ??= AirportSectionProjection.Frequencies(
             await _sectors.ListByAirportAsync(icao, ct), data?.Links);
         lvp ??= AirportSectionProjection.Lvp(data);
-        radar ??= AirportSectionProjection.RadarTower(data);
+        // ⚠️ Il testo comune (S127) solo sul ramo LIVE: una release che non l'ha congelato non lo mostra — è scattata
+        // prima che esistesse, e lo mostrerà la pubblicazione seguente (la riga «Da rivedere» lo chiede).
+        radar ??= _comune is null
+            ? AirportSectionProjection.RadarTower(data)
+            : AirportSectionProjection.RadarTower(data) with
+            {
+                Comune = await _comune.VistaAsync(SectionKeys.RadarTowerTechnique, ct),
+            };
 
         // Le procedure dallo STESSO lotto: chiamare qui il metodo pubblico rileggerebbe lo snapshot una
         // sesta volta. I due versi si chiedono separati, come sono separate le loro sezioni.

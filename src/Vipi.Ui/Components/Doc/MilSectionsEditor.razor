@@ -143,7 +143,7 @@ else
             @* §A73: lo scalo del documento, per il selettore delle SID citate nel testo. *@
             <CascadingValue Name="IcaoDelDocumento" Value="_icao">
             <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
-                                    DerivedContent="DerivedSection"
+                                    DerivedContent="DerivedSection" SectionPrelude="TestoComuneZone.Preludio"
                                     IsMandatory="IsMandatory" Profile="SectionProfile.AirportMil"
                                     IsRenderModeToggleable="IsRenderModeToggleable"
                                     ShowToc="Chrome" ExtraTocItems="_tocExtra" TocFooter="@TocCommands">

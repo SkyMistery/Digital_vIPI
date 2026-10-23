@@ -383,6 +383,15 @@ public sealed class EfStatoTraduzione : IStatoTraduzione
                 foreach (var s in DocumentTranslator.SegmentiSezione(sezione))
                     intro.Add(s);
 
+        // E il testo comune delle sezioni (S127): nasce in italiano anche lui, e sta nella stessa tabella.
+        var comuni = await _db.SharedBlocks.AsNoTracking()
+            .Where(b => b.Key.StartsWith(TestoComune.Prefisso) && b.BodyJson != null)
+            .Select(b => b.BodyJson)
+            .ToListAsync(ct).ConfigureAwait(false);
+        foreach (var j in comuni)
+            foreach (var s in DocumentTranslator.SegmentiSezione(TestoComune.ComeSezione(TestoComune.Parse(j))))
+                intro.Add(s);
+
         var introDa = PageIntro.Sorgente == Language.En ? "en" : "it";
         var introA = introDa == "it" ? "en" : "it";
 

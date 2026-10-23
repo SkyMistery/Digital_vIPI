@@ -115,6 +115,21 @@ public sealed class EfTranslatableCorpus : ITranslatableCorpus
                         segmenti.Add(s);
         }
 
+        // ⚠️ E il testo comune delle sezioni (S127): sta nella stessa tabella delle intro e non in un documento, quindi
+        // per lo stesso motivo nessun altro pezzo del corpus lo vede. Senza, la tecnica operativa di una torre radar
+        // avrebbe in testa due callout italiani in mezzo a una pagina inglese.
+        if (lingua == TestoComune.Sorgente)
+        {
+            var comuni = await _db.SharedBlocks.AsNoTracking()
+                .Where(b => b.Key.StartsWith(TestoComune.Prefisso) && b.BodyJson != null)
+                .Select(b => b.BodyJson)
+                .ToListAsync(ct).ConfigureAwait(false);
+
+            foreach (var json in comuni)
+                foreach (var s in DocumentTranslator.SegmentiSezione(TestoComune.ComeSezione(TestoComune.Parse(json))))
+                    segmenti.Add(s);
+        }
+
         segmenti.Remove("");
         return segmenti.ToList();
     }

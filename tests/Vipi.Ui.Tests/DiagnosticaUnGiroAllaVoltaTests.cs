@@ -98,6 +98,8 @@ public class DiagnosticaUnGiroAllaVoltaTests : TestContext
             throw new NotSupportedException();
         public Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task<ImpactDriftResult> RunTestoComuneAsync(CancellationToken ct = default) =>
+            throw new NotSupportedException();
     }
 
     private static T Proxy<T>(Contesto db) where T : class
