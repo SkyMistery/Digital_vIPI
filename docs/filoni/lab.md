@@ -4,6 +4,51 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+## Dove siamo — 25 ottobre 2026: revisione del 2611 chiusa, aspetta le prove del committente
+
+Il committente ha chiuso la chat (25 ottobre) per riaprirne una con le regole nuove. Il ramo `lab/f3` è **pronto da
+fondere**, CI verde, allineato a `main` 1.74.0.
+
+**Cosa è stato fatto dal 23 al 25 ottobre.** È la revisione col committente delle procedure che il lettore non leggeva:
+carta [`2026-10-23-segnalazioni-2611.md`](../feature/2026-10-23-segnalazioni-2611.md), §6 per le regole e «Passo 1-8» e
+«Revisione 2-5» per i risultati, ognuno misurato sul 2611 intero.
+- **Passi 1-7**: testo rotto ed errori di stampa, «non si butta niente», piste e declinazione, salite iniziali,
+  pendenze come dato e virate a una quota, localizzatori con la curva, stazioni straniere dall'app.
+- **Passo 8**, richiesta di ATCSim:
+  - i tratti hanno i tipi ARINC (CD/FD/CR/CA/VD/VR/VA) con stazione, radiale e DME;
+  - le MEA delle STAR sono a tratti;
+  - le SID di Comiso si leggono per pista.
+- **Revisioni 2-5**:
+  - le frasi non capite;
+  - le procedure senza una rotta;
+  - le ultime cinque non lette;
+  - l'AD 2.2 letto dalle etichette (52 scali minori con la declinazione giusta);
+  - le coordinate dei punti stampate male.
+
+**Risultato sul 2611.** Procedure lette dalla prosa: 742 → **970**. Non lette: 166 → **12**, tutte per AJO, che si
+aggiunge dal Lab. Segnalazioni: **306**, quasi tutte approssimazioni dette. Codice comune: il modello `Aip` (`ProcedureLeg`
+ha `Navaid`, `Radial`, `DmeNm`, `MinimumAltitude`, `ArcCenterPosition`; `Procedure.ClimbGradients`). Test: importer 345,
+Lab 1 410. L'eseguibile di prova è a `31a39bc9`.
+
+**Corretto anche nel Lab.**
+- Dopo «Leggi»/«Rileggi» la mappa e l'Indice ora si rifanno.
+- L'avviso «Rileggi» per una radioassistenza aggiunta ora sta nella scheda.
+
+**Prossimo.**
+1. Le prove del committente: `SectorLab-prova\PROVE.md`, riscritto il 24 ottobre, dalla **A10b** (Rileggi del 2611) alla
+   A59, coi numeri rimisurati sul banco col 2611 completo.
+2. La fusione in `main`: la fa il Master con «fondi» del committente. Il passo 8 è già stato girato ad ATCSim
+   (`a3dc2a7f`).
+3. Rifinitura, se il committente la vuole:
+   - 10 pagine senza tabella;
+   - 5 attese;
+   - 4 aree che non si chiudono (LIBD FL100, LIEO TRL, LIPX 3000, LIPR).
+
+**Strumenti fuori dal repo** (scratchpad delle chat, si rifanno se mancano):
+- la **sonda** `tests/Vipi.SectorLab.Tests/PdfAip/SondaProsaTests.cs`, da non committare mai: con `SONDA_PROSA=<nome>`
+  scrive `prosa-<nome>.json`, che si confronta con `conf8d.py`;
+- il **banco** a schermo, descritto più sotto.
+
 ## Dove siamo — 23 ottobre 2026: le segnalazioni del 2611, B1-B3, B5, B6, B7 e B8 fatte
 
 Letti gli 851 PDF del 2611, il Lab dava 542 segnalazioni: divise per causa nella carta
