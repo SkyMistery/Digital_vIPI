@@ -939,7 +939,63 @@ public sealed class Ad2ProseTests
     [InlineData("(ATC discretion)\nInitial climb procedure completed turn left until joining RDL 003 ALG VOR (TR 183°).", true)]
     [InlineData("Proceed on TR 041° until 7 NM IFA DME, then turn right to join RDL 039 ANC VOR (TR 219°).", false)]
     [InlineData("After take-off proceed on RWY heading until 2 NM TES DME.", false)]
+    // Giro del 26 ottobre: anche dopo le note fra parentesi, col punto o senza (LIPX RWY 22, LIEA MINKA 9C).
+    [InlineData("(ATC discretion)\nTurn left on TR 089° until joining RDL 137 VIL VOR bound to ITEFE.", true)]
+    [InlineData("(On pilot’s request only).\nInitial climb procedure completed turn right on TR 115°.", true)]
     public void UnaSidCheNonPorteDallaPista(string testo, bool continua) => Assert.Equal(continua, ItalianAd2Prose.ContinuaLaSalita(testo));
+
+    // Giro del 26 ottobre: la rotta con cui comincia una SID senza «After take-off».
+    [Theory]
+    [InlineData("(ATC discretion)\nProceed on TR 276° until intercepting and following RDL 306 BCS VOR (TR 306°) bound to DOLON.", 276d)]
+    [InlineData("(4)\nProceed on track 108° to join and follow RDL 138 LIN VOR.", 108d)]
+    [InlineData("Proceed on heading 160° until joining RDL 098 GRO VOR bound to GIKIN.", 160d)]
+    [InlineData("After take-off proceed on TR 164°.", null)]
+    [InlineData("Proceed on RDL 198 RCA VOR bound to BERMI.", null)]
+    public void LaRottaDiPartenza(string testo, double? rotta) => Assert.Equal(rotta, ItalianAd2Prose.RottaDiPartenza(testo));
+
+    // Giro del 26 ottobre (le «SID dalla soglia» delle segnalazioni del 2611, LIBR RWY 13): una SID che comincia con una rotta
+    // lontana dalla pista, senza «After take-off», continua la salita iniziale della pista; la virata dopo il decollo è la sua.
+    // «1500ft AMSL» è una quota, non un punto (LIMC RWY 17L/17R).
+    [Fact]
+    public void LaSidCheCominciaConUnaRottaLontana_ContinuaLaSalita()
+    {
+        var documento = new AipDocument
+        {
+            State = "LI", Airac = "2611", Airspaces = [],
+            Points = [new SignificantPoint { Section = "ENR 4.4", Designator = "SUGEP", Position = Punti["SUGEP"] }],
+            Aerodromes =
+            [
+                new Aerodrome
+                {
+                    Icao = "LIXX", Name = "Prova", MagneticVariation = "3° E (2020.0)",
+                    NavigationAids = [new Navaid { Section = "AD 2.19", Designator = "LMT", Name = "LAMEZIA", Type = "DVOR/DME", MagneticVariation = "3° E-2010.0", Position = Stazioni["LMT"].Position, Components = [] }],
+                    Runways = [new() { Designator = "13", TrueBearing = "133°", Threshold = new Position(38.95, 15.90) }],
+                },
+            ],
+            Procedures =
+            [
+                new Procedure { Aerodrome = "LIXX", Kind = ProcedureKind.InitialClimb, Designator = "RWY 13", Runways = ["13"],
+                    Description = "After take off turn right until joining RDL 130 LMT VOR (TR 130°) until 8NM LMT DME." },
+                new Procedure { Aerodrome = "LIXX", Kind = ProcedureKind.Sid, Designator = "SUGEP 1G", Runways = ["13"],
+                    Description = "(ATC discretion)\nProceed on TR 040° bound to SUGEP." },
+            ],
+        };
+
+        var (letto, nonLette, avvisi) = ItalianAd2Prose.DecodeAll(documento);
+
+        var sid = letto.Procedures!.Single(p => p.Designator == "SUGEP 1G");
+        Assert.Equal("RDL 130/8 NM LMT", sid.Legs[0].Fix ?? sid.Legs[0].Computed);
+        Assert.Equal("SUGEP", sid.Legs[^1].Fix);
+        Assert.DoesNotContain(avvisi, a => a.Warning.Contains("soglia", StringComparison.Ordinal));
+        Assert.Empty(nonLette);
+
+        var conAmsl = new Procedure { Aerodrome = "LIXX", Kind = ProcedureKind.InitialClimb, Designator = "RWY 13", Runways = ["13"],
+            Description = "After take-off proceed on TR 130° until passing 1500ft AMSL, then turn right to join the assigned SID." };
+        // Senza il decollo (la pendenza) la virata a una quota non si disegna: qui conta che AMSL non sia preso per un punto.
+        var (_, problema, _) = ItalianAd2Prose.DecodeWithWarnings(conAmsl, n => Punti.TryGetValue(n, out var x) ? x : null,
+            n => Stazioni.GetValueOrDefault(n), new ItalianAd2Prose.Runway(new Position(38.95, 15.90), 133), aerodromeVariation: 3);
+        Assert.StartsWith("«until passing 1500 ft»", problema, StringComparison.Ordinal);
+    }
 
     // SC1 e SC2 dentro DecodeAll: la salita iniziale ha i suoi tratti; la SID che comincia «At 14NM LMT DME» la continua; una
     // SID per due piste con salite diverse si legge una volta per pista; le quote che nominano un punto fuori dal percorso

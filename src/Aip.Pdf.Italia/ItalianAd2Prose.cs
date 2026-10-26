@@ -311,7 +311,14 @@ public static partial class ItalianAd2Prose
                 : dellaPagina ?? comeLaSalita
                 ?? PistaDallaRotta(p, scalo, declinazione, p.Runways.Count > 0 ? p.Runways : null) ?? p.Runways.FirstOrDefault();
             var da = Decodifica(p, pistaDellaSid, null);
-            if (p.Kind != ProcedureKind.Sid || !(ContinuaLaSalita(p.Description) || nominanti.Count > 0))
+            // Giro del 26 ottobre (le «SID dalla soglia» delle segnalazioni): una SID che comincia con una rotta lontana dalla
+            // pista («Proceed on TR 029° until intercepting RDL 075 BCS VOR», LIBR RWY 13, a 104°), senza «After take-off», sulla
+            // pista che ha una salita iniziale: la virata dopo il decollo è quella della salita, e la SID la continua.
+            var daUnaRotta = p.Kind == ProcedureKind.Sid && pistaDellaSid is { } pr && declinazione is { } decl
+                && RottaDiPartenza(p.Description) is { } rotta && Pista(scalo, pr) is { } rw
+                && Math.Abs(Sphere.Normalize(rw.TrueBearing - (rotta + decl) + 180) - 180) > 15
+                && salite[p.Aerodrome].Any(s => PisteDi(s).Contains(pr, StringComparer.Ordinal) && HaUnPercorso(s.Description));
+            if (p.Kind != ProcedureKind.Sid || !(ContinuaLaSalita(p.Description) || nominanti.Count > 0 || daUnaRotta))
             {
                 if (da.Problema is null) return [Letta(p, da)];
                 nonLette.Add((p, da.Problema));
@@ -642,6 +649,9 @@ public static partial class ItalianAd2Prose
         // sempre dopo il decollo); «Leave AEA VOR on RDL 149» è «AEA VOR, poi la radiale 149 di AEA».
         t = RxAppenaPossibile().Replace(t, m => Marca('N', m.Value.Trim().Trim(',')));
         t = RxFineSalitaIniziale().Replace(t, "After take-off");
+        // Giro del 26 ottobre: «on TR 262° (RDL 082 RIM VOR) or TR 281° (RDL 101 RIM VOR) for aircraft CAT A/B» (LIPR): vale la
+        // prima, l'alternativa delle categorie resta nota.
+        t = RxAlternativaPerCategoria().Replace(t, m => Marca('N', m.Value));
         // «to leave on RDL 215° GRO VOR» (LIRS ILOWE 1X): il segno dei gradi va tolto prima, se no resta da solo; «When at
         // D3 DEC TACAN» è «At» (LIEE KOVAS 7A).
         t = RxRadialeColGrado().Replace(t, "RDL $1");
@@ -698,6 +708,9 @@ public static partial class ItalianAd2Prose
         // e «(to be reached not further than 10NM ALG TACAN …)» la fermano (⟦M…⟧); «not before LIN VOR/DME», «not before DER»
         // senza parentesi come «(not before …)».
         t = RxAglAmsl().Replace(t, m => $"passing {m.Groups[2].Value} ft " + Marca('N', m.Value));
+        // Giro del 26 ottobre: «until passing 1500ft AMSL» (LIMC RWY 17L/17R): AMSL non è un punto. Dopo «AGL (… AMSL)», che dice
+        // quale delle due quote vale.
+        t = RxPiediAmsl().Replace(t, "$1 ft");
         t = RxNonOltre().Replace(t, m => Marca('M', m.Value.Trim().Trim(',').Trim()));
         t = RxNonOltreFraParentesi().Replace(t, m => Marca('M', m.Groups[1].Value));
         t = RxNonPrimaSenzaParentesi().Replace(t, m => Marca('N', m.Value.Trim().Trim(',').Trim()));
@@ -1029,10 +1042,11 @@ public static partial class ItalianAd2Prose
                 {
                     // B6: una SID che comincia con una rotta («Proceed on TR 263° until intercepting …»): dalla soglia della
                     // pista, come «RWY heading». Se la rotta si scosta dalla pista c'è una virata dopo il decollo che non si
-                    // disegna: si dice.
+                    // disegna: si dice. Fino a 30° no (giro del 26 ottobre): «After take-off proceed on track 164°» dalla 15 di
+                    // LICR (15°) è la rotta del decollo, il tratto CA che l'ARINC scrive così; non c'è una virata da disegnare.
                     _linea = Linea.DaUnPunto(pista.Threshold, tr, v, prua: g["prua"].Success, dallaSoglia: true);
                     var scarto = Math.Abs(Sphere.Normalize(tr + v - pista.TrueBearing + 180) - 180);
-                    if (scarto > 15)
+                    if (scarto > 30)
                         _avvisi.Add($"il primo tratto parte dalla soglia della pista su TR {tr:000}°: la virata dopo il decollo ({scarto:0}°) non è disegnata");
                 }
                 else
@@ -1762,6 +1776,12 @@ public static partial class ItalianAd2Prose
 
     [GeneratedRegex(@"\bInitial\s+climb\s+(?:procedure\s+)?(?:completed|executed)\b", RegexOptions.IgnoreCase)]
     private static partial Regex RxFineSalitaIniziale();
+
+    [GeneratedRegex(@"\b(\d+)\s*ft\s+AMSL\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxPiediAmsl();
+
+    [GeneratedRegex(@"\s+or\s+TR\s+\d{3}°?\s*(?:\([^)]*\)\s*)?for\s+(?:aircraft|ACFT)\s+CAT\.?\s*[A-D](?:\s*/\s*[A-D])*", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxAlternativaPerCategoria();
 
     // «Leave AEA VOR on RDL 149», «Leave CAG VOR on RDL 360 CAG»; non la forma con «until … DME», che ha il suo pezzo.
     [GeneratedRegex(@"\b[Ll]eave\s+([A-Z]{2,3})\s+(VOR(?:/DME)?|VORTAC)\s+on\s+RDL\s+(\d{3})°?(?:\s+\1(?:\s+VOR(?:/DME)?)?)?(?!\s*(?:\([^)]*\)\s*)?until\b)")]

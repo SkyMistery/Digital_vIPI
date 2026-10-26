@@ -119,6 +119,14 @@ public static partial class ItalianAd2Prose
     internal static bool ContinuaLaSalita(string? descrizione) =>
         descrizione is not null && (RxDopoLaSalita().IsMatch(descrizione) || Route(descrizione) is { } t && RxComincaAMeta().IsMatch(t));
 
+    /// <summary>
+    /// La rotta con cui comincia una SID senza dire «After take-off»: «(ATC discretion) Proceed on TR 276° until …» → 276
+    /// (giro del 26 ottobre). Se si scosta dalla pista, la virata dopo il decollo è quella della salita iniziale.
+    /// </summary>
+    internal static double? RottaDiPartenza(string? descrizione) =>
+        Route(descrizione) is { } t && RxProsegueSuUnaRotta().Match(t) is { Success: true } m
+            ? double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : null;
+
     // Anche «- direct to COM VOR … if cleared via OBAXU 5A, …; - to join RDL 327 … if cleared via OBAXU 5B e ENEPA 5B» (LICB
     // RWY 05, passo 8): la condizione in coda alla voce. Non le pendenze («- 300 ft/NM (4.9%) … if cleared via SID KOVAS 6E», LIEE).
     [GeneratedRegex(@"(?<=^|[\s;:.,])(?:[a-eA-E]\)|[-–−]\s*(?=[Ii]f\b|[a-z][^;]*?\b[Ii]f\s+cleared\b)|\d\.\s*(?=[Ii]f\b))", RegexOptions.CultureInvariant)]
@@ -154,8 +162,13 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@",?\s*\b(?:[Tt]hen\s+)?(?:(?<v>turn\s+(?:left|right))\s+)?(?:(?:until\s+joining|to\s+join|join(?:\s+and\s+follow)?|follow|proceed\s+(?:along|according\s+to|on))\s+)(?:the\s+)?assigned\s+SID\b(?:\s+as\s+reported\s+below)?\s*[:.]?", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxSidAssegnata();
 
-    [GeneratedRegex(@"^\s*(?:\([^)]*\)\s*)*Initial\s+climb\s+(?:procedure\s+)?(?:completed|executed)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    // Anche dopo «(On pilot’s request only).», col punto (LIEA MINKA 9C, giro del 26 ottobre).
+    [GeneratedRegex(@"^\s*(?:\([^)]*\)\s*\.?\s*)*Initial\s+climb\s+(?:procedure\s+)?(?:completed|executed)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex RxDopoLaSalita();
+
+    // «(ATC discretion) Proceed on TR 276°», «(4) Proceed on track 108°», «Proceed on heading 160°» (giro del 26 ottobre).
+    [GeneratedRegex(@"^(?:\s*⟦[^⟧]*⟧)*(?:\s*\([^)]*\)\s*\.?)*\s*Proceed\s+on\s+(?:TR|track|heading)\s+(\d{3})", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxProsegueSuUnaRotta();
 
     [GeneratedRegex(@"[ \t]+", RegexOptions.CultureInvariant)]
     private static partial Regex RxSpaziInRiga();
@@ -175,6 +188,7 @@ public static partial class ItalianAd2Prose
 
     // Anche da un punto (passo 5, committente: LIBP ASPIR 8G «Leave PES VOR on RDL 083…», che diventa «PES VOR - RDL 083…»;
     // «Proceed via BOA VOR/DME – LOMED», LIPE): la SID comincia dove la salita iniziale l'ha portata.
-    [GeneratedRegex(@"^(?:\s*⟦[^⟧]*⟧)*\s*(?:At\s+\d|[Tt]urn\s|[Cc]rossing\s|[A-Z]{2,3}\s+(?:VOR|NDB)\b|Proceed\s+via\s+[A-Z]{2,5}\b)", RegexOptions.CultureInvariant)]
+    // Giro del 26 ottobre: anche dopo le note fra parentesi, «(ATC discretion) Turn left on TR 089°» (LIPX RWY 22).
+    [GeneratedRegex(@"^(?:\s*⟦[^⟧]*⟧)*(?:\s*\([^)]*\)\s*\.?)*\s*(?:At\s+\d|[Tt]urn\s|[Cc]rossing\s|[A-Z]{2,3}\s+(?:VOR|NDB)\b|Proceed\s+via\s+[A-Z]{2,5}\b)", RegexOptions.CultureInvariant)]
     private static partial Regex RxComincaAMeta();
 }
