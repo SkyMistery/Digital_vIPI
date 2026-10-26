@@ -36,6 +36,13 @@ lavoro a parte.
 
 Test: Lab 1 425, importer 353. Le prove si riscrivono dalla A10b (pagina degli esiti).
 
+**La sera, le prove sul banco.** Su richiesta del committente («non puoi fare i test in app come se fossi una persona?»)
+le ha fatte Claude sul banco a schermo, su una copia dell'ambiente di prova. Ha trovato e corretto quattro difetti: le
+osservazioni della rotta (M740), «(or 45NM AHO TACAN/47NM ALG TACAN)» (LIEA CORSI 5A dopo AJO), «Aggiungi GRO» per la
+radioassistenza senza coordinate, la riga del ramo dopo un rifiuto (A47). Restano al committente le prove a occhio o fuori
+dal browser: A21, A34, A35, A36, A45, A51, A52, A53, la curva della A55, e le scelte A11, A13, A30. Elenco nella carta delle
+segnalazioni, «Le prove sul banco». Importer 354.
+
 ## 25 ottobre 2026: revisione del 2611 chiusa, aspetta le prove del committente
 
 Il committente ha chiuso la chat (25 ottobre) per riaprirne una con le regole nuove. Il ramo `lab/f3` è **pronto da

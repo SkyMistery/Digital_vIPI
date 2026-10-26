@@ -50,6 +50,7 @@ public sealed class AipSullaMappaTests
                     new RouteSegment { Discontinuity = true },
                 ],
                 Notes = [new RouteNote(1, "Il tratto UNO-DUE è utilizzabile solo in direzione est.", "Segment UNO-DUE usable eastbound only.")],
+                Remarks = "For continuation see AIP MALTA",
             },
         ],
         Holdings =
@@ -104,6 +105,8 @@ public sealed class AipSullaMappaTests
         Assert.Equal(["▲ UNO", "    090° / 270° 12.7 NM · FL195 – FL95 · ↓ solo avanti · MNM 110/—", "∆ DUE", "    — interruzione —", "▲ TRE"], s.Voci[2].Righe);
         // Il riquadro «NOTE / REMARKS» (carta «L'AIP intero», passo 3): l'italiano nella scheda.
         Assert.Contains(("Nota 1", "Il tratto UNO-DUE è utilizzabile solo in direzione est."), s.Voci[2].Campi);
+        // La nota della rotta dopo l'ultimo punto (M740, prova A20 sul banco del 26 ottobre).
+        Assert.Contains(("Osservazioni", "For continuation see AIP MALTA"), s.Voci[2].Campi);
     }
 
     [Fact]

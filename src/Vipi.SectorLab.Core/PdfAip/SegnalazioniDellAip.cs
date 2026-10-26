@@ -48,6 +48,10 @@ public static partial class SegnalazioniDellAip
     public static (CorrectionKind Tipo, string Nome)? DatoMancante(ImportIssue problema)
     {
         ArgumentNullException.ThrowIfNull(problema);
+        // Una radioassistenza di ENR 4.1 stampata senza coordinate (GRO DVOR) non entra nel modello: nell'Indice non c'è, si
+        // aggiunge (prova A61b sul banco, 26 ottobre: «Vai alla voce» non la trovava).
+        if (problema is { Kind: ImportIssueKind.Navaid, Detail: "senza coordinate", Key: { } chiave } && chiave.Split(' ')[0] is { Length: > 0 } sigla)
+            return (CorrectionKind.Navaid, sigla);
         if (problema.Detail is not { } dettaglio || RxNomeMancante().Match(dettaglio) is not { Success: true } m)
             return null;
         return (m.Groups["punto"].Success ? CorrectionKind.Point : CorrectionKind.Navaid, m.Groups["nome"].Value);

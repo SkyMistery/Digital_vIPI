@@ -1731,7 +1731,8 @@ public static partial class ItalianAd2Prose
     [GeneratedRegex(@"VOR\s*/\s*DME|VOR\s+DME")]
     private static partial Regex RxVorDme();
 
-    [GeneratedRegex(@"(?<=\b(?:DME|TACAN)\s*)\(\s*(?:or\s+)?(?:ARC\s+)?\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,4}\s+(?:DME|TACAN)\s*\)")]
+    // Anche più alternative insieme, «(or 45NM AHO TACAN/47NM ALG TACAN)» (LIEA CORSI 5A, prova A59 sul banco del 26 ottobre).
+    [GeneratedRegex(@"(?<=\b(?:DME|TACAN)\s*)\(\s*(?:or\s+)?(?:ARC\s+)?\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,4}\s+(?:DME|TACAN)(?:\s*(?:/|,|\bor\b)\s*\d+(?:\.\d+)?\s*NM\s+[A-Z]{2,4}\s+(?:DME|TACAN))*\s*\)")]
     private static partial Regex RxDistanzaAlternativa();
 
     [GeneratedRegex(@"\(\s*[A-Z]{2,4}\s*\)\s*(?=DME\b)")]

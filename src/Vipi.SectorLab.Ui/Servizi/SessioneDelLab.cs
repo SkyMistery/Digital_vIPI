@@ -4722,7 +4722,9 @@ public sealed class SessioneDelLab
             .Where(p => Core.PdfAip.SegnalazioniDellAip.DatoMancante(p.Problema)?.Nome == nome)
             .Select(p => p.Problema.Key?.Split(' ')[0]).OfType<string>().Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
         var chi = tipo == global::Aip.CorrectionKind.Navaid ? "stazione" : "punto";
-        AggiuntaRichiesta = (tipo, nome, $"{chi} nominat{(chi == "punto" ? "o" : "a")} dalle procedure{(scali.Count > 0 ? " di " + string.Join(", ", scali) : "")}, che l'AIP italiano non ha");
+        AggiuntaRichiesta = (tipo, nome, problema.Kind == Aip.Pdf.Italia.ImportIssueKind.Navaid
+            ? $"{problema.Key} stampata senza coordinate"
+            : $"{chi} nominat{(chi == "punto" ? "o" : "a")} dalle procedure{(scali.Count > 0 ? " di " + string.Join(", ", scali) : "")}, che l'AIP italiano non ha");
         Rifiuto = null;
         ScegliLaPagina(PaginaDelLab.AipIndice);
         Avvisa();
@@ -4900,6 +4902,10 @@ public sealed class SessioneDelLab
             }
             else if (delle is not null && string.CompareOrdinal(delle, ciclo) > 0)
             {
+                // Il repo è già passato al ramo del ciclo: la riga «Repo: … · ramo …» lo deve dire anche se non si scrive
+                // (prova A47 sul banco, 26 ottobre: restava «aip/2612» col repo su aip/2611).
+                if (repo)
+                    await RileggiIlRepoDellAipAsync().ConfigureAwait(false);
                 return Rifiuta($"Le pagine di «AIP {ciclo}» arrivano al {ultima}, che è del ciclo {delle}: la cartella va chiamata «AIP {delle}». Non ho scritto niente.");
             }
             else if (delle is not null && string.CompareOrdinal(delle, ciclo) < 0)

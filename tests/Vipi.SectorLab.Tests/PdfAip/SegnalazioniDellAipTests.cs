@@ -30,6 +30,8 @@ public sealed class SegnalazioniDellAipTests
             "prosa non letta: AJO: non è una radioassistenza dell'AIP; la pista non ha una salita iniziale da cui la SID continua")));
         Assert.Equal((CorrectionKind.Point, "XEBAP"), SegnalazioniDellAip.DatoMancante(new ImportIssue(ImportIssueKind.Procedure, "LIXX Star A", 1,
             "prosa non letta: XEBAP: non è un punto né una radioassistenza dell'AIP")));
+        // Una radioassistenza stampata senza coordinate non è nel modello: si aggiunge (A61b sul banco, GRO).
+        Assert.Equal((CorrectionKind.Navaid, "GRO"), SegnalazioniDellAip.DatoMancante(new ImportIssue(ImportIssueKind.Navaid, "GRO DVOR", 4, "senza coordinate")));
         // Una parola presa per un nome dentro una salita letta da sola non è un dato che manca.
         Assert.Null(SegnalazioniDellAip.DatoMancante(new ImportIssue(ImportIssueKind.Procedure, "LIMC Sid IBCUC 1M", 1,
             "prosa letta con un'approssimazione: la SID non parte dalla pista e la salita iniziale non si legge (AMSL: non è un punto né una radioassistenza dell'AIP): disegnata da sola")));

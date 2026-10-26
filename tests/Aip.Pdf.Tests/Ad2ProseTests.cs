@@ -329,6 +329,7 @@ public sealed class Ad2ProseTests
     [Theory]
     [InlineData("DELIK – TR 310° (RDL 130 LMT VOR) until 14NM LMT DME (or 15.5 NM IBX DME), then turn right bound to SUGEP.")]  // LIBD
     [InlineData("DELIK – TR 310° (RDL 130 LMT VOR) until 14 NM LMT DME (12NM IBXY DME), then turn right bound to SUGEP.")]      // LIRZ
+    [InlineData("DELIK – TR 310° (RDL 130 LMT VOR) until 14NM LMT DME (or 45NM IBX TACAN/47NM IBXY TACAN), then turn right bound to SUGEP.")]  // LIEA CORSI 5A
     public void LaDistanzaDaUnAltroDme_FraParentesi_SiToglie(string prosa)
     {
         var (tratti, problema) = Leggi(P(ProcedureKind.Star, "DELIK 1T", prosa));

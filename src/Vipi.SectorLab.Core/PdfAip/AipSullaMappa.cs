@@ -443,6 +443,9 @@ public static partial class AipSullaMappa
     {
         var campi = new List<(string, string)> { ("Sezione", r.Section), ("Punti", r.Points.Count.ToString(CultureInfo.InvariantCulture)) };
         if (r.Navigation is { } nav) campi.Add(("Navigazione", nav));
+        // La nota dopo l'ultimo punto, della rotta (M740 «For continuation see AIP MALTA»): era nel modello e non nella scheda
+        // (prova A20 sul banco, 26 ottobre).
+        if (r.Remarks is { } osservazioni) campi.Add(("Osservazioni", osservazioni.Replace('\n', ' ')));
         campi.Add(("Pagina", Pagina(r.Page)));
         // Il riquadro «NOTE / REMARKS» (carta «L'AIP intero», passo 3): il testo italiano, l'inglese resta nel modello.
         foreach (var n in r.Notes ?? [])
