@@ -6,9 +6,9 @@
 >
 > ## ▶ Il punto — 26 ottobre 2026
 >
-> **📦 Pronta da caricare: 1.75.0** (§A169, timbro `1.75.0 · 1aa329c`, 7 file, zip `edf4fae7…`, MINOR senza
-> migrazioni, misurata dalla 1.74.0): Sito S132, l'API aeroporti dice la pista in uso adesso, con lo stesso calcolo della
-> pagina del documento. Online è la **1.74.0** finché il committente non carica. `lab/f3` non fuso (scelta del
+> **✅ Online: 1.75.0** (health Healthy; **in `main` non resta codice fuori pacchetto**) (§A169, timbro
+> `1.75.0 · 1aa329c`, 7 file, zip `edf4fae7…`, MINOR senza migrazioni, misurata dalla 1.74.0): Sito S132, l'API
+> aeroporti dice la pista in uso adesso, con lo stesso calcolo della pagina del documento. `lab/f3` non fuso (scelta del
 > committente). ⚠️ Aperto: SDK 10.0.402.
 >
 > ## Il punto — 23 ottobre 2026
