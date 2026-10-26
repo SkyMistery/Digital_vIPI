@@ -11,8 +11,9 @@ namespace Vipi.SectorLab.Core.PdfAip;
 public sealed record StatoDeiCicli(string DiOggi, string? InVigore, string? Successivo, IReadOnlyList<string> Prossimi, IReadOnlyList<string> Superati)
 {
     /// <summary>
-    /// Il ciclo su cui il Lab lavora: quello in vigore; se il Lab non ce l'ha, il successivo (oggi, 22 ottobre 2026, è in vigore
-    /// il 2610 e i PDF scaricati sono del 2611); se non c'è nemmeno quello, l'ultimo superato.
+    /// Il ciclo che «Leggi» propone quando il committente non ne ha scelto uno: quello in vigore; se il Lab non ce l'ha, il
+    /// successivo; se non c'è nemmeno quello, l'ultimo superato. Non è il ciclo di lavoro: quello lo sceglie il committente
+    /// (<see cref="CicliDellAip.DiLavoro"/>, 26 ottobre).
     /// </summary>
     public string? DaAprire => InVigore ?? Successivo ?? Prossimi.FirstOrDefault() ?? Superati.LastOrDefault();
 
@@ -39,14 +40,27 @@ public sealed record StatoDeiCicli(string DiOggi, string? InVigore, string? Succ
 
 /// <summary>
 /// Un ciclo nella pagina «Lettura e consegna»: che cos'è oggi, i suoi PDF (<c>null</c>: la cartella non c'è), quando è
-/// stato scritto il modello (<c>null</c>: non c'è), la data più recente delle pagine lette, se si può togliere, se è quello
-/// su cui il Lab lavora.
+/// stato scritto il modello (<c>null</c>: non c'è), la data più recente delle pagine lette, se si può togliere, se è il ciclo
+/// di lavoro scelto dal committente.
 /// </summary>
-public sealed record RigaDelCiclo(string Ciclo, string Dice, int? Pdf, DateTime? Scritto, DateOnly? UltimaData, int Pagine, bool DaTogliere, bool DaAprire);
+public sealed record RigaDelCiclo(string Ciclo, string Dice, int? Pdf, DateTime? Scritto, DateOnly? UltimaData, int Pagine, bool DaTogliere, bool DiLavoro);
 
 /// <summary>I cicli dell'AIP nel tempo: quale si apre, quale si toglie (carta «L'AIP intero», passo 8).</summary>
 public static class CicliDellAip
 {
+    /// <summary>
+    /// Il ciclo di lavoro (decisione del committente, 26 ottobre: «scelgo io su quale lavorare, il sistema al massimo mi dice
+    /// quale c'è in vigore»): quello <paramref name="scelto"/>, se ha il modello; se nessuno è scelto e il modello è uno solo,
+    /// quello (non c'è niente da scegliere); altrimenti nessuno, e il Lab chiede.
+    /// </summary>
+    public static string? DiLavoro(string? scelto, IReadOnlyList<string> conIlModello)
+    {
+        ArgumentNullException.ThrowIfNull(conIlModello);
+        if (scelto is not null && conIlModello.Contains(scelto, StringComparer.Ordinal))
+            return scelto;
+        return conIlModello.Count == 1 ? conIlModello[0] : null;
+    }
+
     /// <summary>Lo stato dei cicli <paramref name="presenti"/> (i nomi, <c>2611</c>) il giorno <paramref name="oggi"/>.</summary>
     public static StatoDeiCicli Di(IEnumerable<string> presenti, DateOnly oggi)
     {
@@ -142,9 +156,9 @@ public static class CicliDellAip
 
     /// <summary>
     /// Una riga per ciclo che il Lab ha (pagina «Lettura e consegna»): quanti PDF, se c'è il modello e quando è stato
-    /// scritto, la data più recente delle sue pagine.
+    /// scritto, la data più recente delle sue pagine; <paramref name="diLavoro"/> è in evidenza.
     /// </summary>
-    public static IReadOnlyList<RigaDelCiclo> Righe(string? cartellaDeiPdf, string? cartellaDellAipEspanso, DateOnly oggi)
+    public static IReadOnlyList<RigaDelCiclo> Righe(string? cartellaDeiPdf, string? cartellaDellAipEspanso, DateOnly oggi, string? diLavoro)
     {
         var stato = Di(Presenti(cartellaDeiPdf, cartellaDellAipEspanso), oggi);
         return [.. new[] { stato.InVigore, stato.Successivo }.OfType<string>().Concat(stato.Prossimi).Concat(stato.Superati)
@@ -172,7 +186,7 @@ public static class CicliDellAip
                 return new RigaDelCiclo(ciclo, stato.Dice(ciclo),
                     pdf is not null && Directory.Exists(pdf) ? PdfDellAip.Elenco(pdf).Count : null,
                     modello is not null && File.Exists(modello) ? File.GetLastWriteTime(modello) : null,
-                    ultima, pagine, stato.DaTogliere.Contains(ciclo), ciclo == stato.DaAprire);
+                    ultima, pagine, stato.DaTogliere.Contains(ciclo), ciclo == diLavoro);
             })];
     }
 

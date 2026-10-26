@@ -149,19 +149,27 @@ public sealed class AipNellaBarraTests : IDisposable
             Assert.True(await _lab.LeggiLAipAsync(ciclo), _lab.Rifiuto);
         }
 
-        // Il 25 novembre: in vigore il 2611, che si apre; il 2612 si guarda.
+        // 26 ottobre (committente): il ciclo di lavoro lo sceglie lui. Due cicli e nessuna scelta: il Lab chiede, non sceglie.
         _lab.GiornoDeiCicli = () => new DateOnly(2026, 11, 25);
+        Assert.Null(_lab.CicloDiLavoro);
+        Assert.False(await _lab.MostraLAipAsync(true));
+        Assert.Contains("Lavora su questo", _lab.Rifiuto, StringComparison.Ordinal);
         Assert.Equal("2611", _lab.CicloDaLeggere);
-        Assert.True(await _lab.GuardaIlCicloAsync(null), _lab.Rifiuto);
+        Assert.True(await _lab.LavoraSulCicloAsync("2612"), _lab.Rifiuto);
+        Assert.True(await _lab.MostraLAipAsync(true), _lab.Rifiuto);
+        Assert.Equal(("2612", "2612"), (_lab.StratoDellAip!.Ciclo, _lab.CicloDaLeggere));
+        // Cambiando ciclo, la mappa e l'Indice lo seguono.
+        Assert.True(await _lab.LavoraSulCicloAsync("2611"), _lab.Rifiuto);
         Assert.Equal("2611", _lab.StratoDellAip!.Ciclo);
-        Assert.True(await _lab.GuardaIlCicloAsync("2612"), _lab.Rifiuto);
-        Assert.Equal(("2612", "2612"), (_lab.StratoDellAip!.Ciclo, _lab.CicloGuardatoDellAip));
         Assert.Empty(_lab.StatoDeiCicliDellAip.DaTogliere);
+        Assert.False(await _lab.LavoraSulCicloAsync("2613"));
 
-        // Il 26: in vigore il 2612; il 2611 è superato e si toglie dal riquadro, con la conferma.
+        // Il 26 entra il 2612, ma si lavora sul 2611 finché il committente non cambia; la scelta resta dopo un riavvio.
         _lab.GiornoDeiCicli = () => new DateOnly(2026, 11, 26);
-        Assert.True(await _lab.GuardaIlCicloAsync(null), _lab.Rifiuto);
-        Assert.Equal(("2612", (string?)null), (_lab.StratoDellAip!.Ciclo, _lab.CicloGuardatoDellAip));
+        Assert.Equal("2611", _lab.CicloDiLavoro);
+        Assert.Equal("2611", new SessioneDelLab(Path.Combine(_albero.Radice, "dati-del-lab")).CicloDiLavoro);
+        Assert.True(await _lab.LavoraSulCicloAsync("2612"), _lab.Rifiuto);
+        Assert.Equal("2612", _lab.StratoDellAip!.Ciclo);
         var pagina = _contesto.RenderComponent<Home>();
         // 22 ottobre: una riga per ciclo al posto del campo; quella su cui si lavora è in evidenza.
         pagina.WaitForAssertion(() =>
@@ -169,6 +177,9 @@ public sealed class AipNellaBarraTests : IDisposable
             Assert.Equal("non più in vigore dal 26/11/2026", pagina.Find("[data-ciclo='2611'] [data-ciclo-dice]").TextContent);
             Assert.Equal("in vigore dal 26/11/2026", pagina.Find("[data-ciclo='2612'] [data-ciclo-dice]").TextContent);
             Assert.Contains("lab-ciclo-aperto", pagina.Find("li[data-ciclo='2612']").ClassList);
+            Assert.Single(pagina.FindAll("[data-ciclo-di-lavoro]"));
+            Assert.Equal("Lavora su questo", pagina.Find("[data-ciclo='2611'] [data-tasto=lavora-sul-ciclo]").TextContent.Trim());
+            Assert.Empty(pagina.FindAll("[data-ciclo='2612'] [data-tasto=lavora-sul-ciclo]"));
             Assert.Contains("pagine fino al 06/08/2026", pagina.Find("li[data-ciclo='2612']").TextContent, StringComparison.Ordinal);
             Assert.Equal("Rileggi", pagina.Find("[data-ciclo='2612'] [data-tasto=leggi-aip]").TextContent.Trim());
         }, TimeSpan.FromSeconds(10));

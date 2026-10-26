@@ -64,6 +64,19 @@ public sealed class CicliDellAipTests : IDisposable
         Assert.Empty(stato.DaTogliere);
     }
 
+    // 26 ottobre (committente): «scelgo io su quale lavorare, il sistema al massimo mi dice quale c'è in vigore».
+    [Fact]
+    public void IlCicloDiLavoro_LoSceglieIlCommittente()
+    {
+        Assert.Equal("2612", CicliDellAip.DiLavoro("2612", ["2611", "2612"]));
+        // Nessuna scelta, o un ciclo che non c'è più: con due cicli il Lab non sceglie.
+        Assert.Null(CicliDellAip.DiLavoro(null, ["2611", "2612"]));
+        Assert.Null(CicliDellAip.DiLavoro("2610", ["2611", "2612"]));
+        // Un ciclo solo: non c'è niente da scegliere.
+        Assert.Equal("2611", CicliDellAip.DiLavoro(null, ["2611"]));
+        Assert.Null(CicliDellAip.DiLavoro(null, []));
+    }
+
     [Fact]
     public void Togli_LaCartellaDeiPdfEIlModello_SoloDelSuperato()
     {

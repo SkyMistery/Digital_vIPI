@@ -4627,42 +4627,85 @@ public sealed class SessioneDelLab
         Core.PdfAip.CicliDellAip.Di(Core.PdfAip.CicliDellAip.Presenti(CartellaDeiPdf, CartellaDellAipEspanso), GiornoDeiCicli());
 
     /// <summary>
-    /// Il ciclo che «Leggi» propone (passo 8): fra le cartelle dei cicli dei PDF quello in vigore, se no il successivo; senza
-    /// cartelle dei cicli, quello di oggi.
+    /// Il ciclo che «Leggi» propone (passo 8): il ciclo di lavoro, se ha la cartella dei PDF; se no, fra le cartelle dei
+    /// cicli dei PDF quello in vigore, se no il successivo; senza cartelle dei cicli, quello di oggi.
     /// </summary>
-    public string CicloDaLeggere =>
-        (CartellaDeiPdf is { } pdf ? Core.PdfAip.CicliDellAip.Di(Core.PdfAip.EmendamentoDellAip.CicliNellaCartella(pdf), GiornoDeiCicli()).DaAprire : null)
-        ?? CicloDiOggi;
+    public string CicloDaLeggere
+    {
+        get
+        {
+            if (CartellaDeiPdf is not { } pdf)
+                return CicloDiOggi;
+            var cicli = Core.PdfAip.EmendamentoDellAip.CicliNellaCartella(pdf);
+            if (CicloDiLavoro is { } lavoro && cicli.Contains(lavoro, StringComparer.Ordinal))
+                return lavoro;
+            return Core.PdfAip.CicliDellAip.Di(cicli, GiornoDeiCicli()).DaAprire ?? CicloDiOggi;
+        }
+    }
 
-    /// <summary>I cicli che hanno il modello nell'AIP espanso (passo 8): quelli che si possono guardare.</summary>
+    /// <summary>I cicli che hanno il modello nell'AIP espanso (passo 8): quelli su cui si può lavorare.</summary>
     public IReadOnlyList<string> CicliConIlModello => Core.PdfAip.CicliDellAip.ConIlModello(CartellaDellAipEspanso);
 
-    /// <summary>Il ciclo scelto per guardarlo sulla mappa e nell'indice (passo 8); null: quello dei confronti.</summary>
-    public string? CicloGuardatoDellAip { get; private set; }
+    private string? _cicloScelto;
+    private bool _cicloSceltoLetto;
+
+    /// <summary>Il ciclo che il committente ha scelto con «Lavora su questo», ricordato fra un avvio e l'altro; null se nessuno.</summary>
+    private string? CicloScelto
+    {
+        get
+        {
+            if (!_cicloSceltoLetto)
+            {
+                _cicloScelto = Ricordata("ciclo-di-lavoro.txt");
+                _cicloSceltoLetto = true;
+            }
+
+            return _cicloScelto;
+        }
+    }
 
     /// <summary>
-    /// Il ciclo dei confronti col sector (passo 8, proposta accettata il 22 ottobre): fra i modelli dell'AIP espanso quello in
-    /// vigore, se no il successivo. Un ciclo dopo si guarda e basta, fino alla sua data.
+    /// Il ciclo di lavoro (26 ottobre, decisione del committente: lo sceglie lui, il Lab dice solo quale è in vigore): Indice,
+    /// mappa, correzioni e confronti col sector lavorano su questo. Quello scelto; se nessuno è scelto e nell'AIP espanso c'è
+    /// un ciclo solo, quello; altrimenti null, e il Lab chiede di sceglierlo.
     /// </summary>
-    private string? CicloDeiConfronti(string espanso) =>
-        Core.PdfAip.CicliDellAip.Di(Core.PdfAip.CicliDellAip.ConIlModello(espanso), GiornoDeiCicli()).DaAprire;
+    public string? CicloDiLavoro => Core.PdfAip.CicliDellAip.DiLavoro(CicloScelto, CicliConIlModello);
 
-    /// <summary>Il ciclo sulla mappa e nell'indice: quello scelto, se il suo modello c'è, se no quello dei confronti.</summary>
-    private string? CicloSullaMappa(string espanso) =>
-        CicloGuardatoDellAip is { } guardato && File.Exists(Core.PdfAip.AipEspanso.File(espanso, guardato)) ? guardato : CicloDeiConfronti(espanso);
+    private const string ScegliIlCiclo =
+        "Scegli il ciclo su cui lavorare: «Lavora su questo» sulla sua riga, in Lettura e consegna.";
+
+    /// <summary>Il ciclo di lavoro con il suo modello, o il perché no (per i gesti che ne hanno bisogno).</summary>
+    private string? CicloDiLavoroCon(string espanso, out string? perche)
+    {
+        perche = null;
+        if (CicloDiLavoro is { } ciclo && File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
+            return ciclo;
+        perche = CicliConIlModello.Count == 0
+            ? "Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima."
+            : ScegliIlCiclo;
+        return null;
+    }
 
     /// <summary>
-    /// «Guarda il 2612» (passo 8): mette sulla mappa e nell'indice un altro ciclo dell'AIP espanso, o (null) torna a quello
-    /// dei confronti.
+    /// «Lavora su questo» (26 ottobre): il committente sceglie il ciclo di lavoro; resta scelto anche dopo un riavvio, finché
+    /// non ne sceglie un altro. Indice e mappa si rifanno sul ciclo nuovo, se l'AIP espanso era già caricato.
     /// </summary>
-    public async Task<bool> GuardaIlCicloAsync(string? ciclo)
+    public async Task<bool> LavoraSulCicloAsync(string ciclo)
     {
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        if (ciclo is not null && !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
-            return Rifiuta($"Nell'AIP espanso il {ciclo} non c'è: «Leggi nell'AIP espanso» prima.");
-        CicloGuardatoDellAip = ciclo == CicloDeiConfronti(espanso) ? null : ciclo;
-        return await MostraLAipAsync(true).ConfigureAwait(false);
+        if (!File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
+            return Rifiuta($"Nell'AIP espanso il {ciclo} non c'è: «Leggi» prima.");
+        _cicloScelto = ciclo;
+        _cicloSceltoLetto = true;
+        Ricorda("ciclo-di-lavoro.txt", ciclo, "ciclo di lavoro");
+        Registro.Scrivi("aip", $"ciclo di lavoro: {ciclo}");
+        _righeDeiCicli = null;
+        Rifiuto = null;
+        if (StratoDellAip is not null && StratoDellAip.Ciclo != ciclo)
+            return await MostraLAipAsync(true).ConfigureAwait(false);
+        Avvisa();
+        return true;
     }
 
     /// <summary>
@@ -4684,7 +4727,6 @@ public sealed class SessioneDelLab
             return Rifiuta($"Non sono riuscito a togliere il {ciclo}: {e.Message}");
         }
         Registro.Scrivi("aip", $"tolto il ciclo {ciclo}: non più in vigore");
-        if (CicloGuardatoDellAip == ciclo) CicloGuardatoDellAip = null;
         if (UltimoAipEspanso?.Ciclo == ciclo) UltimoAipEspanso = null;
         _righeDeiCicli = null;
         Rifiuto = null;
@@ -4828,8 +4870,6 @@ public sealed class SessioneDelLab
                     Registro.Scrivi("aip", $"{file.Count} PDF sciolti messi in AIP {nome}");
             }
             UltimoAipEspanso = esito;
-            // Il ciclo appena letto si guarda sulla mappa, anche se non è quello dei confronti (il successivo).
-            CicloGuardatoDellAip = nome == CicloDeiConfronti(espanso) ? null : nome;
             MessaggioDellAip = Core.PdfAip.RepoDellAip.MessaggioProposto(esito);
             // La mappa e l'Indice si rifanno sulla lettura nuova, accesi o spenti com'erano (prova a schermo del 23 ottobre:
             // dopo «Rileggi» restavano quelli della lettura prima, finché una correzione non li ricaricava).
@@ -4890,7 +4930,7 @@ public sealed class SessioneDelLab
             var oggi = GiornoDeiCicli();
             if (_righeDeiCicli is null || _giornoDelleRighe != oggi)
             {
-                _righeDeiCicli = Core.PdfAip.CicliDellAip.Righe(CartellaDeiPdf, CartellaDellAipEspanso, oggi);
+                _righeDeiCicli = Core.PdfAip.CicliDellAip.Righe(CartellaDeiPdf, CartellaDellAipEspanso, oggi, CicloDiLavoro);
                 _giornoDelleRighe = oggi;
             }
             return _righeDeiCicli;
@@ -5045,9 +5085,8 @@ public sealed class SessioneDelLab
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = CicloDeiConfronti(espanso);
-        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
-            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        if (CicloDiLavoroCon(espanso, out var noCiclo) is not { } ciclo)
+            return Rifiuta(noCiclo!);
         try
         {
             var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
@@ -5106,9 +5145,8 @@ public sealed class SessioneDelLab
         }
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = CicloSullaMappa(espanso);
-        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
-            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        if (CicloDiLavoroCon(espanso, out var noCiclo) is not { } ciclo)
+            return Rifiuta(noCiclo!);
         // In fila (22 ottobre): l'Indice carica lo strato entrando, e la sua casella lo ricarica; due caricamenti insieme
         // toccavano le stesse collezioni da due thread («Operations that change non-concurrent collections…», 2 volte su 5).
         await _caricaLAip.WaitAsync().ConfigureAwait(false);
@@ -5588,9 +5626,8 @@ public sealed class SessioneDelLab
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = CicloDeiConfronti(espanso);
-        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
-            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        if (CicloDiLavoroCon(espanso, out var noCiclo) is not { } ciclo)
+            return Rifiuta(noCiclo!);
         try
         {
             var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
@@ -5629,9 +5666,8 @@ public sealed class SessioneDelLab
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = CicloDeiConfronti(espanso);
-        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
-            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        if (CicloDiLavoroCon(espanso, out var noCiclo) is not { } ciclo)
+            return Rifiuta(noCiclo!);
         try
         {
             var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
@@ -6133,9 +6169,8 @@ public sealed class SessioneDelLab
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = CicloDeiConfronti(espanso);
-        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
-            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        if (CicloDiLavoroCon(espanso, out var noCiclo) is not { } ciclo)
+            return Rifiuta(noCiclo!);
         try
         {
             var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
@@ -6395,9 +6430,8 @@ public sealed class SessioneDelLab
             return Rifiuta("Apri un sector prima: il confronto è fra l'AIP espanso e il sector aperto.");
         if (CartellaDellAipEspanso is not { } espanso)
             return Rifiuta("Manca la cartella dell'AIP espanso: sceglila nelle Impostazioni.");
-        var ciclo = CicloDeiConfronti(espanso);
-        if (ciclo is null || !File.Exists(Core.PdfAip.AipEspanso.File(espanso, ciclo)))
-            return Rifiuta("Nell'AIP espanso non c'è ancora un ciclo letto: «Leggi nell'AIP espanso» prima.");
+        if (CicloDiLavoroCon(espanso, out var noCiclo) is not { } ciclo)
+            return Rifiuta(noCiclo!);
         try
         {
             var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);

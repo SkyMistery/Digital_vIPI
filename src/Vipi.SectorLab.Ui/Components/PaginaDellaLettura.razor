@@ -39,10 +39,16 @@
                 {
                     <p class="lab-nota" data-cicli-aip>Il @oggi.DiOggi, in vigore oggi, non c'è.</p>
                 }
+                @* 26 ottobre (committente): il ciclo di lavoro lo sceglie lui; il Lab dice solo che cos'è ogni ciclo per oggi. *@
+                @if (Lab.CicloDiLavoro is null && Lab.CicliConIlModello.Count > 1)
+                {
+                    <p class="lab-avviso-breve" data-scegli-ciclo>Scegli il ciclo su cui lavorare: «Lavora su questo» sulla sua riga.
+                        Indice, mappa, correzioni e confronti col sector usano quello.</p>
+                }
                 <ul class="lab-cicli">
                     @foreach (var r in Lab.RigheDeiCicli)
                     {
-                        <li class="lab-ciclo @(r.DaAprire ? "lab-ciclo-aperto" : null)" data-ciclo="@r.Ciclo">
+                        <li class="lab-ciclo @(r.DiLavoro ? "lab-ciclo-aperto" : null)" data-ciclo="@r.Ciclo">
                             <strong>@r.Ciclo</strong>
                             <span class="lab-nota">
                                 <span data-ciclo-dice>@r.Dice</span>
@@ -52,9 +58,9 @@
                                     <span> · pagine fino al @d.ToString("dd/MM/yyyy", Cultura)</span>
                                 }
                                 · @(r.Scritto is { } s ? $"nell'AIP espanso dal {s.ToString("dd/MM HH:mm", Cultura)}" : "non ancora letto")
-                                @if (r.DaAprire)
+                                @if (r.DiLavoro)
                                 {
-                                    <span title="I confronti col sector e l'Indice lavorano su questo"> · è quello su cui lavori</span>
+                                    <strong data-ciclo-di-lavoro title="Indice, mappa, correzioni e confronti col sector usano questo"> · ci stai lavorando</strong>
                                 }
                             </span>
                             <span class="lab-ciclo-gesti">
@@ -63,9 +69,14 @@
                                     <button type="button" class="lab-tasto @(r.Scritto is null ? null : "lab-tasto-tenue")" data-tasto="leggi-aip" data-leggi="@r.Ciclo"
                                             disabled="@Lab.StaLeggendoLAip" @onclick="() => Leggi(r.Ciclo)">@(r.Scritto is null ? "Leggi" : "Rileggi")</button>
                                 }
-                                @if (r.Scritto is not null)
+                                @if (r.Scritto is not null && !r.DiLavoro)
                                 {
-                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="guarda-nell-indice" @onclick="() => Guarda(r.Ciclo)">Indice</button>
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="lavora-sul-ciclo" data-lavora="@r.Ciclo"
+                                            title="Indice, mappa, correzioni e confronti col sector useranno il @r.Ciclo" @onclick="() => Lavora(r.Ciclo)">Lavora su questo</button>
+                                }
+                                @if (r.DiLavoro)
+                                {
+                                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="guarda-nell-indice" @onclick="Indice">Indice</button>
                                 }
                                 @if (r.DaTogliere)
                                 {
@@ -450,13 +461,9 @@
         _sciolti = Lab.PdfSciolti;
     }
 
-    private async Task Guarda(string ciclo)
-    {
-        if (await Lab.GuardaIlCicloAsync(ciclo))
-            Lab.ScegliLaPagina(PaginaDelLab.AipIndice);
-        else
-            _rifiuto = Lab.Rifiuto;
-    }
+    private async Task Lavora(string ciclo) => _rifiuto = await Lab.LavoraSulCicloAsync(ciclo) ? null : Lab.Rifiuto;
+
+    private void Indice() => Lab.ScegliLaPagina(PaginaDelLab.AipIndice);
 
     private void Togli(string ciclo)
     {
