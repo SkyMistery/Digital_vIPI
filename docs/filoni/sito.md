@@ -4,9 +4,12 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 25 ottobre 2026
+## Dove siamo — 26 ottobre 2026
 
-> **In una riga, al 25 ottobre**: tutto il lavoro del filone è **online o fuso**, fino a **S131**. **S129** (la scheda
+> **Al 26 ottobre**: 🟢 **S132** pronto da fondere su `sito/lavori` — la scheda dell'API aeroporti porta anche la
+> **pista in uso adesso** (`runwayInUse`), con lo stesso calcolo della pagina del documento. Niente migrazione.
+
+> **Al 25 ottobre**: tutto il lavoro del filone è **online o fuso**, fino a **S131**. **S129** (la scheda
 > dell'API aeroporti porta torre radar e regole di scelta pista) è **online in 1.74.0** dal 23 ottobre (§A167); **S130**
 > e **S131** (due test che cadevano nella suite intera, corretti nei soli test) sono fusi in `main` **senza
 > pacchetto** (§A168). **Niente in corso.** La scheda con una chiave vera online non l'ha ancora vista nessuno: la
@@ -2997,6 +3000,21 @@
     asserzioni restano le stesse (riga ARRESTO, richieste non 0, svegliato da /vsop/health). Verde col file sopra il
     tetto, da solo e con la classe intera.
   - Solo `tests/`: niente `src/`, niente pacchetto. Conteggi invariati.
+- 🟢 **S132** (26-ott, committente in chat: «mi confermi che via API oltre alle regole torniamo la pista in uso?» —
+  non la tornavamo): la scheda `GET /vsop/api/v1/airports/{icao}` porta `runwayInUse` (partenza, arrivo, fonte
+  `rule`/`wind`/`none`, regola con `position` e `name`, il METAR e la sua ora). Carta `2026-09-30-api-aeroporti.md` §7.
+  - **Lo stesso calcolo della pagina** (`PistaInUso.Calcola`, con gli stessi argomenti di `AirportMemberLoader` e
+    `MilMemberLoader`): regole della sezione mostrata, poi il vento più in prua senza le soglie «mai», sulle rotte
+    vere. METAR dalla stessa porta (`IWeatherProvider`, con la stazione di riferimento).
+  - **Due scelte mie, dette in carta**: (1) niente ATIS, perché l'API è la vista del documento; il vAWOS lo mette
+    prima delle regole, la pagina no. (2) Niente tetto all'età del METAR, come la pagina: si dà il bollettino con la
+    sua ora, e chi chiama decide. Una release di prima del 12-set decide sulle regole vive e la `position` esce null.
+  - Nessuna migrazione, niente `deploy/`, niente codice comune (solo `Vipi.Hosting` e i due `.resx`: la descrizione
+    della rotta nella pagina chiavi). Cambio additivo.
+  - Test: Hosting 107 → 111 (rossi prima: la scheda non aveva il campo); E2E `ChiaviApiTests` e
+    `CancelloDelLoginTests` verdi. Dal vivo su DB nuovo (LIMC inventata: 17L/17R/35L/35R, regola «Nord» coda ≤ 5 kt,
+    METAR vero 15003KT): 401 senza chiave; con la chiave `rule`, 35L/35R, `position` 1 — la pagina pubblica dello
+    stesso scalo marca le stesse piste con la stessa regola.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
