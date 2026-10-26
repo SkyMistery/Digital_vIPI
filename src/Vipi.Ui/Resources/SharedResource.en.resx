@@ -3859,7 +3859,7 @@
   <data name="ApiKeys_RoutesHelp" xml:space="preserve"><value>Give these to whoever integrates, together with the key. Every call carries the key in one of the two headers below. Responses: 401 without a key or with a wrong or revoked key, 403 with a key lacking that permission, 404 unknown airport or no published document, 429 too many requests per minute. Responses are JSON.</value></data>
   <data name="ApiKeys_RouteExample" xml:space="preserve"><value>Example:</value></data>
   <data name="ApiKeys_Route_airports" xml:space="preserve"><value>Airports with a published document (vIPI or vSOP).</value></data>
-  <data name="ApiKeys_Route_airport" xml:space="preserve"><value>An airport's sheet: TA, transition levels, runways, frequencies, tower radar, runway selection rules.</value></data>
+  <data name="ApiKeys_Route_airport" xml:space="preserve"><value>An airport's sheet: TA, transition levels, runways, frequencies, tower radar, runway selection rules, runway in use now.</value></data>
   <data name="ApiKeys_Route_sids" xml:space="preserve"><value>SIDs as in the published document. Optional ?runway= for one runway (those valid for all runways stay too).</value></data>
   <data name="ApiKeys_Route_stars" xml:space="preserve"><value>STARs, same shape and filter as SIDs.</value></data>
   <data name="ApiKeys_Route_accs" xml:space="preserve"><value>The Italian centres (ACCs) visible on the site.</value></data>

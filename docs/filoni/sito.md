@@ -4,9 +4,19 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 23 ottobre 2026
+## Dove siamo — 26 ottobre 2026
 
-> **In una riga, al 23 ottobre**: tutto il lavoro del filone è **online o fuso**, fino a **S128**. Il «Radar di torre» è
+> **Al 26 ottobre**: 🟢 **S132** pronto da fondere su `sito/lavori` — la scheda dell'API aeroporti porta anche la
+> **pista in uso adesso** (`runwayInUse`), con lo stesso calcolo della pagina del documento. Niente migrazione.
+
+> **Al 25 ottobre**: tutto il lavoro del filone è **online o fuso**, fino a **S131**. **S129** (la scheda
+> dell'API aeroporti porta torre radar e regole di scelta pista) è **online in 1.74.0** dal 23 ottobre (§A167); **S130**
+> e **S131** (due test che cadevano nella suite intera, corretti nei soli test) sono fusi in `main` **senza
+> pacchetto** (§A168). **Niente in corso.** La scheda con una chiave vera online non l'ha ancora vista nessuno: la
+> prova la fa il programma che la usa. Restano al committente le cose della riga qui sotto. S96 (tabellone) resta in
+> pausa su `fix/tabellone`.
+
+> **Al 23 ottobre**: tutto il lavoro del filone è **online o fuso**, fino a **S128**. Il «Radar di torre» è
 > cresciuto in giorni successivi: S115 (sezione, 1.68.0), S118–S120 (tecnica a blocchi, via la colonna del testo),
 > S124 (la tecnica nasce aperta), S127 (testo comune a tutte le torri, **1.72.0**, §A165) e **S128** (il testo comune si
 > rilegge e si corregge nel pannello «Traduzione», solo admin: **online in 1.73.0** dal 22 ottobre, §A166). S121–S126
@@ -2949,7 +2959,7 @@
     come umana, anteprima inglese tradotta.
   - Nello stesso giro il committente aveva segnalato la sezione che non si vedeva sui vSOP senza vIPI: riprodotto su
     dati inventati (LIPI) e invece si vede — era un suo errore, chiuso senza modifiche.
-- 🟢 **S129** (23-ott, committente: «vorrei le regole di scelta della pista e se la torre è radarizzata o no»): la
+- ✅ **S129** (**online in 1.74.0** dal 23-ott, §A167; 23-ott, committente: «vorrei le regole di scelta della pista e se la torre è radarizzata o no»): la
   scheda dell'API aeroporti (`GET /vsop/api/v1/airports/{icao}`) porta `radarTower` (`null` = non indicato) e
   `runwayRules`. Ogni regola ha il testo del documento e accanto le soglie una per una: coda, traverso, superficie,
   orario locale, giorni, parità, stagione. Si leggono dalla vista derivata, quindi seguono la release come la pagina.
@@ -2960,7 +2970,7 @@
   - Test: Hosting 102 → 107; E2E `ChiaviApiTests` verdi. Dal vivo con curl su una copia del DB: 401 senza chiave,
     LIBD sì, LIRS (solo vSOP) no, LIBC non indicato con una regola completa, LIBR da release vecchia col testo e le
     soglie `null`.
-- 🟢 **S130** (23-ott, assegnato dal committente tramite il Master): `NoaaWeatherClientTests.
+- ✅ **S130** (**fuso** senza pacchetto, §A168; 23-ott, assegnato dal committente tramite il Master): `NoaaWeatherClientTests.
   Richieste_Concorrenti_Sullo_Stesso_Icao_Fanno_Una_Sola_Fetch` reso stabile. Nella suite intera sotto carico era
   caduto due volte (19-ott net8 dopo 6 s, 23-ott net10 dopo 8 s), con tutti e 16 i report vuoti.
   - **Causa, riprodotta**: il banco costruiva il client col tetto di produzione della sorgente principale (5 s).
@@ -2974,7 +2984,7 @@
     asserzioni restano le stesse (2 chiamate, METAR per tutti). Ricontrollato con un carico finto di 6 s: verde su
     net8 e net10.
   - Solo `tests/`: niente `src/`, niente pacchetto. Conteggi invariati.
-- 🟢 **S131** (23-ott, assegnato dal committente tramite il Master): E2E `RegistroAvviiTests.
+- ✅ **S131** (**fuso** senza pacchetto, §A168; 23-ott, assegnato dal committente tramite il Master): E2E `RegistroAvviiTests.
   Lhost_vero_conta_la_richiesta_e_la_scrive_nella_riga_darresto` reso stabile. Era caduto nella suite intera con
   `Assert.NotNull(arresto)` alla riga 450, e da solo passava.
   - **Causa, riprodotta, e non era il carico**: il test segnava dove finiva `diagnostica/avvii.txt` col NUMERO di
@@ -2990,6 +3000,21 @@
     asserzioni restano le stesse (riga ARRESTO, richieste non 0, svegliato da /vsop/health). Verde col file sopra il
     tetto, da solo e con la classe intera.
   - Solo `tests/`: niente `src/`, niente pacchetto. Conteggi invariati.
+- 🟢 **S132** (26-ott, committente in chat: «mi confermi che via API oltre alle regole torniamo la pista in uso?» —
+  non la tornavamo): la scheda `GET /vsop/api/v1/airports/{icao}` porta `runwayInUse` (partenza, arrivo, fonte
+  `rule`/`wind`/`none`, regola con `position` e `name`, il METAR e la sua ora). Carta `2026-09-30-api-aeroporti.md` §7.
+  - **Lo stesso calcolo della pagina** (`PistaInUso.Calcola`, con gli stessi argomenti di `AirportMemberLoader` e
+    `MilMemberLoader`): regole della sezione mostrata, poi il vento più in prua senza le soglie «mai», sulle rotte
+    vere. METAR dalla stessa porta (`IWeatherProvider`, con la stazione di riferimento).
+  - **Due scelte mie, dette in carta**: (1) niente ATIS, perché l'API è la vista del documento; il vAWOS lo mette
+    prima delle regole, la pagina no. (2) Niente tetto all'età del METAR, come la pagina: si dà il bollettino con la
+    sua ora, e chi chiama decide. Una release di prima del 12-set decide sulle regole vive e la `position` esce null.
+  - Nessuna migrazione, niente `deploy/`, niente codice comune (solo `Vipi.Hosting` e i due `.resx`: la descrizione
+    della rotta nella pagina chiavi). Cambio additivo.
+  - Test: Hosting 107 → 111 (rossi prima: la scheda non aveva il campo); E2E `ChiaviApiTests` e
+    `CancelloDelLoginTests` verdi. Dal vivo su DB nuovo (LIMC inventata: 17L/17R/35L/35R, regola «Nord» coda ≤ 5 kt,
+    METAR vero 15003KT): 401 senza chiave; con la chiave `rule`, 35L/35R, `position` 1 — la pagina pubblica dello
+    stesso scalo marca le stesse piste con la stessa regola.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

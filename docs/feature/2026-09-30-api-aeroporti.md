@@ -46,7 +46,7 @@ dopo la regola e non hanno client di prima da non fermare.
 | Richiesta | Risposta |
 |---|---|
 | `GET /vsop/api/v1/airports` | gli scali con un documento pubblicato |
-| `GET /vsop/api/v1/airports/{icao}` | la scheda: TA, fasce TL, piste, frequenze, torre radar, regole di scelta pista (§6) |
+| `GET /vsop/api/v1/airports/{icao}` | la scheda: TA, fasce TL, piste, frequenze, torre radar, regole di scelta pista (§6), pista in uso (§7) |
 | `GET /vsop/api/v1/airports/{icao}/sids[?runway=16L]` | le SID, nell'ordine del documento |
 | `GET /vsop/api/v1/airports/{icao}/stars[?runway=16L]` | le STAR, stessa forma |
 
@@ -178,3 +178,39 @@ Nella copia la torre radar non era ancora scritta da nessuna parte: LIBD l'ho me
 - LIBD `radarTower: true`, LIRS (solo vSOP) `false`, LIBC `null`;
 - LIBC: una regola con tutte le soglie;
 - LIBR: due regole da una release di prima del 12 settembre, col testo e le soglie `null`.
+
+## 7. La pista in uso adesso (26 ottobre 2026, S132)
+
+Chiesto dal committente il 26 ottobre: «oltre alle regole torniamo la pista in uso?». Prima no: le regole c'erano,
+ma il conto lo doveva fare chi chiamava. Un campo in più nella scheda `/{icao}`, additivo, nessuna migrazione.
+
+```json
+"runwayInUse": {
+  "departure": ["35L"], "arrival": ["35R"],
+  "source": "rule",
+  "rule": { "position": 1, "name": "Nord" },
+  "metar": "METAR LIMC 261650Z 15003KT 110V170 CAVOK 12/07 Q1020 NOSIG",
+  "metarObservedUtc": "2026-10-26T16:50:00+00:00"
+}
+```
+
+- `source`: `rule` = l'ha decisa una regola dello scalo (`rule` dice quale: `position` è quella di `runwayRules`);
+  `wind` = nessuna regola vale, e il documento prende la pista col vento più in prua (`rule` è `null`); `none` = non
+  si sa (niente METAR, vento non noto, soglie tutte «mai» in quel verso): elenchi vuoti.
+- `departure` e `arrival` sono elenchi: una regola può dare più piste.
+- **Lo stesso calcolo della pagina del documento** (`PistaInUso.Calcola`, come `AirportMemberLoader` e
+  `MilMemberLoader`): sulle regole che la sezione mostra (congelate con la release), poi il ripiego sul vento senza
+  le soglie «mai», misurato sulle rotte vere delle testate. Il METAR viene dalla stessa porta della pagina, con la
+  stazione di riferimento dove lo scalo ne ha una. Il vento è sempre quello di adesso.
+- ⚠️ **Il documento, non il vAWOS.** Il quadro vAWOS mette l'ATIS di chi è online prima delle regole, la pagina del
+  documento no. L'API è la vista pubblica del documento e dice la sua pista; un programma che vuole l'ATIS lo legge
+  dal whazzup.
+- ⚠️ **Nessun tetto all'età del METAR**, come la pagina (il vAWOS invece smette di decidere oltre i 90 minuti): il
+  bollettino e la sua ora (`metarObservedUtc`) sono nella risposta, e chi chiama decide se fidarsene.
+- ⚠️ Una release scattata prima del 12 settembre 2026 non porta le regole in forma calcolabile: come la pagina, si
+  decide sulle regole vive dell'anagrafica, e `rule.position` esce `null` perché sarebbe una riga di un'altra lista.
+
+**Verifica dal vivo** (DB nuovo, app locale, chiave di prova scritta solo lì). LIMC con 17L/17R/35L/35R e una regola
+inventata «Nord» (35L in partenza, 35R in arrivo, coda ≤ 5 kt), METAR vero `15003KT`: senza chiave **401**; con la
+chiave `source: rule`, 35L/35R, `position` 1. La pagina pubblica dello stesso scalo marca 35L 🛫 e 35R 🛬 con la regola
+«Nord». Il ramo `wind` e `none` li provano i test (`ApiAeroportiTests`).
