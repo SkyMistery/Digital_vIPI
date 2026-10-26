@@ -368,11 +368,34 @@
                 {
                     <section data-problemi-aip>
                         <h2 class="lab-riquadro-titolo">Segnalazioni · @esito.Problemi.Count</h2>
-                        @* Un filtro per tipo (committente, 22 ottobre: delle 542 del 2611 se ne vedevano le prime 200): tutte, o tutte di un tipo. *@
+                        @*
+                            26 ottobre (committente: «le segnalazioni come si correggono? 306 sono ancora tante»): divise per quel che
+                            chiedono. Si apre su «da sistemare»: le sole che chiedono qualcosa all'AOD. Dentro un gruppo, il filtro per tipo
+                            (22 ottobre: delle 542 del 2611 se ne vedevano le prime 200).
+                        *@
+                        @{
+                            var perGruppo = esito.Problemi.ToLookup(p => SegnalazioniDellAip.Gruppo(p.Problema));
+                            var gruppo = _gruppoDelleSegnalazioni ?? (perGruppo[GruppoDellaSegnalazione.DaSistemare].Any() ? GruppoDellaSegnalazione.DaSistemare : (GruppoDellaSegnalazione?)null);
+                            IReadOnlyList<ProblemaDellImport> delGruppo = gruppo is { } gg && !_tutteLeSegnalazioni ? perGruppo[gg].ToList() : esito.Problemi;
+                            var diLavoro = Lab.CicloDiLavoro == esito.Ciclo;
+                        }
+                        <p class="lab-nota" data-gruppi-problemi-aip>
+                            @foreach (var g in Enum.GetValues<GruppoDellaSegnalazione>())
+                            {
+                                <button type="button" class="lab-chip @(!_tutteLeSegnalazioni && gruppo == g ? "lab-scelto" : null)" data-gruppo-problemi="@g"
+                                        title="@SpiegaIlGruppo(g)" @onclick="() => ScegliIlGruppo(g)">@NomeDelGruppo(g) @perGruppo[g].Count()</button>
+                            }
+                            <button type="button" class="lab-chip @(_tutteLeSegnalazioni || gruppo is null ? "lab-scelto" : null)" data-gruppo-problemi=""
+                                    @onclick="() => ScegliIlGruppo(null)">tutte @esito.Problemi.Count</button>
+                        </p>
+                        @if (!_tutteLeSegnalazioni && gruppo is { } spiegato)
+                        {
+                            <p class="lab-nota" data-spiega-gruppo>@SpiegaIlGruppo(spiegato)</p>
+                        }
                         <p class="lab-nota" data-tipi-problemi-aip>
                             <button type="button" class="lab-chip @(_tipoDelleSegnalazioni is null ? "lab-scelto" : null)" data-tipo-problemi=""
-                                    @onclick="() => _tipoDelleSegnalazioni = null">tutte @esito.Problemi.Count</button>
-                            @foreach (var g in esito.Problemi.GroupBy(p => p.Problema.Kind).OrderByDescending(g => g.Count()))
+                                    @onclick="() => _tipoDelleSegnalazioni = null">ogni tipo @delGruppo.Count</button>
+                            @foreach (var g in delGruppo.GroupBy(p => p.Problema.Kind).OrderByDescending(g => g.Count()))
                             {
                                 <button type="button" class="lab-chip @(_tipoDelleSegnalazioni == g.Key ? "lab-scelto" : null)" data-tipo-problemi="@g.Key"
                                         @onclick="() => _tipoDelleSegnalazioni = g.Key">@Tipo(g.Key) @g.Count()</button>
@@ -380,19 +403,33 @@
                         </p>
                         @{
                             IReadOnlyList<ProblemaDellImport> scelte = _tipoDelleSegnalazioni is { } tipo
-                                ? esito.Problemi.Where(p => p.Problema.Kind == tipo).ToList() : esito.Problemi;
+                                ? delGruppo.Where(p => p.Problema.Kind == tipo).ToList() : delGruppo;
                             var mostrate = _tipoDelleSegnalazioni is null ? scelte.Take(MassimoSenzaFiltro) : scelte;
                         }
                         @if (_tipoDelleSegnalazioni is null && scelte.Count > MassimoSenzaFiltro)
                         {
                             <p class="lab-nota" data-problemi-troncati>Le prime @MassimoSenzaFiltro di @scelte.Count: scegli un tipo per vederle tutte.</p>
                         }
+                        @if (!diLavoro && Lab.CicloDiLavoro is not null)
+                        {
+                            <p class="lab-nota" data-segnalazioni-altro-ciclo>Queste sono del @esito.Ciclo e lavori sul @Lab.CicloDiLavoro: per andare alle voci e correggerle, «Lavora su questo» sul @esito.Ciclo.</p>
+                        }
                         <ul class="lab-elenco-segnalazioni">
                             @foreach (var p in mostrate)
                             {
-                                <li class="lab-nota" data-problema-aip="@p.Problema.Kind">
+                                <li class="lab-nota" data-problema-aip="@p.Problema.Kind" data-gruppo="@SegnalazioniDellAip.Gruppo(p.Problema)">
                                     <button type="button" class="lab-voce" title="Apre il PDF a quella pagina" @onclick="() => ApriLaSegnalazione(esito.Ciclo, p)"><code>@p.File@(p.Problema.Page is { } n ? $" p.{n}" : "")</code></button>
                                     <span>@Tipo(p.Problema.Kind)@(p.Problema.Key is { } k ? $" · {k}" : "")@(p.Problema.Detail is { } d ? $": {d}" : "")</span>
+                                    @if (diLavoro && SegnalazioniDellAip.DatoMancante(p.Problema) is var (_, manca))
+                                    {
+                                        <button type="button" class="lab-tasto" data-tasto="aggiungi-mancante" data-manca="@manca"
+                                                title="Apre «Aggiungi» nell'Indice con la sigla già scritta: mancano i dati dalla sua fonte" @onclick="() => AggiungiIlMancante(esito.Ciclo, p)">Aggiungi @manca</button>
+                                    }
+                                    else if (diLavoro && p.Problema.Key is not null)
+                                    {
+                                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="vai-alla-voce"
+                                                title="Apre la voce nell'Indice: da lì si corregge" @onclick="() => VaiAllaVoce(esito.Ciclo, p)">Vai alla voce</button>
+                                    }
                                 </li>
                             }
                         </ul>
@@ -411,6 +448,33 @@
     private string? _daDove;
     private IReadOnlyList<string> _sciolti = [];
     private Aip.Pdf.Italia.ImportIssueKind? _tipoDelleSegnalazioni;
+    private GruppoDellaSegnalazione? _gruppoDelleSegnalazioni;
+    private bool _tutteLeSegnalazioni;
+
+    private void ScegliIlGruppo(GruppoDellaSegnalazione? gruppo)
+    {
+        _gruppoDelleSegnalazioni = gruppo;
+        _tutteLeSegnalazioni = gruppo is null;
+        _tipoDelleSegnalazioni = null;
+    }
+
+    private static string NomeDelGruppo(GruppoDellaSegnalazione gruppo) => gruppo switch
+    {
+        GruppoDellaSegnalazione.DaSistemare => "da sistemare",
+        GruppoDellaSegnalazione.ErroreDellAip => "errori dell'AIP già letti",
+        _ => "note della lettura",
+    };
+
+    private static string SpiegaIlGruppo(GruppoDellaSegnalazione gruppo) => gruppo switch
+    {
+        GruppoDellaSegnalazione.DaSistemare => "Chiedono qualcosa a te: un dato che manca («Aggiungi»), una scelta, un'area o un conto che non torna («Vai alla voce», poi «Correggi»).",
+        GruppoDellaSegnalazione.ErroreDellAip => "Errori di stampa dell'AIP che il Lab ha già letto, e dice come: da guardare, e da segnalare a ENAV. Se la lettura è sbagliata, «Vai alla voce» e «Correggi».",
+        _ => "La voce è letta e disegnata: il Lab dice dove ha approssimato (una virata a una quota, una prua come rotta…). Non serve fare niente.",
+    };
+
+    private async Task VaiAllaVoce(string ciclo, ProblemaDellImport p) => _rifiuto = await Lab.VaiAllaSegnalazioneAsync(ciclo, p.Problema) ? null : Lab.Rifiuto;
+
+    private void AggiungiIlMancante(string ciclo, ProblemaDellImport p) => _rifiuto = Lab.AggiungiIlDatoMancante(ciclo, p.Problema) ? null : Lab.Rifiuto;
 
     /// <summary>Quante segnalazioni si mostrano senza un tipo scelto: con un tipo, tutte le sue.</summary>
     private const int MassimoSenzaFiltro = 200;

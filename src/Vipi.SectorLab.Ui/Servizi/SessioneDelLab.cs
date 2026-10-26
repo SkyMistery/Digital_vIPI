@@ -4687,6 +4687,56 @@ public sealed class SessioneDelLab
     }
 
     /// <summary>
+    /// «Vai alla voce» di una segnalazione (26 ottobre, committente: «le segnalazioni come si correggono?»): apre l'Indice
+    /// sulla voce di cui parla, dove si corregge. Solo sul ciclo di lavoro: le correzioni vanno lì.
+    /// </summary>
+    public async Task<bool> VaiAllaSegnalazioneAsync(string ciclo, Aip.Pdf.Italia.ImportIssue problema)
+    {
+        if (PercheNonSulCiclo(ciclo) is { } perche)
+            return Rifiuta(perche);
+        if (StratoDellAip?.Ciclo != ciclo && !await MostraLAipAsync(true).ConfigureAwait(false))
+            return false;
+        if (StratoDellAip is not { } strato || Core.PdfAip.SegnalazioniDellAip.VoceDi(problema, strato.Voci) is not { } i)
+            return Rifiuta($"Nell'Indice del {ciclo} non c'è una voce «{problema.Key}»: apri il PDF.");
+        Rifiuto = null;
+        ScegliLaPagina(PaginaDelLab.AipIndice);
+        Scegli(strato.File, i);
+        return true;
+    }
+
+    /// <summary>
+    /// Il dato che una segnalazione chiede di aggiungere (26 ottobre: «dove inserisco le informazioni mancanti tipo le coordinate
+    /// di AJO?»): il tipo, il nome e il perché già scritti. L'Indice apre «Aggiungi» con questi, e lo prende con
+    /// <see cref="AggiuntaPresa"/>.
+    /// </summary>
+    public (global::Aip.CorrectionKind Tipo, string Nome, string Perche)? AggiuntaRichiesta { get; private set; }
+
+    /// <summary>«Aggiungi AJO» su una segnalazione: porta all'Indice col modulo già aperto e la sigla scritta.</summary>
+    public bool AggiungiIlDatoMancante(string ciclo, Aip.Pdf.Italia.ImportIssue problema)
+    {
+        if (PercheNonSulCiclo(ciclo) is { } perche)
+            return Rifiuta(perche);
+        if (Core.PdfAip.SegnalazioniDellAip.DatoMancante(problema) is not var (tipo, nome))
+            return Rifiuta("La segnalazione non dice un dato che manca.");
+        var scali = (UltimoAipEspanso?.Problemi ?? [])
+            .Where(p => Core.PdfAip.SegnalazioniDellAip.DatoMancante(p.Problema)?.Nome == nome)
+            .Select(p => p.Problema.Key?.Split(' ')[0]).OfType<string>().Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        var chi = tipo == global::Aip.CorrectionKind.Navaid ? "stazione" : "punto";
+        AggiuntaRichiesta = (tipo, nome, $"{chi} nominat{(chi == "punto" ? "o" : "a")} dalle procedure{(scali.Count > 0 ? " di " + string.Join(", ", scali) : "")}, che l'AIP italiano non ha");
+        Rifiuto = null;
+        ScegliLaPagina(PaginaDelLab.AipIndice);
+        Avvisa();
+        return true;
+    }
+
+    /// <summary>L'Indice ha aperto il modulo dell'aggiunta richiesta.</summary>
+    public void AggiuntaPresa() => AggiuntaRichiesta = null;
+
+    private string? PercheNonSulCiclo(string ciclo) => CicloDiLavoro == ciclo ? null
+        : CicloDiLavoro is null ? ScegliIlCiclo
+        : $"Questa segnalazione è del {ciclo}, ma lavori sul {CicloDiLavoro}: «Lavora su questo» sulla riga del {ciclo}.";
+
+    /// <summary>
     /// «Lavora su questo» (26 ottobre): il committente sceglie il ciclo di lavoro; resta scelto anche dopo un riavvio, finché
     /// non ne sceglie un altro. Indice e mappa si rifanno sul ciclo nuovo, se l'AIP espanso era già caricato.
     /// </summary>

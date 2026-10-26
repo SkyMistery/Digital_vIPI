@@ -118,6 +118,10 @@ public sealed class AipNellaBarraTests : IDisposable
         var pagina = _contesto.RenderComponent<Home>();
 
         pagina.WaitForAssertion(() => Assert.Contains("1 controllati, 1 non torna", pagina.Find("[data-conti-aip] summary").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
+        // 26 ottobre: si apre su «da sistemare», che qui è l'attesa sola; le procedure senza dettaglio sono note della lettura.
+        Assert.Contains("JESSY", Assert.Single(pagina.FindAll("[data-problema-aip]")).TextContent, StringComparison.Ordinal);
+        Assert.Equal("note della lettura 250", pagina.Find("[data-gruppo-problemi=Nota]").TextContent.Trim());
+        await pagina.InvokeAsync(() => pagina.Find("[data-gruppo-problemi='']").Click());
         Assert.Equal(200, pagina.FindAll("[data-problema-aip]").Count);
         Assert.Contains("Le prime 200 di 251", pagina.Find("[data-problemi-troncati]").TextContent, StringComparison.Ordinal);
         // L'attesa, la 251ª, non si vede fra le prime 200: col suo tipo sì.
@@ -130,6 +134,57 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Empty(pagina.FindAll("[data-problemi-troncati]"));
         await pagina.InvokeAsync(() => pagina.Find("[data-tipo-problemi='']").Click());
         Assert.Equal(200, pagina.FindAll("[data-problema-aip]").Count);
+    }
+
+    // 26 ottobre (committente: «le segnalazioni come si correggono?», «dove inserisco le coordinate di AJO?»): una segnalazione
+    // da sistemare porta alla sua voce dell'Indice, o apre «Aggiungi» con la sigla e il perché già scritti.
+    [Fact]
+    public async Task LeSegnalazioniDaSistemare_PortanoAllaVoce_EAdAggiungereIlDatoCheManca()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pdf = Path.Combine(_fuori, "AIP");
+        Assert.True(_lab.CambiaLaCartellaDeiPdf(pdf), _lab.Rifiuto);
+        Assert.True(_lab.CambiaLAipEspanso(Path.Combine(_fuori, "espanso")), _lab.Rifiuto);
+        var cartella = Directory.CreateDirectory(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(pdf, "2611")).FullName;
+        await File.WriteAllBytesAsync(Path.Combine(cartella, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("06 AUG 2026", "LI R901 - Prova Uno"));
+        Assert.True(await _lab.LeggiLAipAsync("2611"), _lab.Rifiuto);
+        Assert.Equal("2611", _lab.CicloDiLavoro);
+        Assert.True(await _lab.MostraLAipAsync(true), _lab.Rifiuto);
+        var area = _lab.StratoDellAip!.Voci.ToList().FindIndex(v => v.Tipo == global::Aip.CorrectionKind.Airspace);
+        var chiave = _lab.StratoDellAip.Voci[area].Chiave!;
+        Core.PdfAip.ProblemaDellImport Problema(Aip.Pdf.Italia.ImportIssueKind tipo, string chiaveDelProblema, string dettaglio) =>
+            new("LI-AD 2 LIEA 5.pdf", new Aip.Pdf.Italia.ImportIssue(tipo, chiaveDelProblema, 1, dettaglio));
+        _lab.UltimoAipEspanso = _lab.UltimoAipEspanso! with
+        {
+            Problemi =
+            [
+                Problema(Aip.Pdf.Italia.ImportIssueKind.Procedure, "LIEA Star CORSI 3F RWY 02/20", "prosa non letta: AJO: non è una radioassistenza dell'AIP"),
+                Problema(Aip.Pdf.Italia.ImportIssueKind.Procedure, "LIEO Star TEREZ 1A", "prosa non letta: AJO: non è una radioassistenza dell'AIP"),
+                Problema(Aip.Pdf.Italia.ImportIssueKind.Geometry, chiave, "NotClosed"),
+                Problema(Aip.Pdf.Italia.ImportIssueKind.Procedure, "LIRN Sid X 1A", "prosa letta con un'approssimazione: prua 329° disegnata come rotta, senza vento"),
+            ],
+        };
+        _lab.ScegliLaPagina(PaginaDelLab.Aip);
+        var pagina = _contesto.RenderComponent<Home>();
+
+        pagina.WaitForAssertion(() => Assert.Equal(3, pagina.FindAll("[data-problema-aip]").Count), TimeSpan.FromSeconds(10));
+        Assert.Equal("note della lettura 1", pagina.Find("[data-gruppo-problemi=Nota]").TextContent.Trim());
+        Assert.Equal(2, pagina.FindAll("[data-tasto=aggiungi-mancante][data-manca=AJO]").Count);
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=vai-alla-voce]").Click());
+        Assert.Equal(area, _lab.SceltaDellAip);
+        Assert.Equal(PaginaDelLab.AipIndice, _lab.Pagina);
+
+        _lab.ScegliLaPagina(PaginaDelLab.Aip);
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-tasto=aggiungi-mancante]")), TimeSpan.FromSeconds(10));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=aggiungi-mancante]").Click());
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Equal("Navaid", pagina.Find("[data-modulo-voce=aggiungi]").GetAttribute("data-tipo-voce"));
+            Assert.Equal("AJO", pagina.Find("[data-campo=voce-designator]").GetAttribute("value"));
+            Assert.Equal("stazione nominata dalle procedure di LIEA, LIEO, che l'AIP italiano non ha", pagina.Find("[data-campo=voce-perche]").GetAttribute("value"));
+        }, TimeSpan.FromSeconds(10));
+        Assert.Null(_lab.AggiuntaRichiesta);
     }
 
     // Slice 1b: «Confronta i CTR», dall'AIP espanso al sector aperto; un clic sulla riga apre la voce del sector.

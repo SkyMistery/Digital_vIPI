@@ -64,6 +64,12 @@
 
     [Parameter] public EventCallback Chiuso { get; set; }
 
+    /// <summary>I campi già scritti di una voce nuova (26 ottobre: «Aggiungi AJO» da una segnalazione scrive la sigla).</summary>
+    [Parameter] public IReadOnlyDictionary<string, string>? Iniziali { get; set; }
+
+    /// <summary>Il perché già scritto di una voce nuova (da una segnalazione).</summary>
+    [Parameter] public string? PercheIniziale { get; set; }
+
     private Dictionary<string, string?> _valori = new(StringComparer.Ordinal);
     private (CorrectionKind, object?)? _di;
     private string? _perche;
@@ -76,6 +82,12 @@
         if (_di is var (tipo, voce) && tipo == Tipo && ReferenceEquals(voce, Prima)) return;
         _di = (Tipo, Prima);
         _valori = ModuloDellaVoce.Valori(Tipo, Prima).ToDictionary(v => v.Key, v => (string?)v.Value, StringComparer.Ordinal);
+        if (Prima is null)
+        {
+            foreach (var (nome, valore) in Iniziali ?? new Dictionary<string, string>())
+                if (_valori.ContainsKey(nome)) _valori[nome] = valore;
+            _perche ??= PercheIniziale;
+        }
         _rifiuto = null;
     }
 

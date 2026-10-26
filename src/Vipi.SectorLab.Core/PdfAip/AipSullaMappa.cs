@@ -509,7 +509,8 @@ public static partial class AipSullaMappa
         righe.AddRange((p.Fixes ?? []).Select(f => $"FIX/POINT {f.Text}"
             + (f.Position is { } dove ? $" {dove.Lat.ToString("0.00000", CultureInfo.InvariantCulture)} {dove.Lon.ToString("0.00000", CultureInfo.InvariantCulture)}" : "")));
         var titolo = p.Kind == ProcedureKind.Approach ? $"{p.Aerodrome} {p.Designator}{(p.Segment is { } s ? $" — {s}" : "")}" : $"{p.Aerodrome} {p.Designator}{(p.Kind == ProcedureKind.InitialClimb && p.Runways.Count == 0 ? "" : p.Runways.Count > 0 && p.Kind != ProcedureKind.InitialClimb ? $" RWY {string.Join("/", p.Runways)}" : "")}";
-        return new VoceDellAip(Genere(p.Kind), titolo, campi, righe);
+        // La chiave della procedura, che non si corregge (Tipo null): serve alle segnalazioni per portare alla voce (26 ottobre).
+        return new VoceDellAip(Genere(p.Kind), titolo, campi, righe, Chiave: p.Key);
     }
 
     private static VoceDellAip Voce(Holding h, bool disegnata)

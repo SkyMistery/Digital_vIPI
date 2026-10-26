@@ -49,7 +49,7 @@
                 }
                 else if (_aggiungi is { } tipo)
                 {
-                    <ModuloDiUnaVoce Tipo="tipo" Chiuso="() => _aggiungi = null" />
+                    <ModuloDiUnaVoce Tipo="tipo" Iniziali="_iniziali" PercheIniziale="@_percheIniziale" Chiuso="ChiudiLAggiunta" />
                 }
                 else
                 {
@@ -172,6 +172,28 @@
         Lab.Cambiata += Aggiorna;
         if (Lab.StratoDellAip is null && Lab.CartellaDellAipEspanso is not null)
             await CaricaAsync();
+        PrendiLAggiunta();
+    }
+
+    private IReadOnlyDictionary<string, string>? _iniziali;
+    private string? _percheIniziale;
+
+    /// <summary>«Aggiungi AJO» da una segnalazione (26 ottobre): il modulo si apre col tipo, la sigla e il perché già scritti.</summary>
+    private void PrendiLAggiunta()
+    {
+        if (Lab.AggiuntaRichiesta is not var (tipo, nome, perche) || Lab.StratoDellAip is null)
+            return;
+        Lab.AggiuntaPresa();
+        _aggiungi = tipo;
+        _iniziali = new Dictionary<string, string>(StringComparer.Ordinal) { ["designator"] = nome };
+        _percheIniziale = perche;
+    }
+
+    private void ChiudiLAggiunta()
+    {
+        _aggiungi = null;
+        _iniziali = null;
+        _percheIniziale = null;
     }
 
     private async Task CaricaAsync()
@@ -181,7 +203,11 @@
         _caricando = false;
     }
 
-    private void Aggiorna() => InvokeAsync(StateHasChanged);
+    private void Aggiorna() => InvokeAsync(() =>
+    {
+        PrendiLAggiunta();
+        StateHasChanged();
+    });
 
     public void Dispose() => Lab.Cambiata -= Aggiorna;
 
