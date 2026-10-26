@@ -127,14 +127,32 @@
             _indice = IndiceDellAip.Di(strato.Voci, _filtro);
             _di = strato;
             _filtroDi = _filtro;
+            _indiciDeiGruppi.Clear();
         }
         return _indice;
     }
 
+    private readonly Dictionary<GruppoDellIndice, IReadOnlyList<int>> _indiciDeiGruppi = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>Le voci di un gruppo, a ogni livello: si contano a ogni disegno, si cercano una volta per indice.</summary>
+    private IReadOnlyList<int> Indici(GruppoDellIndice gruppo)
+    {
+        if (!_indiciDeiGruppi.TryGetValue(gruppo, out var indici))
+            _indiciDeiGruppi[gruppo] = indici = [.. gruppo.Indici];
+        return indici;
+    }
+
     private RenderFragment Gruppo(GruppoDellIndice gruppo) => __builder =>
     {
+        var indici = Indici(gruppo);
+        var accese = Lab.QuanteVociDellAipAccese(indici);
         <details class="lab-indice-gruppo" open="@Aperto(gruppo)" data-gruppo="@gruppo.Codice">
             <summary>
+                @* 26 ottobre (committente: «accendere la singola procedura o la singola area»): un gruppo — uno scalo, le sue SID,
+                   una sezione — si accende e si spegne sulla mappa tutto insieme, qualunque sia il genere negli Strati. *@
+                <input type="checkbox" class="lab-indice-accesa" data-accendi-gruppo="@gruppo.Codice" checked="@(accese == indici.Count)"
+                       title="@(accese == indici.Count ? "Tutte accese sulla mappa: spegnile" : accese == 0 ? "Spente sulla mappa: accendile" : $"{accese} su {indici.Count} accese sulla mappa: accendile tutte")"
+                       @onchange="e => Lab.AccendiLeVociDellAip(indici, e.Value is true)" />
                 <span class="lab-indice-codice">@gruppo.Codice.Split('/')[^1]</span>
                 @if (gruppo.Nome.Length > 0 && !gruppo.Codice.EndsWith(gruppo.Nome, StringComparison.Ordinal))
                 {

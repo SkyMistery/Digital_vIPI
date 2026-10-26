@@ -183,6 +183,8 @@
     /// generi spenti di uno strato (slice 12c): '§geo:TAXI_CENTER', contro il genere 'h' della forma. Una
     /// forma spenta esce dal suo gruppo (la vista e i colori non la vedono più); una con qualche parte spenta si ridisegna
     /// coi tratti accesi. Si rifà per ogni strato quando cambiano le spente, e quando uno strato arriva.
+    /// 26 ottobre: '+aip:2611#3' è una voce accesa da sola, che si vede anche col suo genere spento («Vai alla voce» lascia
+    /// accesa solo quella).
     function applicaSpenti(stato, id) {
         var gruppo = stato.strati[id], tutte = stato.tutte && stato.tutte[id];
         if (!gruppo || !tutte) return;
@@ -190,7 +192,7 @@
         for (var i = 0; i < tutte.length; i++) {
             var l = tutte[i], f = l.sectorlab, base = f.p + '#' + f.r;
             // Slice 12c (H1): un genere spento del suo strato ('§geo:TAXI_CENTER') toglie tutte le sue forme.
-            var via = !!spenti[base] || (!!f.h && !!spenti['§' + id + ':' + f.h]), accesi = null;
+            var via = !!spenti[base] || (!!f.h && !!spenti['§' + id + ':' + f.h] && !spenti['+' + base]), accesi = null;
             if (!via && f.t !== 'p') {
                 accesi = [];
                 for (var t = 0; t < f.c.length; t++) {

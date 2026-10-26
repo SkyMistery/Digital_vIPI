@@ -270,7 +270,12 @@
             {
                 <section data-esito-aip>
                     <h2 class="lab-riquadro-titolo">Esito della lettura · ciclo @esito.Ciclo</h2>
-                    <p class="lab-nota">@esito.Letti.Count PDF letti su @esito.Pdf → <code>@esito.Scritto</code></p>
+                    <p class="lab-nota">@esito.Letti.Count PDF letti su @esito.Pdf → <code>@esito.Scritto</code>@(Lab.LettaIl is { } letta ? $" · letto il {letta.ToString("dd/MM/yyyy HH:mm", Cultura)}" : "")</p>
+                    @* 26 ottobre (committente): dopo un riavvio la lettura del ciclo di lavoro si ricorda, senza rileggere l'AIP. *@
+                    @if (Lab.LetturaRicordata)
+                    {
+                        <p class="lab-nota" data-lettura-ricordata>È la lettura ricordata: le correzioni fatte dopo si vedono nelle segnalazioni dalla prossima «Rileggi».</p>
+                    }
                     @if (Lab.AvvisoDellaLettura is { } avviso)
                     {
                         <p class="lab-avviso-breve" data-avviso-lettura>@avviso</p>
@@ -428,11 +433,16 @@
                                     else if (diLavoro && p.Problema.Key is not null)
                                     {
                                         <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="vai-alla-voce"
-                                                title="Apre la voce nell'Indice: da lì si corregge" @onclick="() => VaiAllaVoce(esito.Ciclo, p)">Vai alla voce</button>
+                                                title="Apre la voce nell'Indice, sola sulla mappa: da lì si corregge. Se l'Indice non la ha, o non si disegna, apre il PDF"
+                                                @onclick="() => VaiAllaVoce(esito.Ciclo, p)">Vai alla voce</button>
                                     }
                                 </li>
                             }
                         </ul>
+                        @if (Lab.SegnalazioneNelPdf is { } nelPdf)
+                        {
+                            <p class="lab-nota" data-segnalazione-nel-pdf>@nelPdf</p>
+                        }
                     </section>
                 }
             }
@@ -472,7 +482,7 @@
         _ => "La voce è letta e disegnata: il Lab dice dove ha approssimato (una virata a una quota, una prua come rotta…). Non serve fare niente.",
     };
 
-    private async Task VaiAllaVoce(string ciclo, ProblemaDellImport p) => _rifiuto = await Lab.VaiAllaSegnalazioneAsync(ciclo, p.Problema) ? null : Lab.Rifiuto;
+    private async Task VaiAllaVoce(string ciclo, ProblemaDellImport p) => _rifiuto = await Lab.VaiAllaSegnalazioneAsync(ciclo, p) ? null : Lab.Rifiuto;
 
     private void AggiungiIlMancante(string ciclo, ProblemaDellImport p) => _rifiuto = Lab.AggiungiIlDatoMancante(ciclo, p.Problema) ? null : Lab.Rifiuto;
 
@@ -539,9 +549,7 @@
 
     /// <summary>Una segnalazione dice il PDF e la pagina, o — per la prosa delle procedure — il riferimento della pagina.</summary>
     private void ApriLaSegnalazione(string ciclo, ProblemaDellImport p) =>
-        _rifiuto = (p.File.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
-            ? Lab.ApriIlPdf(ciclo, p.File, p.Problema.Page ?? 1)
-            : Lab.ApriLaPaginaDellAip(ciclo, p.File)) ? null : Lab.Rifiuto;
+        _rifiuto = Lab.ApriIlPdfDellaSegnalazione(ciclo, p) ? null : Lab.Rifiuto;
 
     private async Task SfogliaDove()
     {

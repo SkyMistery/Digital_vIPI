@@ -13,6 +13,15 @@
         <header>
             <p class="lab-etichetta">@voce.Titolo</p>
             <p class="lab-nota">AIP espanso @Ciclo · @voce.Genere@(correggibile ? "" : " · sola lettura")</p>
+            @* 26 ottobre (committente: «accendere la singola procedura o la singola area»): la voce sulla mappa dell'AIP espanso,
+               da sola, qualunque sia il suo genere negli Strati. *@
+            @if (Lab.SpazioAttivo == SpazioDiLavoro.Aip && Lab.SceltaDellAip is { } indice)
+            {
+                <label class="lab-nota" data-accendi-voce>
+                    <input type="checkbox" checked="@Lab.VoceDellAipAccesa(indice)" @onchange="e => Lab.AccendiLeVociDellAip([indice], e.Value is true)" />
+                    Accesa sulla mappa
+                </label>
+            }
         </header>
         @if (Correzione is { } c)
         {

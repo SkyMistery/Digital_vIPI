@@ -2270,6 +2270,12 @@ body.lab-trascina * {
     font-variant-numeric: tabular-nums;
 }
 
+/* Accende e spegne sulla mappa tutto il gruppo (26 ottobre). */
+.lab-indice-accesa {
+    margin: 0 .3rem 0 0;
+    vertical-align: middle;
+}
+
 .lab-indice-voce {
     display: block;
     margin-left: 1rem;

@@ -460,4 +460,28 @@ public sealed class AipSullaMappaTests
         Assert.Equal(righe, s.Voci[0].Righe);
         Assert.Contains(("Carte", "1"), s.Voci[0].Campi);
     }
+
+    // 26 ottobre: una correzione rifà lo strato e sposta gli indici; le voci accese o spente una per una restano quelle.
+    // Due voci uguali (due attese «UNO» stampate due volte) si riconoscono dall'ordine.
+    [Fact]
+    public void Riporta_LeVociAiLoroIndiciNuovi()
+    {
+        static VoceDellAip Voce(string genere, string titolo, string? chiave = null) => new(genere, titolo, [], [], null, chiave);
+        VoceDellAip[] prima = [Voce("CTR", "Roma CTR", "Roma CTR"), Voce("Attese", "UNO"), Voce("Attese", "UNO"), Voce("Punti", "ABRUS", "ABRUS"), Voce("CTR", "Via CTR", "Via CTR")];
+        VoceDellAip[] dopo = [Voce("CTR", "Roma CTR", "Roma CTR"), Voce("CTR", "Nuova CTR", "Nuova CTR"), Voce("Attese", "UNO"), Voce("Attese", "UNO"), Voce("Punti", "ABRUS", "ABRUS")];
+
+        var riportate = AipSullaMappa.Riporta(prima, dopo);
+
+        Assert.Equal(new Dictionary<int, int> { [0] = 0, [1] = 2, [2] = 3, [3] = 4 }, riportate);
+    }
+
+    [Fact]
+    public void Disegnata_UnPuntoSenzaPosizioneNo()
+    {
+        var s = AipSullaMappa.Di(Modello(), "2611", nome => nome == "UNO" ? new Coordinate(45.1, 9.1) : null);
+        var attese = s.Strato.Forme.Where(f => f.Genere == AipSullaMappa.Attese).ToList();
+
+        Assert.Equal([true, false], attese.Select(AipSullaMappa.Disegnata));
+        Assert.True(AipSullaMappa.Disegnata(s.Strato.Forme[0]));
+    }
 }

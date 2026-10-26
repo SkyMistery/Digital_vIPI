@@ -135,6 +135,42 @@ public static partial class AipSullaMappa
     public static bool EDellAip(string? file) => file?.StartsWith(Prefisso, StringComparison.Ordinal) == true;
 
     /// <summary>
+    /// Dove sono finite le voci di uno strato in quello rifatto (26 ottobre: una correzione aggiunge o toglie una voce, e gli
+    /// indici dopo di lei si spostano; le voci accese o spente una per una devono restare quelle). Una voce si riconosce dal
+    /// genere, dal titolo e dalla chiave; fra due uguali conta l'ordine. Quelle che non ci sono più mancano.
+    /// </summary>
+    public static IReadOnlyDictionary<int, int> Riporta(IReadOnlyList<VoceDellAip> prima, IReadOnlyList<VoceDellAip> dopo)
+    {
+        ArgumentNullException.ThrowIfNull(prima);
+        ArgumentNullException.ThrowIfNull(dopo);
+        var dove = new Dictionary<(string, string, string?, int), int>();
+        var visti = new Dictionary<(string, string, string?), int>();
+        for (var i = 0; i < dopo.Count; i++)
+            dove[Identita(dopo[i], visti)] = i;
+        visti.Clear();
+        var riportate = new Dictionary<int, int>();
+        for (var i = 0; i < prima.Count; i++)
+            if (dove.TryGetValue(Identita(prima[i], visti), out var nuovo))
+                riportate[i] = nuovo;
+        return riportate;
+
+        static (string, string, string?, int) Identita(VoceDellAip v, Dictionary<(string, string, string?), int> visti)
+        {
+            var chi = (v.Genere, v.Titolo, v.Chiave);
+            var volta = visti.GetValueOrDefault(chi);
+            visti[chi] = volta + 1;
+            return (v.Genere, v.Titolo, v.Chiave, volta);
+        }
+    }
+
+    /// <summary>Vero se la forma ha qualcosa da disegnare: un punto con la sua posizione, una linea o un'area con due punti.</summary>
+    public static bool Disegnata(FormaDellaMappa forma)
+    {
+        ArgumentNullException.ThrowIfNull(forma);
+        return forma.Tipo == TipoDiForma.Punto ? forma.Tratti.Any(t => t.Count > 0) : forma.Tratti.Any(t => t.Count >= 2);
+    }
+
+    /// <summary>
     /// Lo strato del modello. <paramref name="puntoDelSector"/>: dove il sector ha un punto, per nome (il catalogo del
     /// master scelto); null se non lo ha.
     /// </summary>

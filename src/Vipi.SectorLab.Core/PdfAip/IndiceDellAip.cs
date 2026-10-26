@@ -8,6 +8,9 @@ public sealed record GruppoDellIndice(string Codice, string Nome, IReadOnlyList<
 {
     /// <summary>Quante voci ci sono qui dentro, a ogni livello.</summary>
     public int Quante => Voci.Count + Gruppi.Sum(g => g.Quante);
+
+    /// <summary>I posti nello strato di tutte le voci qui dentro, a ogni livello (per accenderle e spegnerle insieme).</summary>
+    public IEnumerable<int> Indici => Voci.Select(v => v.Indice).Concat(Gruppi.SelectMany(g => g.Indici));
 }
 
 /// <summary>

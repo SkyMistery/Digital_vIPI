@@ -599,6 +599,10 @@ public sealed class SessioneDelLab
         {
             Scelta = null;
             SceltaDellAip = record;
+            // 26 ottobre: una voce scelta nell'Indice si deve vedere, anche col suo genere spento (dopo «Vai alla voce»
+            // resta accesa solo una voce): si accende da sola.
+            if (StratoDellAip?.File == file && !VoceDellAipAccesa(record))
+                AccendiLeVociDellAip([record], accese: true);
             Registro.Scrivi("scelta", $"{file}#{record}");
             Inquadrature++;
             Avvisa();
@@ -4610,8 +4614,55 @@ public sealed class SessioneDelLab
     /// <summary>Com'è andato l'ultimo «Prendi i PDF da Download».</summary>
     public Core.PdfAip.PresaDaDownload? UltimaPresaDaDownload { get; private set; }
 
-    /// <summary>Com'è andata l'ultima lettura nell'AIP espanso.</summary>
-    public Core.PdfAip.EsitoDellAipEspanso? UltimoAipEspanso { get; internal set; }
+    /// <summary>
+    /// Com'è andata l'ultima lettura nell'AIP espanso. Dopo un riavvio, quella ricordata del ciclo di lavoro (26 ottobre,
+    /// committente: la lista delle cose da sistemare senza rileggere l'AIP).
+    /// </summary>
+    public Core.PdfAip.EsitoDellAipEspanso? UltimoAipEspanso
+    {
+        get
+        {
+            if (_ultimoAipEspanso is null && CartellaDellAipEspanso is { } espanso && CicloDiLavoro is { } ciclo && _letturaCercata != ciclo)
+            {
+                _letturaCercata = ciclo;
+                if (Core.PdfAip.LettureRicordate.Leggi(_cartellaDeiDati, espanso, ciclo) is var (esito, letta))
+                {
+                    _ultimoAipEspanso = esito;
+                    LettaIl = letta;
+                    LetturaRicordata = true;
+                    MessaggioDellAip ??= Core.PdfAip.RepoDellAip.MessaggioProposto(esito);
+                }
+            }
+            return _ultimoAipEspanso;
+        }
+        internal set
+        {
+            _ultimoAipEspanso = value;
+            LetturaRicordata = false;
+        }
+    }
+
+    private Core.PdfAip.EsitoDellAipEspanso? _ultimoAipEspanso;
+
+    /// <summary>Il ciclo di cui si è già cercata la lettura ricordata: una volta sola, non a ogni disegno della pagina.</summary>
+    private string? _letturaCercata;
+
+    /// <summary>Quando è stata fatta la lettura di <see cref="UltimoAipEspanso"/>; null se non si sa.</summary>
+    public DateTime? LettaIl { get; private set; }
+
+    /// <summary>Vero se <see cref="UltimoAipEspanso"/> viene dai dati del Lab, non da una lettura di questa sessione.</summary>
+    public bool LetturaRicordata { get; private set; }
+
+    /// <summary>La lettura del ciclo di prima non vale più: al prossimo sguardo si cerca quella ricordata del ciclo di adesso.</summary>
+    private void ScordaLaLetturaSeNonE(string ciclo)
+    {
+        if (_ultimoAipEspanso is { } e && e.Ciclo == ciclo)
+            return;
+        _ultimoAipEspanso = null;
+        _letturaCercata = null;
+        LettaIl = null;
+        LetturaRicordata = false;
+    }
 
     /// <summary>Sta leggendo i PDF.</summary>
     public bool StaLeggendoLAip { get; private set; }
@@ -4689,19 +4740,173 @@ public sealed class SessioneDelLab
     /// <summary>
     /// «Vai alla voce» di una segnalazione (26 ottobre, committente: «le segnalazioni come si correggono?»): apre l'Indice
     /// sulla voce di cui parla, dove si corregge. Solo sul ciclo di lavoro: le correzioni vanno lì.
+    /// <para>26 ottobre (committente): sulla mappa resta accesa solo quella voce, il resto si riaccende dagli Strati; una voce
+    /// che l'Indice non ha (LIBD FL100, un'area che non si chiude) o che non si disegna si guarda nel PDF, alla pagina della
+    /// segnalazione.</para>
     /// </summary>
-    public async Task<bool> VaiAllaSegnalazioneAsync(string ciclo, Aip.Pdf.Italia.ImportIssue problema)
+    public async Task<bool> VaiAllaSegnalazioneAsync(string ciclo, Core.PdfAip.ProblemaDellImport segnalazione)
     {
+        ArgumentNullException.ThrowIfNull(segnalazione);
+        SegnalazioneNelPdf = null;
         if (PercheNonSulCiclo(ciclo) is { } perche)
             return Rifiuta(perche);
         if (StratoDellAip?.Ciclo != ciclo && !await MostraLAipAsync(true).ConfigureAwait(false))
             return false;
-        if (StratoDellAip is not { } strato || Core.PdfAip.SegnalazioniDellAip.VoceDi(problema, strato.Voci) is not { } i)
-            return Rifiuta($"Nell'Indice del {ciclo} non c'è una voce «{problema.Key}»: apri il PDF.");
+        if (StratoDellAip is not { } strato)
+            return false;
+        if (Core.PdfAip.SegnalazioniDellAip.VoceDi(segnalazione.Problema, strato.Voci) is not { } i)
+        {
+            if (!ApriIlPdfDellaSegnalazione(ciclo, segnalazione))
+                return false;
+            SegnalazioneNelPdf = $"«{segnalazione.Problema.Key}» non è nell'Indice del {ciclo}: ho aperto il PDF dove la lettura si è fermata.";
+            Avvisa();
+            return true;
+        }
         Rifiuto = null;
         ScegliLaPagina(PaginaDelLab.AipIndice);
+        MostraSoloLaVoceDellAip(strato, i);
         Scegli(strato.File, i);
+        if (!Core.PdfAip.AipSullaMappa.Disegnata(strato.Strato.Forme[i]) && ApriIlPdfDellaSegnalazione(ciclo, segnalazione))
+            SegnalazioneNelPdf = $"«{strato.Voci[i].Titolo}» non si disegna: ho aperto il PDF alla pagina della segnalazione.";
         return true;
+    }
+
+    /// <summary>
+    /// Che cosa ha fatto l'ultimo «Vai alla voce» quando la voce non si vede sulla mappa: il PDF aperto, e perché. Null se
+    /// la voce si vede.
+    /// </summary>
+    public string? SegnalazioneNelPdf { get; private set; }
+
+    /// <summary>Il PDF di una segnalazione alla sua pagina; per la prosa delle procedure, la pagina col suo riferimento.</summary>
+    public bool ApriIlPdfDellaSegnalazione(string ciclo, Core.PdfAip.ProblemaDellImport segnalazione)
+    {
+        ArgumentNullException.ThrowIfNull(segnalazione);
+        return segnalazione.File.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
+            ? ApriIlPdf(ciclo, segnalazione.File, segnalazione.Problema.Page ?? 1)
+            : ApriLaPaginaDellAip(ciclo, segnalazione.File);
+    }
+
+    // --- le voci dell'AIP una per una sulla mappa (26 ottobre) -----------------------------------------------------------
+    //
+    // Committente: «quando clicco Vai alla voce mi deve lasciare acceso solo quello, poi accendo quello che mi interessa»,
+    // «la possibilità di accendere la singola procedura o la singola area». Le voci spente sono quelle del sector
+    // (`aip:2611#3`); una voce accesa da sola anche col suo genere spento ha il segno «+» (`+aip:2611#3`): la mappa la
+    // disegna lo stesso (sectorlab-mappa.js, applicaSpenti).
+
+    private static string ChiaveDellaVoce(Core.PdfAip.StratoDellAip strato, int indice) => $"{strato.File}#{indice}";
+
+    private const string AccesaDaSola = "+";
+
+    /// <summary>Vero se la voce si vede sulla mappa dell'AIP espanso: il suo genere acceso e lei non spenta, o accesa da sola.</summary>
+    public bool VoceDellAipAccesa(int indice) => VociDellAipAccese() is { } accese && indice >= 0 && indice < accese.Length && accese[indice];
+
+    /// <summary>Quante di quelle voci si vedono sulla mappa dell'AIP espanso.</summary>
+    public int QuanteVociDellAipAccese(IEnumerable<int> indici)
+    {
+        ArgumentNullException.ThrowIfNull(indici);
+        return VociDellAipAccese() is { } accese ? indici.Count(i => i >= 0 && i < accese.Length && accese[i]) : 0;
+    }
+
+    private (object Strato, int Versione, bool[] Accese)? _vociAccese;
+
+    /// <summary>Le voci accese, una per voce dello strato; si rifanno quando cambiano lo strato o le voci spente.</summary>
+    private bool[]? VociDellAipAccese()
+    {
+        if (StratoDellAip is not { } strato)
+            return null;
+        var mappa = _mappe[SpazioDiLavoro.Aip];
+        if (_vociAccese is { } c && ReferenceEquals(c.Strato, strato) && c.Versione == mappa.VersioneDeiSpenti)
+            return c.Accese;
+        var aip = Core.PdfAip.AipSullaMappa.Tipo.Id;
+        var accese = new bool[strato.Voci.Count];
+        for (var i = 0; i < accese.Length; i++)
+        {
+            var chiave = ChiaveDellaVoce(strato, i);
+            accese[i] = !mappa.Spenti.Contains(chiave)
+                && (mappa.Spenti.Contains(AccesaDaSola + chiave)
+                    || strato.Strato.Forme[i].Genere is not { } genere || !mappa.Spenti.Contains(ChiaveDelGenere(aip, genere)));
+        }
+        _vociAccese = (strato, mappa.VersioneDeiSpenti, accese);
+        return accese;
+    }
+
+    /// <summary>
+    /// Accende o spegne sulla mappa dell'AIP espanso quelle voci, una per una, qualunque sia il loro genere negli Strati.
+    /// Accenderne vuol dire guardare lo strato: se è spento, si accende.
+    /// </summary>
+    public void AccendiLeVociDellAip(IEnumerable<int> indici, bool accese)
+    {
+        ArgumentNullException.ThrowIfNull(indici);
+        if (StratoDellAip is not { } strato)
+            return;
+        var mappa = _mappe[SpazioDiLavoro.Aip];
+        var quante = 0;
+        foreach (var i in indici.Where(i => i >= 0 && i < strato.Voci.Count))
+        {
+            var chiave = ChiaveDellaVoce(strato, i);
+            mappa.Spenti.Remove(accese ? chiave : AccesaDaSola + chiave);
+            mappa.Spenti.Add(accese ? AccesaDaSola + chiave : chiave);
+            quante++;
+        }
+        if (accese && mappa.Accesi.Add(Core.PdfAip.AipSullaMappa.Tipo.Id))
+            mappa.VersioneDellaVista++;
+        Registro.Scrivi("voci", $"AIP {strato.Ciclo}: {quante} {(accese ? "accese" : "spente")} da sole");
+        mappa.VersioneDeiSpenti++;
+        Avvisa();
+    }
+
+    /// <summary>
+    /// Sulla mappa dell'AIP espanso solo quella voce (26 ottobre, «Vai alla voce»): le coste, lo strato dell'AIP coi suoi
+    /// generi spenti e la voce accesa da sola. Il resto si riaccende dagli Strati, o voce per voce dall'Indice.
+    /// </summary>
+    private void MostraSoloLaVoceDellAip(Core.PdfAip.StratoDellAip strato, int indice)
+    {
+        var mappa = _mappe[SpazioDiLavoro.Aip];
+        var aip = Core.PdfAip.AipSullaMappa.Tipo.Id;
+        mappa.Accesi.Clear();
+        mappa.Accesi.Add(StratiDellaMappa.Sfondo.Id);
+        mappa.Accesi.Add(aip);
+        mappa.Spenti.RemoveWhere(s => s.StartsWith(ChiaveDelGenere(aip, ""), StringComparison.Ordinal) || VoceDellaChiave(s) is not null);
+        foreach (var genere in strato.Strato.Forme.Select(f => f.Genere).OfType<string>().Distinct(StringComparer.Ordinal))
+            mappa.Spenti.Add(ChiaveDelGenere(aip, genere));
+        mappa.Spenti.Add(AccesaDaSola + ChiaveDellaVoce(strato, indice));
+        Registro.Scrivi("voci", $"AIP {strato.Ciclo}: solo {strato.Voci[indice].Titolo}");
+        mappa.VersioneDeiSpenti++;
+        mappa.VersioneDellaVista++;
+    }
+
+    /// <summary>Di una chiave delle voci spente: il «file» dell'AIP, l'indice e se è accesa da sola; null se non è di una voce dell'AIP.</summary>
+    private static (string File, int Indice, bool DaSola)? VoceDellaChiave(string chiave)
+    {
+        var daSola = chiave.StartsWith(AccesaDaSola, StringComparison.Ordinal);
+        var resto = daSola ? chiave[AccesaDaSola.Length..] : chiave;
+        var cancelletto = resto.LastIndexOf('#');
+        return cancelletto > 0 && Core.PdfAip.AipSullaMappa.EDellAip(resto)
+            && int.TryParse(resto.AsSpan(cancelletto + 1), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var i)
+            ? (resto[..cancelletto], i, daSola)
+            : null;
+    }
+
+    /// <summary>
+    /// Lo strato dell'AIP è stato rifatto (una correzione, un'altra lettura): le voci accese o spente una per una restano
+    /// quelle, ai loro indici nuovi; con un altro ciclo non valgono più.
+    /// </summary>
+    private void RiportaLeVociDellAip(Core.PdfAip.StratoDellAip? prima, Core.PdfAip.StratoDellAip dopo)
+    {
+        var riportate = prima is not null && prima.File == dopo.File ? Core.PdfAip.AipSullaMappa.Riporta(prima.Voci, dopo.Voci) : null;
+        foreach (var mappa in _mappe.Values)
+        {
+            var vecchie = mappa.Spenti.Select(s => (Chiave: s, Voce: VoceDellaChiave(s))).Where(x => x.Voce is not null).ToList();
+            if (vecchie.Count == 0)
+                continue;
+            // Prima si tolgono tutte, poi si rimettono: una voce può finire all'indice che aveva un'altra.
+            foreach (var (chiave, _) in vecchie)
+                mappa.Spenti.Remove(chiave);
+            foreach (var (_, voce) in vecchie)
+                if (riportate is not null && voce!.Value.File == dopo.File && riportate.TryGetValue(voce.Value.Indice, out var nuovo))
+                    mappa.Spenti.Add((voce.Value.DaSola ? AccesaDaSola : "") + ChiaveDellaVoce(dopo, nuovo));
+            mappa.VersioneDeiSpenti++;
+        }
     }
 
     /// <summary>
@@ -4752,6 +4957,8 @@ public sealed class SessioneDelLab
         _cicloSceltoLetto = true;
         Ricorda("ciclo-di-lavoro.txt", ciclo, "ciclo di lavoro");
         Registro.Scrivi("aip", $"ciclo di lavoro: {ciclo}");
+        // Le segnalazioni sono quelle del ciclo su cui si lavora: la sua lettura ricordata, se quella di adesso è di un altro.
+        ScordaLaLetturaSeNonE(ciclo);
         _righeDeiCicli = null;
         Rifiuto = null;
         if (StratoDellAip is not null && StratoDellAip.Ciclo != ciclo)
@@ -4772,6 +4979,7 @@ public sealed class SessioneDelLab
         {
             if (Core.PdfAip.CicliDellAip.Togli(pdf, CartellaDellAipEspanso, ciclo, GiornoDeiCicli()) is { } perche)
                 return Rifiuta(perche);
+            Core.PdfAip.LettureRicordate.Togli(_cartellaDeiDati, ciclo);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -4926,6 +5134,9 @@ public sealed class SessioneDelLab
                     Registro.Scrivi("aip", $"{file.Count} PDF sciolti messi in AIP {nome}");
             }
             UltimoAipEspanso = esito;
+            LettaIl = DateTime.Now;
+            _letturaCercata = nome;
+            RicordaLaLettura(espanso, esito, LettaIl.Value);
             MessaggioDellAip = Core.PdfAip.RepoDellAip.MessaggioProposto(esito);
             // La mappa e l'Indice si rifanno sulla lettura nuova, accesi o spenti com'erano (prova a schermo del 23 ottobre:
             // dopo «Rileggi» restavano quelli della lettura prima, finché una correzione non li ricaricava).
@@ -4955,6 +5166,19 @@ public sealed class SessioneDelLab
             Avanzamento = null;
             _righeDeiCicli = null;
             Avvisa();
+        }
+    }
+
+    /// <summary>La lettura nei dati del Lab, per il prossimo avvio; se non si scrive lo dice il registro, e la lettura vale lo stesso.</summary>
+    private void RicordaLaLettura(string espanso, Core.PdfAip.EsitoDellAipEspanso esito, DateTime letta)
+    {
+        try
+        {
+            Core.PdfAip.LettureRicordate.Scrivi(_cartellaDeiDati, espanso, esito, letta);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Registro.Errore("aip", e);
         }
     }
 
@@ -5211,7 +5435,9 @@ public sealed class SessioneDelLab
             var modello = await Task.Run(() => Core.PdfAip.AipEspanso.Modello(espanso, ciclo)).ConfigureAwait(false);
             var catalogo = CatalogoScelto;
             var confini = ConfiniDelSector();
+            var prima = StratoDellAip;
             StratoDellAip = await Task.Run(() => Core.PdfAip.AipSullaMappa.Di(modello, ciclo, nome => catalogo?.Cerca(nome)?.Posizione, confini)).ConfigureAwait(false);
+            RiportaLeVociDellAip(prima, StratoDellAip);
             _modelloSullaMappa = modello;
             _correzioniSullaMappa = LeCorrezioniOppureNiente(espanso, modello.State);
             SceltaDellAip = null;

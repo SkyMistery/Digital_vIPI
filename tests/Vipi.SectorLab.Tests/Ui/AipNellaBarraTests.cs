@@ -187,6 +187,132 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Null(_lab.AggiuntaRichiesta);
     }
 
+    // 26 ottobre (committente): «Vai alla voce» lascia accesa sulla mappa solo quella voce; una che l'Indice non ha (LIBD
+    // FL100: Not closed) o che non si disegna (un'attesa senza il punto nel sector) apre il PDF alla pagina della
+    // segnalazione. Poi le voci si riaccendono una per una, o un gruppo dell'Indice tutto insieme.
+    [Fact]
+    public async Task VaiAllaVoce_LasciaAccesaSoloLei_ESeNonSiVedeApreIlPdf()
+    {
+        _albero.Scrivi("SectorFiles/Include/IT/lirf.str", "//MENU MAPS\r\n");
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pdf = Path.Combine(_fuori, "AIP");
+        var espanso = Path.Combine(_fuori, "espanso");
+        Assert.True(_lab.CambiaLaCartellaDeiPdf(pdf), _lab.Rifiuto);
+        Assert.True(_lab.CambiaLAipEspanso(espanso), _lab.Rifiuto);
+        var cartella = Directory.CreateDirectory(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(pdf, "2611")).FullName;
+        await File.WriteAllTextAsync(Path.Combine(cartella, "LI-ENR 3.4.1.pdf"), "finto");
+        await File.WriteAllTextAsync(Path.Combine(cartella, "LI-AD 2 LIBD 1.pdf"), "finto");
+        var roma = CtrDiProva("Roma CTR", new CircleGeometry(new Position(41.9, 12.5), new Distance(5, DistanceUnit.Nm)));
+        var attesa = new Holding { Section = "ENR 3.4.1", Fix = "NESSUNO", Minimum = new VerticalLimit { Text = "FL100" }, Turn = TurnDirection.Right, InboundTrack = 90 };
+        var abrus = new SignificantPoint { Section = "ENR 4.4", Designator = "ABRUS", Position = new Position(41.5, 12.25) };
+        Directory.CreateDirectory(Path.Combine(espanso, "2611"));
+        await File.WriteAllTextAsync(Path.Combine(espanso, "2611", "li.json"), AipJson.Serialize(new AipDocument
+        {
+            State = "LI", Airac = "2611", Airspaces = [roma], Holdings = [attesa], Points = [abrus],
+        }));
+        Assert.True(await _lab.MostraLAipAsync(true), _lab.Rifiuto);
+        Assert.Equal(["CTR", "Attese", "Punti"], _lab.StratoDellAip!.Voci.Select(v => v.Genere));
+        Core.PdfAip.ProblemaDellImport Problema(string file, Aip.Pdf.Italia.ImportIssueKind tipo, string chiave, int pagina) =>
+            new(file, new Aip.Pdf.Italia.ImportIssue(tipo, chiave, pagina, "NotClosed"));
+        var ctr = Problema("LI-ENR 2.1.pdf", Aip.Pdf.Italia.ImportIssueKind.Geometry, _lab.StratoDellAip.Voci[0].Chiave!, 1);
+        var nessuno = Problema("LI-ENR 3.4.1.pdf", Aip.Pdf.Italia.ImportIssueKind.Holding, "NESSUNO", 4);
+        var libd = Problema("LI-AD 2 LIBD 1.pdf", Aip.Pdf.Italia.ImportIssueKind.Geometry, "LIBD FL100", 7);
+        var mappa = _lab.Mappa(SpazioDiLavoro.Aip);
+        mappa.Accesi.Add("fix");
+
+        // La voce che si disegna: sola sulla mappa, le coste sì, il resto spento (gli strati del sector e i generi dell'AIP).
+        Assert.True(await _lab.VaiAllaSegnalazioneAsync("2611", ctr), _lab.Rifiuto);
+        Assert.Equal((PaginaDelLab.AipIndice, 0), (_lab.Pagina, _lab.SceltaDellAip));
+        Assert.Equal(["aip", "sfondo"], mappa.Accesi.Order());
+        Assert.Equal([true, false, false], Enumerable.Range(0, 3).Select(_lab.VoceDellAipAccesa));
+        Assert.Contains("+aip:2611#0", _lab.SpentiDi(SpazioDiLavoro.Aip));
+        Assert.Null(_lab.SegnalazioneNelPdf);
+        Assert.Empty(_pdfAperti);
+
+        // Un'attesa senza il punto nel sector non si disegna: la voce si apre, e il PDF alla pagina della segnalazione.
+        Assert.True(await _lab.VaiAllaSegnalazioneAsync("2611", nessuno), _lab.Rifiuto);
+        Assert.Equal(1, _lab.SceltaDellAip);
+        Assert.Equal([false, true, false], Enumerable.Range(0, 3).Select(_lab.VoceDellAipAccesa));
+        Assert.EndsWith("/AIP%202611/LI-ENR%203.4.1.pdf#page=4", Assert.Single(_pdfAperti).AbsoluteUri, StringComparison.Ordinal);
+        Assert.Contains("non si disegna", _lab.SegnalazioneNelPdf, StringComparison.Ordinal);
+
+        // Una voce che l'Indice non ha: il PDF, senza rifiuto.
+        Assert.True(await _lab.VaiAllaSegnalazioneAsync("2611", libd), _lab.Rifiuto);
+        Assert.EndsWith("/AIP%202611/LI-AD%202%20LIBD%201.pdf#page=7", _pdfAperti[^1].AbsoluteUri, StringComparison.Ordinal);
+        Assert.Contains("«LIBD FL100» non è nell'Indice del 2611", _lab.SegnalazioneNelPdf, StringComparison.Ordinal);
+
+        // Scelta nell'Indice, una voce spenta si accende da sola; poi si spegne e si riaccende dalla sua scheda.
+        _lab.Scegli("aip:2611", 2);
+        Assert.Equal([false, true, true], Enumerable.Range(0, 3).Select(_lab.VoceDellAipAccesa));
+        _lab.AccendiLeVociDellAip([2], accese: false);
+        Assert.False(_lab.VoceDellAipAccesa(2));
+
+        // Il gruppo dell'Indice: tutto insieme. Prima ENR 2 ha la sua CTR spenta; la casella la accende.
+        var pagina = _contesto.RenderComponent<Home>();
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-accendi-gruppo]")), TimeSpan.FromSeconds(10));
+        var gruppoDellaCtr = pagina.Find("[data-parte='ENR 2'] [data-accendi-gruppo]");
+        Assert.False(gruppoDellaCtr.HasAttribute("checked"));
+        Assert.Equal("Spente sulla mappa: accendile", gruppoDellaCtr.GetAttribute("title"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-parte='ENR 2'] [data-accendi-gruppo]").Change(true));
+        Assert.Equal([true, true, false], Enumerable.Range(0, 3).Select(_lab.VoceDellAipAccesa));
+        pagina.WaitForAssertion(() => Assert.True(pagina.Find("[data-parte='ENR 2'] [data-accendi-gruppo]").HasAttribute("checked")));
+        Assert.False(pagina.Find("[data-accendi-voce] input").HasAttribute("checked"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-accendi-voce] input").Change(true));
+        Assert.True(_lab.VoceDellAipAccesa(2));
+        _lab.AccendiLeVociDellAip([2], accese: false);
+
+        // Una correzione rifà lo strato e sposta gli indici (un'area in più prima dell'attesa): le voci restano quelle.
+        var milano = CtrDiProva("Milano CTR", new CircleGeometry(new Position(45.5, 9.2), new Distance(5, DistanceUnit.Nm)));
+        await File.WriteAllTextAsync(Path.Combine(espanso, "2611", "li.json"), AipJson.Serialize(new AipDocument
+        {
+            State = "LI", Airac = "2611", Airspaces = [roma, milano], Holdings = [attesa], Points = [abrus],
+        }));
+        Assert.True(await _lab.MostraLAipAsync(true), _lab.Rifiuto);
+        Assert.Equal([true, false, true, false], Enumerable.Range(0, 4).Select(_lab.VoceDellAipAccesa));
+        Assert.Contains("aip:2611#3", _lab.SpentiDi(SpazioDiLavoro.Aip));
+    }
+
+    // 26 ottobre (committente: «quando chiudo e poi riapro, la lista delle cose da sistemare senza rileggere l'AIP»): la
+    // lettura si ricorda nei dati del Lab; riaperto, il Lab mostra quella del ciclo di lavoro, e dice che è ricordata.
+    [Fact]
+    public async Task LaLetturaDelCicloDiLavoro_SiRicordaDopoUnRiavvio()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pdf = Path.Combine(_fuori, "AIP");
+        Assert.True(_lab.CambiaLaCartellaDeiPdf(pdf), _lab.Rifiuto);
+        Assert.True(_lab.CambiaLAipEspanso(Path.Combine(_fuori, "espanso")), _lab.Rifiuto);
+        var cartella = Directory.CreateDirectory(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(pdf, "2611")).FullName;
+        await File.WriteAllBytesAsync(Path.Combine(cartella, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("06 AUG 2026", "LI R901 - Prova Uno"));
+        Assert.True(await _lab.LeggiLAipAsync("2611"), _lab.Rifiuto);
+        var letto = _lab.UltimoAipEspanso!;
+        Assert.False(_lab.LetturaRicordata);
+
+        var dati = Path.Combine(_albero.Radice, "dati-del-lab");
+        var riaperto = new SessioneDelLab(dati) { ApriIlPdfAllaPagina = _pdfAperti.Add };
+        Assert.True(await riaperto.ApriEValidaAsync(_albero.Radice));
+        var ricordato = riaperto.UltimoAipEspanso;
+
+        Assert.NotNull(ricordato);
+        Assert.True(riaperto.LetturaRicordata);
+        Assert.Equal((letto.Ciclo, letto.Aree), (ricordato.Ciclo, ricordato.Aree));
+        Assert.Equal(letto.Letti, ricordato.Letti);
+        Assert.Equal(letto.Problemi, ricordato.Problemi);
+        Assert.Equal(_lab.LettaIl!.Value, riaperto.LettaIl!.Value, TimeSpan.FromSeconds(1));
+        using (var contesto = new TestContext())
+        {
+            contesto.Services.AddSingleton(riaperto);
+            contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+            riaperto.ScegliLaPagina(PaginaDelLab.Aip);
+            var pagina = contesto.RenderComponent<Home>();
+            pagina.WaitForAssertion(() =>
+            {
+                Assert.Contains("ciclo 2611", pagina.Find("[data-esito-aip]").TextContent, StringComparison.Ordinal);
+                Assert.NotNull(pagina.Find("[data-lettura-ricordata]"));
+                Assert.Equal("1", pagina.Find("[data-da-dove=aree] strong").TextContent);
+            }, TimeSpan.FromSeconds(10));
+        }
+    }
+
     // Slice 1b: «Confronta i CTR», dall'AIP espanso al sector aperto; un clic sulla riga apre la voce del sector.
     // Carta «L'AIP intero», passo 8: il 2611 fino al 25 novembre, il 2612 dal 26; il campo, l'indice e i confronti aprono
     // quello in vigore, l'altro si guarda; al cambio il 2611 si toglie, col gesto confermato.

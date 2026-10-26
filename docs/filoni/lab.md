@@ -4,7 +4,36 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 26 ottobre 2026: il ciclo lo sceglie il committente, le segnalazioni hanno il loro tasto
+## Dove siamo — 26 ottobre 2026, notte: la lettura si ricorda, «Vai alla voce» mostra la voce sola
+
+Il committente ha chiesto tre cose.
+1. «Quando chiudo e poi riapro, la lista delle cose da sistemare sull'AIP su cui sto lavorando: per averla devo rileggere
+   l'AIP».
+2. «Vai alla voce su LIBD FL100: Not closed non mi fa vedere dov'è il problema: se è una cosa che non riesce a disegnare
+   mi può far vedere il PDF. Per le cose disegnate mi deve lasciare acceso solo quello, poi accendo quello che mi interessa».
+3. «La possibilità di accendere la singola procedura o la singola area».
+
+Cosa fa il Lab adesso.
+- **La lettura si ricorda.** Ogni «Leggi» scrive l'esito nei dati del Lab, `letture\<ciclo>.json`: numeri, date, rapporto e
+  segnalazioni. Non va nel repo dell'AIP espanso, perché è di questo PC come il ciclo di lavoro. Riaperto il Lab, Lettura e
+  consegna mostra la lettura del ciclo di lavoro, con la data e una riga che dice che è ricordata. Cambiando ciclo di lavoro
+  si vede quella del ciclo nuovo. È la lettura com'era: una correzione fatta dopo (AJO aggiunta) toglie le sue segnalazioni
+  solo alla prossima «Rileggi», come prima del riavvio. «Togli il ciclo» toglie anche la sua lettura.
+- **«Vai alla voce» lascia accesa solo quella voce.** Sulla mappa dell'AIP espanso restano le coste e la voce. Gli strati
+  del sector e i generi dell'AIP si spengono, e si riaccendono dagli Strati. Se la voce non si disegna (un'attesa senza il
+  punto nel sector), il Lab apre anche il PDF alla pagina della segnalazione. Se l'Indice non ha la voce (LIBD FL100, un'area
+  che non si chiude), apre solo il PDF. In tutti e due i casi lo dice sotto le segnalazioni.
+- **Le voci si accendono una per una.** Una voce scelta nell'Indice si accende da sola, anche col suo genere spento. La sua
+  scheda ha la casella «Accesa sulla mappa». Ogni gruppo dell'Indice (una sezione, uno scalo, le sue SID) ha una casella
+  che accende o spegne tutte le sue voci. Le voci accese o spente una per una restano quelle anche quando una correzione
+  rifà lo strato e sposta gli indici (`AipSullaMappa.Riporta`).
+
+Come funziona: una voce accesa da sola è `+aip:2611#3` fra le voci spente della mappa. `sectorlab-mappa.js` la disegna
+anche col suo genere spento.
+
+Come si prova: la pagina delle prove, A63-A66.
+
+## 26 ottobre 2026: il ciclo lo sceglie il committente, le segnalazioni hanno il loro tasto
 
 Il committente ha fatto la A10b (✅) e si è fermato. Ha fatto tre domande:
 1. «Come funzionano i cicli? Scelgo io su quale lavorare, non il sistema»;
