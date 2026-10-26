@@ -4,7 +4,14 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 23 ottobre 2026
+> ## ▶ Il punto — 26 ottobre 2026
+>
+> **📦 Pronta da caricare: 1.75.0** (§A169, timbro `1.75.0 · 1aa329c`, 7 file, zip `edf4fae7…`, MINOR senza
+> migrazioni, misurata dalla 1.74.0): Sito S132, l'API aeroporti dice la pista in uso adesso, con lo stesso calcolo della
+> pagina del documento. Online è la **1.74.0** finché il committente non carica. `lab/f3` non fuso (scelta del
+> committente). ⚠️ Aperto: SDK 10.0.402.
+>
+> ## Il punto — 23 ottobre 2026
 >
 > **✅ Online: 1.74.0** (`Schema 0` confermato; health Healthy; **in `main` non resta codice fuori pacchetto**, solo
 > test: §A168) (§A167, timbro `1.74.0 · 4fdc3ac`, 7 file, zip `7c6ff4bf…`, MINOR senza migrazioni): Sito S129, l'API
