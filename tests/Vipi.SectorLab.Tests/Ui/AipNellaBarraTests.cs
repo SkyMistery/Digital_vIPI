@@ -108,7 +108,7 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.True(_lab.CambiaLaCartellaDeiPdf(Path.Combine(_fuori, "AIP")), _lab.Rifiuto);
         Assert.True(_lab.CambiaLAipEspanso(Path.Combine(_fuori, "espanso")), _lab.Rifiuto);
         var problemi = Enumerable.Range(1, 250).Select(i => new Core.PdfAip.ProblemaDellImport("LI-AD 2 LIRN 6.pdf",
-                new Aip.Pdf.Italia.ImportIssue(Aip.Pdf.Italia.ImportIssueKind.Procedure, $"SID {i}", 1)))
+                new Aip.Pdf.Italia.ImportIssue(Aip.Pdf.Italia.ImportIssueKind.Procedure, $"SID {i}", 1, "prosa letta con un'approssimazione: prua 329° disegnata come rotta, senza vento")))
             .Append(new Core.PdfAip.ProblemaDellImport("LI-ENR 3.4.1.pdf", new Aip.Pdf.Italia.ImportIssue(Aip.Pdf.Italia.ImportIssueKind.Holding, "JESSY", 10)))
             .ToList();
         _lab.UltimoAipEspanso = new Core.PdfAip.EsitoDellAipEspanso("2611", "x", 2, ["a.pdf", "b.pdf"], [], 0, [], problemi, [])

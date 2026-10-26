@@ -19,6 +19,7 @@ public sealed class SegnalazioniDellAipTests
     [InlineData(ImportIssueKind.MoreGeometries, "2", GruppoDellaSegnalazione.DaSistemare)]
     [InlineData(ImportIssueKind.Navaid, "senza coordinate", GruppoDellaSegnalazione.DaSistemare)]
     [InlineData(ImportIssueKind.Geometry, "NotClosed", GruppoDellaSegnalazione.DaSistemare)]
+    [InlineData(ImportIssueKind.Procedure, "RNP Y RWY17L: IF MMP: distanza «/»", GruppoDellaSegnalazione.DaSistemare)]
     public void IlGruppo(ImportIssueKind tipo, string dettaglio, GruppoDellaSegnalazione atteso) =>
         Assert.Equal(atteso, SegnalazioniDellAip.Gruppo(new ImportIssue(tipo, "X", 1, dettaglio)));
 

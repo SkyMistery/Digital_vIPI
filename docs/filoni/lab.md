@@ -20,11 +20,11 @@ Le prove si sono fermate e sono state fatte tre cose, sullo stesso ramo.
 - **Un giro sul lettore**, misurato sul 2611 (carta delle segnalazioni, «Giro del 26 ottobre»): le SID che cominciano
   lontano dalla pista continuano la salita iniziale. Segnalazioni 306 → **287**; procedure lette dalla prosa 970, nessuna
   persa. Molte SID che avevano solo il punto finale ora hanno i tratti.
-- **Le segnalazioni divise per quel che chiedono**, e la pagina si apre sul primo gruppo:
-  - **da sistemare**, 26: le 12 di AJO, Magra, T001645, JESSY/VANXI/TZO, GRO senza coordinate, 4 aree, il conto che non
-    torna;
-  - **errori dell'AIP già letti**, ~36;
-  - **note della lettura**, ~225.
+- **Le segnalazioni divise per quel che chiedono**, e la pagina si apre sul primo gruppo (287 sul 2611):
+  - **da sistemare**, 30: le 12 di AJO, Magra, T001645, JESSY/VANXI/TZO, GRO senza coordinate, 4 aree, le 4 celle delle
+    tabelle RNP di LIMC, il conto che non torna;
+  - **errori dell'AIP già letti**, 36;
+  - **note della lettura**, 221.
 
   Ogni segnalazione del ciclo di lavoro ha «Vai alla voce», che apre l'Indice sulla voce da correggere. Quelle a cui manca
   una stazione o un punto hanno invece «Aggiungi AJO», che apre il modulo con la sigla e il perché già scritti.
@@ -34,7 +34,7 @@ Lab dice solo dove la disegna, con la pendenza. Lo stesso vale per una prua (18)
 subito dopo il decollo senza una salita iniziale (LIPO, LIML, LIRQ, LIRS) restano col loro avviso: disegnare la curva è un
 lavoro a parte.
 
-Test: Lab 1 424, importer 353. Le prove si riscrivono dalla A10b (pagina degli esiti).
+Test: Lab 1 425, importer 353. Le prove si riscrivono dalla A10b (pagina degli esiti).
 
 ## 25 ottobre 2026: revisione del 2611 chiusa, aspetta le prove del committente
 

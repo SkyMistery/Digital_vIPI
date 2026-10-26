@@ -34,7 +34,8 @@ public static partial class SegnalazioniDellAip
         return problema.Kind switch
         {
             ImportIssueKind.PageWithoutTable or ImportIssueKind.LimitsFromText => GruppoDellaSegnalazione.Nota,
-            ImportIssueKind.Procedure when !dettaglio.StartsWith("prosa non letta", StringComparison.Ordinal) => GruppoDellaSegnalazione.Nota,
+            // Solo la prosa letta: una cella di tabella che non si legge (LIMC RNP Y RWY17L, «distanza «/»») è da sistemare.
+            ImportIssueKind.Procedure when dettaglio.StartsWith("prosa letta con", StringComparison.Ordinal) => GruppoDellaSegnalazione.Nota,
             _ => GruppoDellaSegnalazione.DaSistemare,
         };
     }
