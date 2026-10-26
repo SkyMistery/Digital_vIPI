@@ -43,9 +43,13 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A169 — 1.75.0 pronta da caricare: l'API aeroporti dice la pista in uso adesso (S132) (26 ottobre 2026)
+### ✅ A169 — 1.75.0 ONLINE: l'API aeroporti dice la pista in uso adesso (S132) (26 ottobre 2026)
 
-📦 Pronta, **non caricata**: online resta la **1.74.0** finché il committente non carica.
+✅ Online dal 26 ottobre 2026: il committente dice «online 1.75.0». Da fuori, da anonimo, alle 18:30Z circa: `/` 302,
+porta «Entra con IVAO», Ricerca 401, API aeroporti senza chiave 401 («chiave API mancante»), `vipi-theme.css?v=e393251a`
+(invariato, come atteso), `/vsop/health` e `/vsop/health/ready` Healthy (prima lettura 4,1 s dopo il riavvio, poi 0,3 s).
+Non visti da qui (servono il login o una chiave): il timbro nel piè di pagina, `Schema 0` in Diagnostica, la scheda
+dell'API con `runwayInUse`.
 
 MINOR **senza migrazioni**, misurata dalla **1.74.0** (`4fdc3ac`) che gira. Timbro **`1.75.0 · 1aa329c`**.
 Fusa da `sito/lavori` @ `7d043745` (cartellino 🟢, CI run 40364349681), fusione `ec401fb7` senza conflitti; dentro anche
