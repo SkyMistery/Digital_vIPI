@@ -43,6 +43,32 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A169 — 1.75.0 pronta da caricare: l'API aeroporti dice la pista in uso adesso (S132) (26 ottobre 2026)
+
+📦 Pronta, **non caricata**: online resta la **1.74.0** finché il committente non carica.
+
+MINOR **senza migrazioni**, misurata dalla **1.74.0** (`4fdc3ac`) che gira. Timbro **`1.75.0 · 1aa329c`**.
+Fusa da `sito/lavori` @ `7d043745` (cartellino 🟢, CI run 40364349681), fusione `ec401fb7` senza conflitti; dentro anche
+il registro del Sito `a8aaadff` (solo docs).
+- **S132**: la scheda `GET /vsop/api/v1/airports/{icao}` porta `runwayInUse` (piste di decollo e atterraggio, `source`
+  `rule`/`wind`/`none`, la regola che ha deciso, il METAR e la sua ora), con lo stesso calcolo della pagina del
+  documento (`PistaInUso.Calcola`). Campo in più, nessuno tolto. Carta `2026-09-30-api-aeroporti.md` §7, storia in
+  `docs/filoni/sito.md`. Codice comune: no (Hosting e una frase della pagina delle chiavi).
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone`). `lab/f3` non toccato (non fuso per scelta del committente, 25-ott).
+
+**7 file** (`solo-7-file-1.75.0`): Hosting, Ui, Host (dll + pdb) ed `en/Vipi.Ui.resources.dll`, confrontati col
+publish della **1.74.0** (`publish_old/20261023a`): 482 file, 19 con impronta diversa, `wwwroot` invariato. Nessuna
+`const` cambiata; la firma cambiata (`ApiAeroporti.Scheda`) non ha chiamanti fuori da Hosting; `PistaInUso` sta in
+Application, invariato dalla 1.74.0 e già online. Zip 3,19 MB, sha256
+`edf4fae7b2a1dec623d9cdb2dd71eddaa279a4979b7cb8b373eb6237e9fb79be`. Build Release senza avvisi; `dotnet test`: 18
+riepiloghi `Passed!`, nessun rosso, conteggi identici all'atteso (Hosting 111). Prova sul publish win-x64 (copia del
+database di sviluppo, cancellata a fine prova): `pacchetto-verifica.js` tutto verde (`TERMINE=LIBB`); con una chiave di
+prova creata nella copia, senza chiave 401, e coi METAR veri delle 17Z LIBC `rule` (35/35, regola 1), LIRN `wind` (06),
+LIBD `wind` (07), LIML `none` (vento VRB01). Non rifatta la partenza della 1.74.0 prima della nuova: lo schema è lo
+stesso. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.75.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0`. Rollback: le rinomine.
+
 ### 🔧 A168 — Fuori pacchetto: due test instabili resi stabili (S130, S131) (23 ottobre 2026)
 
 Solo `tests/` e `docs/filoni/sito.md`: il sito spedito non cambia, nessun pacchetto. Assegnati dal committente al Sito.

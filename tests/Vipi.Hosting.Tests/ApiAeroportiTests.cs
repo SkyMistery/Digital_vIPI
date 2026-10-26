@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -174,6 +175,98 @@ public class ApiAeroportiTests
         Assert.Null(regola.MaxTailwindKt);
         Assert.Null(regola.Surface);
         Assert.Null(regola.DateParity);
+    }
+
+    // ─── La pista in uso (S132) ────────────────────────────────────────────────────
+
+    private static readonly DateTimeOffset Adesso = new(2026, 10, 26, 11, 0, 0, TimeSpan.Zero);
+
+    /// <summary>Uno scalo con 17/35 e una regola che vuole la 35 con al più 5 kt di coda.</summary>
+    private static (AirportData Scalo, AirportDerived Derivate) ConLaRegola()
+    {
+        var data = Scalo(new[] { new RunwayRuleRow(1, "35L", "35R", "Nord", 5, null, RunwaySurface.Any, null) });
+        var d = AirportDerived.Empty with
+        {
+            Runways = new AirportRunwaysView(new[]
+            {
+                new AirportRunwayRowView("17R", 3920, "—", "—", "—", "—", "—"),
+                new AirportRunwayRowView("35L", 3920, "—", "—", "—", "—", "—"),
+                new AirportRunwayRowView("17L", 3920, "—", "—", "—", "—", "—"),
+                new AirportRunwayRowView("35R", 3920, "—", "—", "—", "—", "—"),
+            }),
+            Rules = AirportSectionProjection.Rules(data),
+        };
+        return (data, d);
+    }
+
+    private static WeatherReport Meteo(string metar) => new("LIMC", metar, null, Adesso);
+
+    [Fact]
+    public void La_pista_in_uso_e_quella_della_prima_regola_che_vale()
+    {
+        var (scalo, d) = ConLaRegola();
+
+        var json = Json(ApiAeroporti.Proiezione.Scheda(scalo, ReleaseTargetType.Airport, d,
+            Meteo("LIMC 261050Z 34008KT CAVOK 12/05 Q1020"), Adesso));
+
+        var inUso = json.GetProperty("runwayInUse");
+        Assert.Equal(new[] { "35L" }, inUso.GetProperty("departure").EnumerateArray().Select(p => p.GetString()));
+        Assert.Equal(new[] { "35R" }, inUso.GetProperty("arrival").EnumerateArray().Select(p => p.GetString()));
+        Assert.Equal("rule", inUso.GetProperty("source").GetString());
+        Assert.Equal(1, inUso.GetProperty("rule").GetProperty("position").GetInt32());
+        Assert.Equal("Nord", inUso.GetProperty("rule").GetProperty("name").GetString());
+        Assert.Equal("LIMC 261050Z 34008KT CAVOK 12/05 Q1020", inUso.GetProperty("metar").GetString());
+        Assert.Equal(new DateTimeOffset(2026, 10, 26, 10, 50, 0, TimeSpan.Zero),
+            inUso.GetProperty("metarObservedUtc").GetDateTimeOffset());
+    }
+
+    [Fact]
+    public void Se_nessuna_regola_vale_la_sceglie_il_vento_e_la_regola_e_null()
+    {
+        var (scalo, d) = ConLaRegola();
+
+        // 15 kt da sud: per la 35 sono 15 kt di coda, oltre i 5 della regola.
+        var json = Json(ApiAeroporti.Proiezione.Scheda(scalo, ReleaseTargetType.Airport, d,
+            Meteo("LIMC 261050Z 17015KT CAVOK 12/05 Q1020"), Adesso));
+
+        var inUso = json.GetProperty("runwayInUse");
+        Assert.Equal("wind", inUso.GetProperty("source").GetString());
+        Assert.Equal(JsonValueKind.Null, inUso.GetProperty("rule").ValueKind);
+        Assert.StartsWith("17", inUso.GetProperty("departure")[0].GetString());
+        Assert.StartsWith("17", inUso.GetProperty("arrival")[0].GetString());
+    }
+
+    [Fact]
+    public void Senza_METAR_non_si_inventa_una_pista()
+    {
+        var (scalo, d) = ConLaRegola();
+
+        var json = Json(ApiAeroporti.Proiezione.Scheda(scalo, ReleaseTargetType.Airport, d, meteo: null, Adesso));
+
+        var inUso = json.GetProperty("runwayInUse");
+        Assert.Equal("none", inUso.GetProperty("source").GetString());
+        Assert.Equal(0, inUso.GetProperty("departure").GetArrayLength());
+        Assert.Equal(0, inUso.GetProperty("arrival").GetArrayLength());
+        Assert.Equal(JsonValueKind.Null, inUso.GetProperty("rule").ValueKind);
+        Assert.Equal(JsonValueKind.Null, inUso.GetProperty("metar").ValueKind);
+        Assert.Equal(JsonValueKind.Null, inUso.GetProperty("metarObservedUtc").ValueKind);
+    }
+
+    [Fact]
+    public void Una_release_senza_regole_calcolabili_decide_sulle_vive_ma_non_indica_la_riga()
+    {
+        // Prima del 12 settembre 2026 la sezione aveva solo il testo: come la pagina, si decide sulle regole
+        // dell'anagrafica, e la posizione non si dice perché sarebbe una riga di un'altra lista.
+        var (scalo, d) = ConLaRegola();
+        d = d with { Rules = new AirportRulesView(new[] { new AirportRuleRowView(1, "testo", "35L", "35R", "—") }) };
+
+        var json = Json(ApiAeroporti.Proiezione.Scheda(scalo, ReleaseTargetType.Airport, d,
+            Meteo("LIMC 261050Z 34008KT CAVOK 12/05 Q1020"), Adesso));
+
+        var inUso = json.GetProperty("runwayInUse");
+        Assert.Equal("rule", inUso.GetProperty("source").GetString());
+        Assert.Equal(JsonValueKind.Null, inUso.GetProperty("rule").GetProperty("position").ValueKind);
+        Assert.Equal("Nord", inUso.GetProperty("rule").GetProperty("name").GetString());
     }
 
     // ─── Le procedure ──────────────────────────────────────────────────────────────

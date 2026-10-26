@@ -3867,7 +3867,7 @@
   <data name="ApiKeys_RoutesHelp" xml:space="preserve"><value>Da dare a chi integra, insieme alla chiave. Ogni chiamata porta la chiave in uno dei due header qui sotto. Risposte: 401 senza chiave o con una chiave sbagliata o revocata, 403 con una chiave senza quel permesso, 404 scalo sconosciuto o senza documento pubblicato, 429 troppe richieste al minuto. Risposte in JSON.</value></data>
   <data name="ApiKeys_RouteExample" xml:space="preserve"><value>Esempio:</value></data>
   <data name="ApiKeys_Route_airports" xml:space="preserve"><value>Gli aeroporti con un documento pubblicato (vIPI o vSOP).</value></data>
-  <data name="ApiKeys_Route_airport" xml:space="preserve"><value>La scheda di uno scalo: TA, livelli di transizione, piste, frequenze, torre radar, regole di scelta pista.</value></data>
+  <data name="ApiKeys_Route_airport" xml:space="preserve"><value>La scheda di uno scalo: TA, livelli di transizione, piste, frequenze, torre radar, regole di scelta pista, pista in uso adesso.</value></data>
   <data name="ApiKeys_Route_sids" xml:space="preserve"><value>Le SID come nel documento pubblicato. Facoltativo ?runway= per una pista (restano anche quelle valide per tutte).</value></data>
   <data name="ApiKeys_Route_stars" xml:space="preserve"><value>Le STAR, stessa forma e stesso filtro delle SID.</value></data>
   <data name="ApiKeys_Route_accs" xml:space="preserve"><value>I centri (ACC) italiani visibili sul sito.</value></data>

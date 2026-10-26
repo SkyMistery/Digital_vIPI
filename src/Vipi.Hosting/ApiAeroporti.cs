@@ -4,10 +4,13 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Awos;
 using Vipi.Application.Content;
+using Vipi.Application.Weather;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
+using Vipi.Ui.Components.Doc;
 
 namespace Vipi.Hosting;
 
@@ -18,7 +21,7 @@ namespace Vipi.Hosting;
 /// <list type="bullet">
 /// <item><c>GET /vsop/api/v1/airports</c>: gli scali con un documento pubblicato;</item>
 /// <item><c>GET /vsop/api/v1/airports/{icao}</c>: la scheda (TA, fasce TL, piste, frequenze, torre radar, regole
-/// di scelta pista);</item>
+/// di scelta pista, pista in uso adesso);</item>
 /// <item><c>GET /vsop/api/v1/airports/{icao}/sids</c> e <c>…/stars</c>: le procedure, con <c>?runway=</c>.</item>
 /// </list>
 ///
@@ -62,7 +65,8 @@ public static class ApiAeroporti
 
         endpoints.MapGet(Radice + "/{icao}", async (
             string icao, HttpContext ctx, IDocumentAdminService documenti, IAirportEditingService scali,
-            IAirportViewDerivationService viste, RequestRateLimiter limiter, CancellationToken ct) =>
+            IAirportViewDerivationService viste, IWeatherProvider meteo, RequestRateLimiter limiter,
+            CancellationToken ct) =>
         {
             if (await PortaAsync(ctx, limiter, ct) is { } rifiuto) return rifiuto;
 
@@ -73,7 +77,10 @@ public static class ApiAeroporti
             if (scalo is null) return NonPubblicato(id);
 
             var d = await viste.ResolveForViewAsync(id, useFrozen: true, edizione, ct: ct);
-            return Results.Json(Proiezione.Scheda(scalo, edizione, d));
+            // Il METAR dalla stessa porta della pagina (con la stazione di riferimento): la pista in uso dell'API
+            // e quella del documento si decidono sullo stesso vento.
+            var wx = await meteo.GetAsync(id, ct);
+            return Results.Json(Proiezione.Scheda(scalo, edizione, d, wx, DateTimeOffset.UtcNow));
         });
 
         endpoints.MapGet(Radice + "/{icao}/sids", (
@@ -121,7 +128,10 @@ public static class ApiAeroporti
     {
         private const string Trattino = "—";
 
-        public static object Scheda(AirportData scalo, ReleaseTargetType edizione, AirportDerived d) => new
+        /// <param name="meteo">Il bollettino di adesso, per la pista in uso; null = nessun METAR.</param>
+        /// <param name="adesso">L'ora della risposta: serve a datare il METAR (il gruppo <c>ddhhmmZ</c> non ha mese).</param>
+        public static object Scheda(AirportData scalo, ReleaseTargetType edizione, AirportDerived d,
+                                    WeatherReport? meteo = null, DateTimeOffset? adesso = null) => new
         {
             icao = scalo.Icao,
             name = scalo.Name,
@@ -148,7 +158,48 @@ public static class ApiAeroporti
             // ⚠️ null = «non indicato», che non è «senza radar»: il documento distingue, e così l'API.
             radarTower = d.RadarTower.Equipped,
             runwayRules = Regole(d.Rules),
+            runwayInUse = InUso(scalo, d, meteo, adesso ?? DateTimeOffset.UtcNow),
         };
+
+        /// <summary>
+        /// La pista in uso <b>adesso</b> (S132, chiesta dal committente il 26 ottobre 2026): lo stesso calcolo della
+        /// pagina del documento (<see cref="PistaInUso.Calcola"/>), con gli stessi argomenti — le regole che la
+        /// sezione mostra, poi il vento più in prua senza le soglie «mai», misurato sulle rotte vere delle testate.
+        /// <para>⚠️ Il documento, non il vAWOS: il quadro mette l'ATIS di chi è online prima delle regole, la
+        /// pagina no. L'API è la vista pubblica del documento (vedi la testata) e dice la sua pista; un programma
+        /// che vuole l'ATIS lo legge dal whazzup.</para>
+        /// <para>⚠️ Come la pagina, nessun tetto all'età del METAR: si restituiscono il bollettino e la sua ora, e
+        /// chi chiama decide se è troppo vecchio per fidarsene.</para>
+        /// </summary>
+        public static PistaInUsoApi InUso(AirportData scalo, AirportDerived d, WeatherReport? meteo, DateTimeOffset adesso)
+        {
+            var grezzo = string.IsNullOrWhiteSpace(meteo?.Metar) ? null : meteo!.Metar!.Trim();
+            var metar = grezzo is null ? null : MetarParser.ParseMetar(grezzo);
+            var windDir = metar?.Wind is { Calm: false, DirectionDeg: int dir } ? dir : (int?)null;
+            var windKt = metar?.Wind?.SpeedKt ?? 0;
+
+            // Sulle regole della sezione; solo una release di prima del 12 settembre 2026 non le ha, e allora
+            // si decide sulle vive come fa la pagina.
+            var regole = d.Rules.Regole;
+            var esito = PistaInUso.Calcola(regole, d.Sids, d.Runways.Rows.Select(r => r.Ident).ToList(),
+                windDir, windKt, metar, regole is null ? scalo.Rules : null,
+                AirportRunwayRowView.Esclusioni(d.Runways.Rows), RunwayRow.Rotte(scalo.Runways),
+                RunwaySuggestion.VentoNoto(metar?.Wind));
+
+            RegolaInUsoApi? regola = null;
+            if (esito.Regola is { } r)
+            {
+                // La posizione solo se il verdetto è sulle righe che `runwayRules` elenca: sulle vive sarebbe la
+                // riga di un'altra lista.
+                int? posizione = esito.SulleRegoleMostrate && r.RuleIndex >= 0 && r.RuleIndex < d.Rules.Rows.Count
+                    ? d.Rules.Rows[r.RuleIndex].Position : null;
+                regola = new RegolaInUsoApi(posizione, Valore(r.RuleName));
+            }
+
+            var fonte = regola is not null ? "rule" : esito.Dep.Count + esito.Arr.Count > 0 ? "wind" : "none";
+            return new PistaInUsoApi(esito.Dep.ToList(), esito.Arr.ToList(), fonte, regola, grezzo,
+                MetarParser.OraOsservazione(metar?.TimeRaw, adesso));
+        }
 
         /// <summary>
         /// Le regole di scelta pista, nell'ordine del documento: si applica la <b>prima</b> le cui condizioni sono
@@ -251,6 +302,21 @@ public sealed record ProceduraApi(
     string? Runway, string? Fix, string Name, string? Transition,
     string? InitialClimb, int? InitialClimbFt, bool InitialClimbByApp,
     string? Type, string? Cat, string? Wtc, string? Condition);
+
+/// <summary>La pista in uso adesso, come la decide il documento.</summary>
+/// <param name="Departure">Le piste in partenza; vuoto = non si sa (niente METAR, vento non noto, soglie tutte «mai»).</param>
+/// <param name="Source"><c>rule</c> (una regola dello scalo), <c>wind</c> (nessuna regola vale: il vento più in prua) o
+/// <c>none</c>.</param>
+/// <param name="Rule">La regola che vale; null se non l'ha decisa una regola.</param>
+/// <param name="Metar">Il bollettino su cui si è deciso, com'è arrivato.</param>
+/// <param name="MetarObservedUtc">L'ora dell'osservazione, dal gruppo <c>ddhhmmZ</c>: per giudicarne l'età.</param>
+public sealed record PistaInUsoApi(
+    IReadOnlyList<string> Departure, IReadOnlyList<string> Arrival, string Source, RegolaInUsoApi? Rule,
+    string? Metar, DateTimeOffset? MetarObservedUtc);
+
+/// <param name="Position">La <c>position</c> della riga in <c>runwayRules</c>; null se il verdetto viene dalle regole
+/// vive perché la release (di prima del 12 settembre 2026) non porta quelle calcolabili.</param>
+public sealed record RegolaInUsoApi(int? Position, string? Name);
 
 /// <summary>Una regola di scelta pista come la legge chi chiama l'API. Le soglie sono <c>null</c> dove il documento
 /// non le ha (release di prima del 12 settembre 2026) o non le pone.</summary>
