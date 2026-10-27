@@ -53,6 +53,9 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.True(_lab.CambiaLaCartellaDeiPdf(pdf), _lab.Rifiuto);
         Assert.False(_lab.CambiaLAipEspanso(pdf));
         Assert.True(_lab.CambiaLAipEspanso(Path.Combine(_fuori, "espanso")), _lab.Rifiuto);
+        // Senza il guscio dell'app (qui, sul banco) la finestra per scegliere un file non c'è, e il tasto nemmeno.
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-emendamento]")), TimeSpan.FromSeconds(10));
+        Assert.Empty(pagina.FindAll("[data-tasto=sfoglia-amdt]"));
 
         // In Download un PDF dell'AIP e uno no: si sposta il primo, l'altro resta.
         await File.WriteAllBytesAsync(Path.Combine(_lab.Download, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("06 AUG 2026", "LI R901 - Prova Uno"));
@@ -97,6 +100,34 @@ public sealed class AipNellaBarraTests : IDisposable
         // Un ciclo scritto male non si legge.
         Assert.False(await _lab.LeggiLAipAsync("26"));
         Assert.Contains("non è un ciclo AIRAC", _lab.Rifiuto, StringComparison.Ordinal);
+    }
+
+    // Prova A45 (committente: «selezionare il file sfogliando con il file explorer»): «Sfoglia…» apre la finestra per un
+    // PDF, da Download col campo vuoto e dalla cartella del file col campo pieno, e il file scelto va nel campo.
+    [Fact]
+    public async Task IlPdfDellEmendamento_SiSceglieConSfoglia()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        Assert.True(_lab.CambiaLaCartellaDeiPdf(Path.Combine(_fuori, "AIP")), _lab.Rifiuto);
+        var scelto = Path.Combine(_fuori, "Downloads", "AIP 2611", "AMDT.pdf");
+        var chiesti = new List<(string Titolo, string? Da, string Filtro)>();
+        _lab.ScegliFile = (titolo, da, filtro) =>
+        {
+            chiesti.Add((titolo, da, filtro));
+            return Task.FromResult<string?>(scelto);
+        };
+        var pagina = _contesto.RenderComponent<Home>();
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-tasto=sfoglia-amdt]")), TimeSpan.FromSeconds(10));
+        Assert.True(string.IsNullOrEmpty(pagina.Find("[data-campo=amdt]").GetAttribute("value")));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=sfoglia-amdt]").Click());
+        Assert.Equal(scelto, pagina.Find("[data-campo=amdt]").GetAttribute("value"));
+        Assert.False(pagina.Find("[data-tasto=applica-emendamento]").HasAttribute("disabled"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=sfoglia-amdt]").Click());
+
+        Assert.Equal([_lab.Download, scelto], chiesti.Select(c => c.Da));
+        Assert.Equal("PDF (*.pdf)|*.pdf", chiesti[0].Filtro);
+        Assert.Contains("emendamento", chiesti[0].Titolo, StringComparison.Ordinal);
     }
 
     // Preparando le prove a mano (22 ottobre): delle 542 segnalazioni del 2611 se ne vedevano le prime 200, e «1 non

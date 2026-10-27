@@ -5313,6 +5313,23 @@ public sealed class SessioneDelLab
     /// <summary>Sta applicando un emendamento.</summary>
     public bool StaApplicandoLEmendamento { get; private set; }
 
+    /// <summary>A che punto è l'emendamento (prova A45: la barra, come per la lettura); null se non lo si sta applicando.</summary>
+    public Core.PdfAip.AvanzamentoDellEmendamento? AvanzamentoDellEmendamento { get; private set; }
+
+    private DateTime _inizioDellaFase;
+
+    /// <summary>Quanto manca alla fase dell'emendamento in corso, stimato dai file già fatti; null all'inizio della fase.</summary>
+    public TimeSpan? MancaAllEmendamento => AvanzamentoDellEmendamento is { Fatti: > 4 } a && a.Fatti < a.Tutti
+        ? TimeSpan.FromSeconds((DateTime.UtcNow - _inizioDellaFase).TotalSeconds / a.Fatti * (a.Tutti - a.Fatti))
+        : null;
+
+    /// <summary>
+    /// La finestra di Windows per scegliere un file (prova A45: «selezionare il file dell'emendamento sfogliando con Esplora
+    /// file»). Come <see cref="ScegliCartella"/>: la mette il guscio dell'app, e senza guscio è null e il tasto non c'è. Riceve
+    /// il titolo, il file o la cartella da cui partire e il filtro di Windows (<c>PDF|*.pdf</c>); torna il file scelto, o null.
+    /// </summary>
+    public Func<string, string?, string, Task<string?>>? ScegliFile { get; set; }
+
     /// <summary>Il PDF di un emendamento in Download (il più recente col nome «AMDT»), da proporre nel campo; null se non c'è.</summary>
     public string? EmendamentoInDownload =>
         Directory.Exists(Download)
@@ -5336,11 +5353,19 @@ public sealed class SessioneDelLab
             return Rifiuta("Scrivi il percorso del PDF dell'emendamento: l'AIP AIRAC AMDT scaricato da ENAV.");
 
         StaApplicandoLEmendamento = true;
+        AvanzamentoDellEmendamento = null;
         Avvisa();
         Core.PdfAip.EsitoDellEmendamento esito;
         try
         {
-            esito = await Task.Run(() => Core.PdfAip.EmendamentoDellAip.Applica(pdf, amdt)).ConfigureAwait(false);
+            var avanzamento = new RiferisciSubito<Core.PdfAip.AvanzamentoDellEmendamento>(a =>
+            {
+                if (AvanzamentoDellEmendamento?.Fase != a.Fase)
+                    _inizioDellaFase = DateTime.UtcNow;
+                AvanzamentoDellEmendamento = a;
+                AvvisaOgniTanto();
+            });
+            esito = await Task.Run(() => Core.PdfAip.EmendamentoDellAip.Applica(pdf, amdt, avanzamento)).ConfigureAwait(false);
             UltimoEmendamento = esito;
             _righeDeiCicli = null;
             Registro.Scrivi("aip", esito.Fatto
@@ -5355,6 +5380,7 @@ public sealed class SessioneDelLab
         finally
         {
             StaApplicandoLEmendamento = false;
+            AvanzamentoDellEmendamento = null;
             Avvisa();
         }
 

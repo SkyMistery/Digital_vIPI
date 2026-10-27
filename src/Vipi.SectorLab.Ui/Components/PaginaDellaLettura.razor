@@ -120,6 +120,11 @@
                         <input class="lab-campo" value="@_amdt" data-campo="amdt" placeholder="D:\…\AMDT.pdf"
                                @onchange="e => _amdt = e.Value?.ToString()" />
                     </label>
+                    @if (Lab.ScegliFile is not null)
+                    {
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="sfoglia-amdt" disabled="@Lab.StaApplicandoLEmendamento"
+                                title="Sceglie il PDF dell'emendamento con Esplora file" @onclick="SfogliaAmdt">Sfoglia…</button>
+                    }
                     <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="applica-emendamento"
                             disabled="@(Lab.StaApplicandoLEmendamento || Lab.StaLeggendoLAip || string.IsNullOrWhiteSpace(_amdt))"
                             @onclick="ApplicaLEmendamento">
@@ -250,7 +255,27 @@
         </div>
 
         <div class="lab-pagina-colonna lab-lettura-destra">
-            @if (Lab.StaLeggendoLAip && Lab.Avanzamento is { } a)
+            @* Prova A45 (committente): la barra anche per l'emendamento, una fase alla volta; poi la lettura del ciclo nuovo ha la sua. *@
+            @if (Lab.StaApplicandoLEmendamento)
+            {
+                var e = Lab.AvanzamentoDellEmendamento;
+                <section data-avanzamento-emendamento>
+                    <h2 class="lab-riquadro-titolo">Sto applicando l'emendamento</h2>
+                    @if (e is null)
+                    {
+                        <p class="lab-nota">Comincio…</p>
+                    }
+                    else
+                    {
+                        <p class="lab-nota" data-fase-emendamento="@e.Fase">@((int)e.Fase + 1) di 3 · @e.Cosa@(e.Tutti > 1 ? $" · {e.Fatti} di {e.Tutti}" : "")@(e.File.Length > 0 ? $" · {e.File}" : "")@(Lab.MancaAllEmendamento is { } m ? $" · manca circa {Durata(m)}" : "")</p>
+                        <div class="lab-barra-avanzamento" role="progressbar" aria-valuemin="0" aria-valuemax="@e.Tutti" aria-valuenow="@e.Fatti">
+                            <div style="width: @(e.Tutti == 0 ? 0 : 100 * e.Fatti / e.Tutti)%"></div>
+                        </div>
+                    }
+                    <p class="lab-nota">Il ciclo prima non si tocca: il ciclo nuovo si scrive accanto e va al suo posto solo alla fine. Poi il Lab lo legge da sé.</p>
+                </section>
+            }
+            else if (Lab.StaLeggendoLAip && Lab.Avanzamento is { } a)
             {
                 <section data-avanzamento>
                     <h2 class="lab-riquadro-titolo">Sto leggendo</h2>
@@ -570,6 +595,14 @@
     }
 
     private async Task ApplicaLEmendamento() => _rifiuto = await Lab.ApplicaLEmendamentoAsync(_amdt) ? null : Lab.Rifiuto;
+
+    /// <summary>Prova A45: il PDF dell'emendamento con Esplora file, dalla cartella di quello nel campo (o da Download).</summary>
+    private async Task SfogliaAmdt()
+    {
+        var da = _amdt?.Trim().Trim('"') is { Length: > 0 } scritto ? scritto : Lab.Download;
+        if (await Lab.ScegliFile!("Il PDF dell'emendamento AIRAC (AMDT) di ENAV", da, "PDF (*.pdf)|*.pdf") is { } scelta)
+            _amdt = scelta;
+    }
 
     private static string Durata(TimeSpan t) => t.TotalSeconds < 60 ? $"{Math.Max(1, (int)t.TotalSeconds)} s" : $"{(int)Math.Round(t.TotalMinutes)} min";
 

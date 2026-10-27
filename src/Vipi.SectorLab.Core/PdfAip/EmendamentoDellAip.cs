@@ -56,6 +56,26 @@ public sealed record EsitoDellEmendamento(
     public string? CopiaDellEmendamento { get; init; }
 }
 
+/// <summary>Le fasi di «Applica l'emendamento», nell'ordine.</summary>
+public enum FaseDellEmendamento
+{
+    LeggeLEmendamento,
+    LeggeIlCicloPrima,
+    ScriveIlCicloNuovo,
+}
+
+/// <summary>A che punto è l'emendamento: la fase, quanti file fatti su quanti nella fase, quello in mano.</summary>
+public sealed record AvanzamentoDellEmendamento(FaseDellEmendamento Fase, int Fatti, int Tutti, string File)
+{
+    /// <summary>La fase in parole, per la pagina: «Leggo i PDF del ciclo prima».</summary>
+    public string Cosa => Fase switch
+    {
+        FaseDellEmendamento.LeggeLEmendamento => "Leggo l'emendamento",
+        FaseDellEmendamento.LeggeIlCicloPrima => "Leggo i PDF del ciclo prima",
+        _ => "Scrivo i PDF del ciclo nuovo",
+    };
+}
+
 /// <summary>
 /// L'emendamento AIRAC applicato alla cartella dei PDF (carta «L'AIP intero e gli emendamenti», passo 7). L'AOD scarica
 /// solo il PDF dell'AMDT; il Lab crea <c>AIP &lt;ciclo nuovo&gt;</c> accanto a <c>AIP &lt;ciclo prima&gt;</c>, che non tocca:
@@ -96,11 +116,16 @@ public static class EmendamentoDellAip
                 .Where(CicloAirac.Valido).Order(StringComparer.Ordinal).ToList()
             : [];
 
-    /// <summary>Applica l'emendamento <paramref name="amdt"/> alla cartella dei PDF.</summary>
-    public static EsitoDellEmendamento Applica(string cartellaDeiPdf, string amdt)
+    /// <summary>
+    /// Applica l'emendamento <paramref name="amdt"/> alla cartella dei PDF. <paramref name="avanzamento"/> (committente,
+    /// prova A45: «una barra di progressione anche sull'emendamento, come quando si legge un AIP») riceve la fase e quanti
+    /// file ha fatto: legge l'emendamento, legge i PDF del ciclo prima (il grosso del tempo), scrive quelli del ciclo nuovo.
+    /// </summary>
+    public static EsitoDellEmendamento Applica(string cartellaDeiPdf, string amdt, IProgress<AvanzamentoDellEmendamento>? avanzamento = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(cartellaDeiPdf);
         ArgumentException.ThrowIfNullOrEmpty(amdt);
+        avanzamento?.Report(new AvanzamentoDellEmendamento(FaseDellEmendamento.LeggeLEmendamento, 0, 1, Path.GetFileName(amdt)));
         var letto = ItalianAmendment.Read(PdfText.Read(amdt));
         var bloccanti = letto.Issues
             .Where(p => p.Kind != AmendmentIssueKind.NoChecklist)
@@ -125,8 +150,13 @@ public static class EmendamentoDellAip
 
         // L'indice della cartella del ciclo prima: ogni pagina col suo file (relativo) e la sua posizione.
         var indice = new List<IndexedPage>();
-        foreach (var file in PdfDellAip.Elenco(sorgente))
-            indice.AddRange(PageIndex.Of(Path.GetRelativePath(sorgente, file), PdfText.Read(file)));
+        var daLeggere = PdfDellAip.Elenco(sorgente).ToList();
+        for (var i = 0; i < daLeggere.Count; i++)
+        {
+            var relativo = Path.GetRelativePath(sorgente, daLeggere[i]);
+            avanzamento?.Report(new AvanzamentoDellEmendamento(FaseDellEmendamento.LeggeIlCicloPrima, i, daLeggere.Count, relativo));
+            indice.AddRange(PageIndex.Of(relativo, PdfText.Read(daLeggere[i])));
+        }
         var perRiferimento = indice.Where(p => p.Reference is not null).GroupBy(p => p.Reference!, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         var sezioniPresenti = indice.Select(p => p.Section).OfType<string>().ToHashSet(StringComparer.Ordinal);
@@ -164,8 +194,11 @@ public static class EmendamentoDellAip
         if (Directory.Exists(provvisoria))
             Directory.Delete(provvisoria, recursive: true);
         Directory.CreateDirectory(provvisoria);
-        foreach (var file in indice.GroupBy(p => p.File, StringComparer.Ordinal))
+        var perFile = indice.GroupBy(p => p.File, StringComparer.Ordinal).ToList();
+        var scritti = 0;
+        foreach (var file in perFile)
         {
+            avanzamento?.Report(new AvanzamentoDellEmendamento(FaseDellEmendamento.ScriveIlCicloNuovo, scritti++, perFile.Count, file.Key));
             var sorgenteDelFile = Path.Combine(sorgente, file.Key);
             var arrivo = Path.Combine(provvisoria, file.Key);
             Directory.CreateDirectory(Path.GetDirectoryName(arrivo)!);

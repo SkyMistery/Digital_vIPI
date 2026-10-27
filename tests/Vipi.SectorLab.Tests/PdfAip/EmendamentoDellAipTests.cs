@@ -87,6 +87,32 @@ public sealed class EmendamentoDellAipTests : IDisposable
         Assert.Empty(Directory.EnumerateFiles(esito.Cartella!, "*.scrivendo", SearchOption.AllDirectories));
     }
 
+    // Prova A45 (committente): la barra anche per l'emendamento. Le tre fasi nell'ordine, ognuna coi suoi file contati.
+    [Fact]
+    public void LAvanzamento_TreFasiNellOrdine_ConIFileContati()
+    {
+        Il2611();
+        File.WriteAllBytes(Amdt, PdfAipFinto.Emendamento("A12/26", "26 NOV 2026", Togli, Metti, Valide, 1));
+        var riferiti = new List<AvanzamentoDellEmendamento>();
+
+        Assert.True(EmendamentoDellAip.Applica(Pdf, Amdt, new Riferisci(riferiti.Add)).Fatto);
+
+        Assert.Equal([FaseDellEmendamento.LeggeLEmendamento, FaseDellEmendamento.LeggeIlCicloPrima, FaseDellEmendamento.ScriveIlCicloNuovo],
+            riferiti.Select(a => a.Fase).Distinct());
+        Assert.Equal("AMDT.pdf", riferiti[0].File);
+        var letti = riferiti.Where(a => a.Fase == FaseDellEmendamento.LeggeIlCicloPrima).ToList();
+        Assert.Equal([0, 1, 2], letti.Select(a => a.Fatti));
+        Assert.All(letti, a => Assert.Equal(3, a.Tutti));
+        Assert.Equal(Path.Combine("ENR", "LI-ENR 4.4.pdf"), letti[0].File);
+        Assert.Equal(3, riferiti.Count(a => a.Fase == FaseDellEmendamento.ScriveIlCicloNuovo));
+        Assert.Equal("Leggo i PDF del ciclo prima", letti[0].Cosa);
+    }
+
+    private sealed class Riferisci(Action<AvanzamentoDellEmendamento> riferisci) : IProgress<AvanzamentoDellEmendamento>
+    {
+        public void Report(AvanzamentoDellEmendamento value) => riferisci(value);
+    }
+
     // Banco, 21 ottobre: con una cartella che non ha LICJ, l'emendamento faceva «LI-AD 2 LICJ 2.pdf» con le sole pagine
     // cambiate. Una sezione che la cartella non ha si scrive solo intera.
     [Fact]

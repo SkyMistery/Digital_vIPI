@@ -27,7 +27,17 @@ parti** (con S1: 126 su 433, perché le DESCRIPTION TABLES contavano a parte); L
 DESCRIPTION TABLES trovano tutte la loro carta, anche col trattino morbido o il «.pdf» stampati nel titolo. Restano fuori
 5 avvicinamenti (LICR, la cui carta manca in AD 2.24; i «break clouds» di LIMG): stanno sotto le carte, «fuori dalle
 carte». La carta si apre nella pagina dello scalo con le parti, lo stato, le pagine e le date, e torna lì da una parte.
-Prove A72-A73.
+Prove A72-A73. Le A68-A73 le ha fatte Claude sul banco: la A70 ha trovato che la scheda Piste non contava più gli
+avvicinamenti (corretto, «IAP 1/3» per lato).
+
+**L'emendamento, dalla nota del committente alla A45**: «la possibilità di selezionare il file sfogliando con il file
+explorer» e «una barra di progressione anche sull'emendamento, come quando si legge un AIP». Il campo del PDF dell'AMDT ha
+**Sfoglia…**: la finestra di Windows per un PDF, dalla cartella del file nel campo o da Download (come i «Sfoglia…» delle
+cartelle, la mette il guscio dell'app: sul banco e nei test non c'è). Mentre applica, a destra **«Sto applicando
+l'emendamento»** con la fase (1 di 3 leggo l'emendamento, 2 di 3 leggo i PDF del ciclo prima, 3 di 3 scrivo quelli del
+ciclo nuovo), il file in mano, quanti su quanti, la barra e quanto manca; poi la lettura del ciclo nuovo ha la sua barra.
+Il grosso del tempo è la fase 2, gli 851 PDF del ciclo prima letti per sapere dove sta ogni pagina: sul banco circa tre
+PDF al secondo.
 
 ## 26 ottobre 2026, notte: la lettura si ricorda, «Vai alla voce» mostra la voce sola
 
