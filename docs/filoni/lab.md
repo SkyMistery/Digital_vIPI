@@ -19,6 +19,16 @@ avvicinamento in AD 2.24 il Lab ne legge 126, quasi tutte tabelle RNP. Da qui la
 (piste coi due lati, procedure per pista e per genere con lo stato, carte di AD 2.24 con quel che il Lab ne legge,
 frequenze e radioassistenze, il testo AD 2 con «Correggi»), con «Solo lo scalo sulla mappa». Prove A68-A71.
 
+**S2 fatta**: un avvicinamento è la sua carta di AD 2.24 («ILS Z RWY 24»), e le voci di prima (una per segmento
+stampato) ne sono le parti. Misurando sul 2611 è venuto fuori che la procedura sta quasi sempre sulla **seconda** pagina
+della carta (carta 5-3, procedura 5-4; tabelle 5-9, blocco SBAS 5-10): la regola di S1 (pagina uguale) ne perdeva la
+maggior parte. Ora una carta occupa le pagine fino alla carta seguente. Sul 2611: **302 carte di avvicinamento, 141 con
+parti** (con S1: 126 su 433, perché le DESCRIPTION TABLES contavano a parte); LIRN 7/7, LIRF 6/17, LIMC 10/15. Le 131
+DESCRIPTION TABLES trovano tutte la loro carta, anche col trattino morbido o il «.pdf» stampati nel titolo. Restano fuori
+5 avvicinamenti (LICR, la cui carta manca in AD 2.24; i «break clouds» di LIMG): stanno sotto le carte, «fuori dalle
+carte». La carta si apre nella pagina dello scalo con le parti, lo stato, le pagine e le date, e torna lì da una parte.
+Prove A72-A73.
+
 ## 26 ottobre 2026, notte: la lettura si ricorda, «Vai alla voce» mostra la voce sola
 
 Il committente ha chiesto tre cose.

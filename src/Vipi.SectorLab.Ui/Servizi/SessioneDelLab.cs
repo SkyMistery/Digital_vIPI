@@ -5459,6 +5459,12 @@ public sealed class SessioneDelLab
     }
 
     /// <summary>
+    /// La scheda aperta nella pagina dello scalo e la carta di avvicinamento aperta (la sua pagina; S2): restano quando dalla
+    /// pagina si apre una voce e si torna con «‹ LIRF».
+    /// </summary>
+    public (string Icao, string Scheda, string? Carta)? SchedaDellaPaginaDelloScalo { get; set; }
+
+    /// <summary>
     /// Lo scalo della voce scelta, se non è lo scalo stesso (una SID, un punto RNAV, un'attesa): l'indice della sua voce e il
     /// nome, per «‹ LIRF» sopra la scheda. Null altrimenti.
     /// </summary>

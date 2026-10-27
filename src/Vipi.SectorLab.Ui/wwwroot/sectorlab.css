@@ -2332,6 +2332,15 @@ body.lab-trascina * {
     color: var(--lab-avviso);
 }
 
+/* S2: una carta di avvicinamento solo immagine (il Lab non ne legge niente) si vede più tenue di una letta. */
+.lab-stato-immagine {
+    font-style: italic;
+}
+
+.lab-carta-iap .lab-procedura-scalo {
+    margin-left: .2rem;
+}
+
 .lab-torna-allo-scalo {
     display: block;
     margin-bottom: .3rem;

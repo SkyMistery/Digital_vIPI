@@ -78,15 +78,16 @@ public sealed class PaginaDelloScaloTests
         var strato = AipSullaMappa.Di(modello, "2611", _ => null);
         var pagina = PagineDegliScali.Di(strato, modello, "LIXX", new HashSet<string> { "LIXX Approach RNP RWY16L RWY 16L" })!;
 
-        // La SID di due piste sta sotto tutte e due; la STAR senza pista in fondo; la SID di un altro scalo no.
-        Assert.Equal([("16L", "SID"), ("16L", "Avvicinamenti"), ("34R", "SID"), ("", "STAR")], pagina.Procedure.Select(g => (g.Pista, g.Genere)));
+        // La SID di due piste sta sotto tutte e due; la STAR senza pista in fondo; la SID di un altro scalo no. Gli avvicinamenti
+        // stanno nelle loro carte (S2), non nei gruppi.
+        Assert.Equal([("16L", "SID"), ("34R", "SID"), ("", "STAR")], pagina.Procedure.Select(g => (g.Pista, g.Genere)));
         Assert.Equal(["16L", "34R", ""], pagina.PisteDelleProcedure);
-        var avvicinamenti = pagina.Procedure[1].Procedure;
+        var avvicinamenti = pagina.AvvicinamentiDi("16L").SelectMany(c => c.Parti).Select(x => x.Procedura).ToList();
         Assert.Equal(["LIXX RNP RWY16L", "LIXX RNP RWY16L via SUVOK"], avvicinamenti.Select(p => strato.Voci[p.Indice].Titolo));
         Assert.Equal([true, false], avvicinamenti.Select(p => p.ConSegnalazione));
         Assert.Equal("2 tratti", avvicinamenti[0].Stato);
         Assert.Equal("senza tratti", pagina.Procedure[0].Procedure[0].Stato);
-        Assert.StartsWith("solo un punto", pagina.Procedure[3].Procedure[0].Stato, StringComparison.Ordinal);
+        Assert.StartsWith("solo un punto", pagina.Procedure[2].Procedure[0].Stato, StringComparison.Ordinal);
         // Le voci dello scalo per «Solo lo scalo sulla mappa»: lo scalo, i suoi due punti, le sue quattro procedure.
         Assert.Contains(pagina.Indice, pagina.Voci);
         Assert.Equal(7, pagina.Voci.Count);
@@ -100,6 +101,8 @@ public sealed class PaginaDelloScaloTests
 
         Assert.Equal([false, true, true, false], pagina.Carte.Select(c => c.Avvicinamento));
         Assert.Equal([0, 0, 2, 0], pagina.Carte.Select(c => c.Procedure));
+        // Le DESCRIPTION TABLES senza la loro carta in AD 2.24 sono una carta.
+        Assert.Equal([null, "ILS Z RWY 16L", "RNP RWY 16L DESCRIPTION TABLES", null], pagina.Carte.Select(c => c.Iap?.Titolo));
         Assert.Equal((1, 2), pagina.CarteIap);
         Assert.Equal(new Dictionary<string, (int, int)> { ["LIXX"] = (1, 2), ["LIYY"] = (0, 1) }, PagineDegliScali.CopertureIap(modello));
         Assert.Null(PagineDegliScali.Di(AipSullaMappa.Di(modello, "2611", _ => null), modello, "LIZZ"));

@@ -531,23 +531,40 @@ public sealed class AipNellaBarraTests : IDisposable
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Piste]").Click());
         Assert.Equal("16L/34R", pagina.Find("[data-pista]").GetAttribute("data-pista"));
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Carte]").Click());
-        Assert.Equal(["non letta", "letta · 1 procedura"], pagina.FindAll("[data-carta] td:last-child").Select(td => td.TextContent.Trim()));
+        Assert.Equal(["solo immagine", "in parte · 1 parte, 1 tratto · 1 parte con un punto solo"], pagina.FindAll("[data-carta] td:last-child").Select(td => td.TextContent.Trim()));
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Frequenze]").Click());
         Assert.Contains("118.700 · Prova Torre", pagina.Find("[data-frequenze-scalo]").TextContent, StringComparison.Ordinal);
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Testo]").Click());
         Assert.NotNull(pagina.Find("[data-testo-scalo] [data-scheda-aip]"));
 
+        // S2: gli avvicinamenti per carta; la carta si apre al posto delle schede, con le parti; una carta solo immagine lo dice.
+        await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Procedure]").Click());
+        Assert.Equal(["ILS Z RWY 16L", "RNP RWY 16L"], pagina.FindAll("[data-carta-iap-riga] [data-apri-carta]").Select(b => b.TextContent.Trim()));
+        await pagina.InvokeAsync(() => pagina.Find("[data-apri-carta='AD 2 LIXX 5-3']").Click());
+        Assert.NotNull(pagina.Find("[data-carta-solo-immagine]"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-chiudi-carta]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-apri-carta='AD 2 LIXX 5-5']").Click());
+        Assert.Equal("InParte", pagina.Find("[data-stato-carta]").GetAttribute("data-stato-carta"));
+        Assert.Equal("RNP RWY16L", pagina.Find("[data-parte-carta] [data-voce-aip]").TextContent.Trim());
+        // Lo strato è acceso tutto: il tasto spegne le parti, e le riaccende.
+        Assert.Equal("Spegni le parti sulla mappa", pagina.Find("[data-tasto=accendi-carta]").TextContent.Trim());
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=accendi-carta]").Click());
+        Assert.Equal("Accendi le parti sulla mappa", pagina.Find("[data-tasto=accendi-carta]").TextContent.Trim());
+        Assert.Null(pagina.Find("[data-parte-carta] input").GetAttribute("checked"));
+
         // «Solo lo scalo sulla mappa»: lo scalo, il suo punto e la procedura, accesi da soli.
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto=solo-lo-scalo]").Click());
         Assert.Equal(3, _lab.QuanteVociDellAipAccese(Enumerable.Range(0, _lab.StratoDellAip!.Voci.Count)));
 
-        // Una procedura dello scalo: la sua scheda, con «‹ LIXX» sopra per tornare alla pagina.
-        var procedura = _lab.StratoDellAip.Voci.ToList().FindIndex(v => v.Genere == Vipi.SectorLab.Core.PdfAip.AipSullaMappa.Avvicinamenti);
-        await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", procedura));
+        // Una parte della carta: la sua scheda, con «‹ LIXX» sopra; tornando, la carta è ancora aperta.
+        await pagina.InvokeAsync(() => pagina.Find("[data-parte-carta] [data-voce-aip]").Click());
         pagina.WaitForAssertion(() => Assert.Equal("‹ LIXX PROVA Aeroporto", pagina.Find("[data-torna-allo-scalo]").TextContent.Trim()), TimeSpan.FromSeconds(10));
         Assert.Empty(pagina.FindAll("[data-pagina-scalo]"));
         await pagina.InvokeAsync(() => pagina.Find("[data-torna-allo-scalo]").Click());
-        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-pagina-scalo]")), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Equal("AD 2 LIXX 5-5", pagina.Find("[data-carta-iap]").GetAttribute("data-carta-iap")), TimeSpan.FromSeconds(10));
+        await pagina.InvokeAsync(() => pagina.Find("[data-chiudi-carta]").Click());
+        Assert.Empty(pagina.FindAll("[data-carta-iap]"));
+        Assert.Contains("lab-scelto", pagina.Find("[data-scheda-scalo=Procedure]").ClassList);
     }
 
     // Slice 1c: «Sostituisci» su una riga «forma diversa» — la voce riscritta con le zone dell'AIP, la testata e quel che

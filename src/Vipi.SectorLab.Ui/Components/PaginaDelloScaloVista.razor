@@ -6,11 +6,14 @@
     completo, soprattutto lato aeroporti»): lo scalo scelto nell'Indice o sulla mappa, al posto della scheda. In testa i dati
     dello scalo e i gesti; sotto cinque schede — le piste coi due lati, le procedure per pista e per genere, le carte di
     AD 2.24 con quel che il Lab ne legge, frequenze e radioassistenze, il testo di AD 2.1-2.25.
+    S2: gli avvicinamenti per carta («ILS (Cat.II) or LOC X RWY 16L»), con lo stato; una carta si apre al posto delle schede,
+    con le sue parti (le voci di prima, una per segmento stampato) e «Apri il PDF».
 *@
 @if (Pagina is { } p)
 {
     var s = p.Scalo;
     var (lette, tutte) = p.CarteIap;
+    var cartaAperta = CartaAperta;
     <div class="lab-ispettore lab-pagina-scalo" data-pagina-scalo="@s.Icao">
         <header>
             <p class="lab-etichetta">@s.Icao · @s.Name</p>
@@ -29,10 +32,67 @@
         <nav class="lab-schede-scalo" data-schede-scalo>
             @foreach (var (scheda, nome) in Schede(p))
             {
-                <button type="button" class="lab-chip @(_scheda == scheda ? "lab-scelto" : null)" data-scheda-scalo="@scheda" @onclick="() => _scheda = scheda">@nome</button>
+                <button type="button" class="lab-chip @(cartaAperta is null && SchedaAperta == scheda ? "lab-scelto" : null)" data-scheda-scalo="@scheda" @onclick="() => SchedaAperta = scheda">@nome</button>
             }
         </nav>
-        @switch (_scheda)
+        @if (cartaAperta is { } carta)
+        {
+            var parti = carta.Parti.Select(x => x.Procedura.Indice).ToList();
+            var tutteAccese = parti.Count > 0 && Lab.QuanteVociDellAipAccese(parti) == parti.Count;
+            <section class="lab-carta-iap" data-carta-iap="@carta.Carta.Page">
+                <button type="button" class="lab-voce lab-torna-allo-scalo" data-chiudi-carta @onclick="ChiudiLaCarta">‹ @s.Icao · @(SchedaAperta == Scheda.Carte ? "Carte" : "Procedure")</button>
+                <h3 class="lab-pista-nome">@carta.Titolo</h3>
+                <p class="lab-nota @Classe(carta)" data-stato-carta="@carta.Stato">@carta.StatoInParole</p>
+                <dl class="lab-campi-aip">
+                    @foreach (var (nome, foglio) in carta.Tabelle.Select(t => ("Tabelle", t)).Prepend(("Carta", carta.Carta)))
+                    {
+                        <dt>@nome</dt>
+                        <dd>
+                            @if (Ciclo is { } cicloDelFoglio)
+                            {
+                                <button type="button" class="lab-voce" data-apri-foglio="@foglio.Page" title="Apre il PDF a questa pagina" @onclick="() => Apri(cicloDelFoglio, foglio.Page)">@foglio.Page</button>
+                            }
+                            else
+                            {
+                                @foglio.Page
+                            }
+                            @(foglio.Effective is { } data ? " · " + data.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) : "")
+                        </dd>
+                    }
+                    @if (carta.Piste.Count > 0)
+                    {
+                        <dt>Piste</dt>
+                        <dd>@string.Join(", ", carta.Piste)</dd>
+                    }
+                </dl>
+                @if (carta.Parti.Count == 0)
+                {
+                    <p class="lab-nota" data-carta-solo-immagine>Solo immagine: la carta è un disegno e le sue pagine non hanno tabelle che il Lab legga.
+                        Si guarda nel PDF; posata sulla mappa verrà con la parte C della carta «Gli aeroporti nel Lab».</p>
+                }
+                else
+                {
+                    <p class="lab-gesti-record">
+                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="accendi-carta"
+                                @onclick="() => Lab.AccendiLeVociDellAip(parti, !tutteAccese)">@(tutteAccese ? "Spegni le parti sulla mappa" : "Accendi le parti sulla mappa")</button>
+                    </p>
+                    @foreach (var parte in carta.Parti)
+                    {
+                        <p class="lab-procedura-scalo" data-parte-carta="@parte.Procedura.Indice">
+                            <input type="checkbox" class="lab-indice-accesa" checked="@(Lab.QuanteVociDellAipAccese([parte.Procedura.Indice]) == 1)"
+                                   title="Accende o spegne questa parte sulla mappa"
+                                   @onchange="e => Lab.AccendiLeVociDellAip([parte.Procedura.Indice], e.Value is true)" />
+                            <button type="button" class="lab-voce @(Lab.SceltaDellAip == parte.Procedura.Indice ? "lab-scelto" : null)" data-voce-aip="@parte.Procedura.Indice"
+                                    title="@parte.Procedura.Titolo" @onclick="() => Scegli(parte.Procedura.Indice)">@parte.Nome</button>
+                            <span class="lab-nota @(!parte.Tabella && (parte.Procedura.Tratti < 2 || parte.Procedura.NonTrovati > 0) ? "lab-stato-parziale" : null)">@(parte.Tabella ? "tabella" : parte.Procedura.Stato)@(parte.Procedura.ConSegnalazione ? " · segnalazione" : "")</span>
+                        </p>
+                    }
+                }
+            </section>
+        }
+        else
+        {
+        switch (SchedaAperta)
         {
             case Scheda.Piste:
                 @if (p.Piste.Count == 0)
@@ -77,15 +137,17 @@
                 break;
 
             case Scheda.Procedure:
-                @if (p.Procedure.Count == 0)
+                @if (p.Procedure.Count == 0 && p.Avvicinamenti.Count == 0)
                 {
                     <p class="lab-nota">Nessuna procedura letta per @s.Icao.</p>
                 }
                 @foreach (var pista in p.PisteDelleProcedure)
                 {
+                    var carteDellaPista = p.AvvicinamentiDi(pista).ToList();
+                    var sciolte = p.Procedure.FirstOrDefault(g => g.Pista == pista && g.Genere == AipSullaMappa.Avvicinamenti);
                     <section class="lab-pista" data-procedure-pista="@pista">
                         <h3 class="lab-pista-nome">@(pista.Length == 0 ? "Senza pista" : "RWY " + pista)</h3>
-                        @foreach (var gruppo in p.Procedure.Where(g => g.Pista == pista))
+                        @foreach (var gruppo in p.Procedure.Where(g => g.Pista == pista && g.Genere != AipSullaMappa.Avvicinamenti))
                         {
                             var indici = gruppo.Procedure.Select(x => x.Indice).ToList();
                             var accese = Lab.QuanteVociDellAipAccese(indici);
@@ -100,11 +162,50 @@
                                 </summary>
                                 @foreach (var proc in gruppo.Procedure)
                                 {
-                                    <p class="lab-procedura-scalo">
-                                        <button type="button" class="lab-voce @(Lab.SceltaDellAip == proc.Indice ? "lab-scelto" : null)" data-voce-aip="@proc.Indice"
-                                                @onclick="() => Scegli(proc.Indice)">@proc.Titolo</button>
-                                        <span class="lab-nota @(proc.Tratti == 0 || proc.NonTrovati > 0 ? "lab-stato-parziale" : null)">@proc.Stato@(proc.ConSegnalazione ? " · segnalazione" : "")</span>
+                                    @Riga(proc)
+                                }
+                            </details>
+                        }
+                        @if (carteDellaPista.Count > 0 || sciolte is not null)
+                        {
+                            // S2: gli avvicinamenti per carta; sotto, quelli che non stanno sulle pagine di una carta.
+                            var indici = carteDellaPista.SelectMany(c => c.Parti).Select(x => x.Procedura.Indice)
+                                .Concat(sciolte?.Procedure.Select(x => x.Indice) ?? []).Distinct().ToList();
+                            var accese = Lab.QuanteVociDellAipAccese(indici);
+                            var conParti = carteDellaPista.Count(c => c.Parti.Count > 0);
+                            <details class="lab-indice-gruppo" open data-gruppo-scalo="@($"{pista}/{AipSullaMappa.Avvicinamenti}")">
+                                <summary>
+                                    @if (indici.Count > 0)
+                                    {
+                                        <input type="checkbox" class="lab-indice-accesa" checked="@(accese == indici.Count)" data-accendi-gruppo-scalo="@($"{pista}/{AipSullaMappa.Avvicinamenti}")"
+                                               title="@(accese == indici.Count ? "Tutte le parti accese sulla mappa: spegnile" : $"{accese} su {indici.Count} parti accese sulla mappa: accendile")"
+                                               @onchange="e => Lab.AccendiLeVociDellAip(indici, e.Value is true)" />
+                                    }
+                                    <span class="lab-indice-codice">@AipSullaMappa.Avvicinamenti</span>
+                                    <span class="lab-nota">@(carteDellaPista.Count == 1 ? "1 carta" : $"{carteDellaPista.Count} carte") · @conParti con parti@(sciolte is null ? "" : $" · {sciolte.Procedure.Count} fuori dalle carte")</span>
+                                </summary>
+                                @foreach (var cartaDellaPista in carteDellaPista)
+                                {
+                                    var partiDellaCarta = cartaDellaPista.Parti.Select(x => x.Procedura.Indice).ToList();
+                                    <p class="lab-procedura-scalo" data-carta-iap-riga="@cartaDellaPista.Carta.Page">
+                                        @if (partiDellaCarta.Count > 0)
+                                        {
+                                            <input type="checkbox" class="lab-indice-accesa" checked="@(Lab.QuanteVociDellAipAccese(partiDellaCarta) == partiDellaCarta.Count)"
+                                                   title="Accende o spegne le parti di questa carta sulla mappa"
+                                                   @onchange="e => Lab.AccendiLeVociDellAip(partiDellaCarta, e.Value is true)" />
+                                        }
+                                        <button type="button" class="lab-voce" data-apri-carta="@cartaDellaPista.Carta.Page" title="@cartaDellaPista.Carta.Title · @cartaDellaPista.Carta.Page"
+                                                @onclick="() => ApriLaCarta(cartaDellaPista)">@cartaDellaPista.Titolo</button>
+                                        <span class="lab-nota @Classe(cartaDellaPista)">@cartaDellaPista.StatoInParole</span>
                                     </p>
+                                }
+                                @if (sciolte is not null)
+                                {
+                                    <p class="lab-nota">Fuori dalle carte di AD 2.24:</p>
+                                    @foreach (var proc in sciolte.Procedure)
+                                    {
+                                        @Riga(proc)
+                                    }
                                 }
                             </details>
                         }
@@ -114,7 +215,7 @@
 
             case Scheda.Carte:
                 <p class="lab-nota">Le carte di AD 2.24. Le carte di avvicinamento sono disegni: il Lab ne legge le tabelle (DESCRIPTION TABLES, FIX/POINT).
-                    Di @tutte carte di avvicinamento, @lette danno procedure.</p>
+                    Di @tutte carte di avvicinamento, @lette danno delle parti (con le loro DESCRIPTION TABLES).</p>
                 <table class="lab-tabella-da-dove lab-carte-scalo">
                     <thead><tr><th>Carta</th><th>Pagina</th><th>Data</th><th>Il Lab</th></tr></thead>
                     <tbody>
@@ -129,7 +230,19 @@
                                     }
                                 </td>
                                 <td>@(c.Carta.Effective?.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture))</td>
-                                <td>@(c.Procedure > 0 ? $"letta · {c.Procedure} {(c.Procedure == 1 ? "procedura" : "procedure")}" : c.Avvicinamento ? "non letta" : "")</td>
+                                <td>
+                                    @if (c.Iap is { } iap)
+                                    {
+                                        @* S2: la carta di avvicinamento col suo stato; le sue DESCRIPTION TABLES rimandano a lei. *@
+                                        <button type="button" class="lab-voce @Classe(iap)" data-apri-carta="@iap.Carta.Page" @onclick="() => ApriLaCarta(iap)">
+                                            @(ReferenceEquals(iap.Carta, c.Carta) ? iap.StatoInParole : $"tabelle di {iap.Carta.Page}")
+                                        </button>
+                                    }
+                                    else if (c.Procedure > 0)
+                                    {
+                                        @($"letta · {c.Procedure} {(c.Procedure == 1 ? "procedura" : "procedure")}")
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -162,6 +275,7 @@
                 <div data-testo-scalo>@SchedaDelloScalo</div>
                 break;
         }
+        }
         @if (_rifiuto is { } rifiuto)
         {
             <p class="lab-errore">@rifiuto</p>
@@ -180,14 +294,48 @@
     /// <summary>La scheda dello scalo (AD 2.1-2.25, le correzioni), nella scheda «Testo AD 2».</summary>
     [Parameter] public RenderFragment? SchedaDelloScalo { get; set; }
 
-    private Scheda _scheda = Scheda.Procedure;
     private string? _rifiuto;
+
+    /// <summary>
+    /// La scheda aperta: nella sessione (<see cref="SessioneDelLab.SchedaDellaPaginaDelloScalo"/>), così resta quando si apre una voce e si
+    /// torna con «‹ LIRF». Cambiarla chiude la carta aperta.
+    /// </summary>
+    private Scheda SchedaAperta
+    {
+        get => Lab.SchedaDellaPaginaDelloScalo is { } v && v.Icao == Pagina?.Scalo.Icao && Enum.TryParse<Scheda>(v.Scheda, out var scheda) ? scheda : Scheda.Procedure;
+        set => Lab.SchedaDellaPaginaDelloScalo = (Pagina!.Scalo.Icao, value.ToString(), null);
+    }
+
+    /// <summary>La carta di avvicinamento aperta al posto delle schede (S2), o null.</summary>
+    private CartaDiAvvicinamento? CartaAperta =>
+        Lab.SchedaDellaPaginaDelloScalo is { Carta: { } pagina } v && Pagina is { } p && v.Icao == p.Scalo.Icao
+            ? p.Avvicinamenti.FirstOrDefault(c => c.Carta.Page == pagina)
+            : null;
+
+    private void ApriLaCarta(CartaDiAvvicinamento carta) => Lab.SchedaDellaPaginaDelloScalo = (Pagina!.Scalo.Icao, SchedaAperta.ToString(), carta.Carta.Page);
+
+    private void ChiudiLaCarta() => Lab.SchedaDellaPaginaDelloScalo = (Pagina!.Scalo.Icao, SchedaAperta.ToString(), null);
+
+    private static string? Classe(CartaDiAvvicinamento carta) => carta.Stato switch
+    {
+        StatoDellaCarta.InParte => "lab-stato-parziale",
+        StatoDellaCarta.SoloImmagine => "lab-stato-immagine",
+        _ => null,
+    };
+
+    /// <summary>Una procedura nella scheda Procedure: la voce (la sceglie) e il suo stato.</summary>
+    private RenderFragment Riga(ProceduraDelloScalo proc) =>
+        @<p class="lab-procedura-scalo">
+            <button type="button" class="lab-voce @(Lab.SceltaDellAip == proc.Indice ? "lab-scelto" : null)" data-voce-aip="@proc.Indice"
+                    @onclick="() => Scegli(proc.Indice)">@proc.Titolo</button>
+            <span class="lab-nota @(proc.Tratti == 0 || proc.NonTrovati > 0 ? "lab-stato-parziale" : null)">@proc.Stato@(proc.ConSegnalazione ? " · segnalazione" : "")</span>
+        </p>;
 
     private static IEnumerable<(Scheda, string)> Schede(PaginaDelloScalo p)
     {
         var (lette, tutte) = p.CarteIap;
         yield return (Scheda.Piste, $"Piste {p.Piste.Count}");
-        yield return (Scheda.Procedure, $"Procedure {p.Procedure.SelectMany(g => g.Procedure).Select(x => x.Indice).Distinct().Count()}");
+        yield return (Scheda.Procedure, $"Procedure {p.Procedure.SelectMany(g => g.Procedure).Select(x => x.Indice).Concat(p.Avvicinamenti.SelectMany(c => c.Parti).Select(x => x.Procedura.Indice)).Distinct().Count()}");
         yield return (Scheda.Carte, tutte > 0 ? $"Carte · IAP {lette}/{tutte}" : $"Carte {p.Carte.Count}");
         yield return (Scheda.Frequenze, "Frequenze");
         yield return (Scheda.Testo, "Testo AD 2");

@@ -137,10 +137,37 @@ scalo; la scheda di prima (AD 2.1-2.25 e «Correggi») sta nella scheda «Testo 
 scalo («LIRF ROMA Fiumicino · IAP 6/23»); cercando, l'albero di prima. Una voce di uno scalo ha «‹ LIRF» sopra la scheda.
 Provato sul banco a 1400 px sul 2611: LIRF 3 piste, 159 procedure, IAP 6/23; «Solo lo scalo sulla mappa»; il ritorno.
 
+**S2 fatta il 27 ottobre.** `PagineDegliScali.CarteDi` (Core) lega le procedure di avvicinamento alle carte:
+- **Le pagine.** AD 2.24 dà solo la prima pagina di una carta; la procedura sta di solito sulla seconda (LIRN «ILS Z RWY
+  24»: carta 5-3, procedura 5-4; LIRF «RNP RWY 16L DESCRIPTION TABLES» 5-9, blocco SBAS 5-10). Una carta occupa quindi le
+  pagine dalla sua fino a quella prima della carta seguente dello stesso file. Una procedura sulle pagine di una carta che
+  non è di avvicinamento (la VAC) resta fuori.
+- **Le DESCRIPTION TABLES** si legano alla carta prima col titolo uguale senza il suffisso, togliendo i difetti di stampa
+  del 2611: il trattino morbido («ILS OR LOC­Z», U+00AD) e il «.pdf» in coda (LIBC, LICA). Senza la loro carta sarebbero
+  una carta.
+- **Le parti** si chiamano col segmento stampato («RNAV to ILS TRANSITION - APPROACH FROM BENTO»), «FIX/POINT» e «SBAS FAS
+  DATA BLOCK» per le tabelle senza tratti, altrimenti col designatore («RNP RWY16L via SUVOK», «RNP Z RWY24 (2)»).
+- **Lo stato**: *letta* se c'è almeno una parte coi tratti, ognuna ha i tratti o è una tabella, e i punti si trovano tutti;
+  *in parte* se ci sono solo tabelle («in parte · solo FIX/POINT»), una parte senza tratti o con un punto solo, o un punto
+  che non si trova; *solo immagine* senza parti.
+- **Le piste** dal titolo della carta («RWY 24»), più quelle delle parti: i LOC di LIRN, che nella procedura non hanno la
+  pista, stanno sotto la RWY 24.
+
+Nella pagina dello scalo, scheda Procedure, il gruppo Avvicinamenti di ogni lato elenca le carte con lo stato (e una
+casella per accenderne le parti), poi quelle fuori dalle carte. Il clic su una carta la apre al posto delle schede: pagine
+e date (il clic apre il PDF), piste, «Accendi/Spegni le parti sulla mappa», le parti con la loro casella; da una parte, «‹
+LIRN» riporta alla carta (la scheda e la carta aperte stanno nella sessione, `SchedaDellaPaginaDelloScalo`). Nella scheda
+Carte una carta di avvicinamento dice il suo stato, le sue tabelle «tabelle di AD 2 LIRF 5-7»; tutte e due aprono la carta.
+Misurato sul 2611: 302 carte di avvicinamento, **141 con parti**; 131 DESCRIPTION TABLES, tutte legate; 5 avvicinamenti su
+240 fuori dalle carte (LICR RNP G RWY33 a 5-17, carta che AD 2.24 non elenca; LIMG, «break clouds»). LIRN 7/7, LIRF 6/17,
+LIMC 10/15, LICC 4/13. Provato sul banco a 1400 px: LIRN, la carta ILS Z RWY 24 con le sue cinque parti, andata e ritorno
+da una parte; LIRF, le tabelle 5-9 che aprono la carta 5-7.
+
 ## §5 — Deciso e da decidere
 
 - **D1** (committente, 27 ottobre): si scrive questa carta col disegno, e si parte dalla pagina dello scalo (S1).
-- **D2** (proposta): le voci di oggi per segmento restano e diventano parti della carta (S2): la A30 cambia così.
+- **D2** (proposta, fatta in S2): le voci di oggi per segmento restano e diventano parti della carta: la A30 cambia così.
+  Sulla mappa e nell'Indice le voci sono quelle di prima; la carta le raccoglie nella pagina dello scalo.
 - 🟡 **Da decidere** (S3): PDFium in un pacchetto .NET (l'immagine si fa nel Lab, funziona anche senza rete), oppure
   pdf.js nella pagina (niente di nativo, ma un pezzo di JavaScript grande). Proposta: PDFium.
 - 🟡 **Da decidere** (S3): i punti della posa nel repo dell'AIP espanso (proposta: sì, sono dati e servono a tutti),
