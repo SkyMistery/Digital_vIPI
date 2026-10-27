@@ -475,6 +475,81 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Contains("ABRUS", pagina.Markup, StringComparison.Ordinal);
     }
 
+    // Carta «Gli aeroporti nel Lab», S1 (27 ottobre): in AD 2 uno scalo è una riga con la copertura delle IAP; il clic apre
+    // la pagina dello scalo al posto della scheda; una sua procedura ha sopra la scheda «‹ LIXX» per tornare.
+    [Fact]
+    public async Task LaPaginaDelloScalo_DallIndice()
+    {
+        _albero.Scrivi("SectorFiles/Include/IT/lirf.str", "//MENU MAPS\r\n");
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var espanso = Path.Combine(_fuori, "espanso");
+        Assert.True(_lab.CambiaLAipEspanso(espanso), _lab.Rifiuto);
+        Directory.CreateDirectory(Path.Combine(espanso, "2611"));
+        await File.WriteAllTextAsync(Path.Combine(espanso, "2611", "li.json"), AipJson.Serialize(new AipDocument
+        {
+            State = "LI",
+            Airac = "2611",
+            Airspaces = [],
+            Points = [new SignificantPoint { Section = "AD 2 LIXX", Designator = "UNO", Position = new Position(41.85, 12.26) }],
+            Aerodromes =
+            [
+                new Aerodrome
+                {
+                    Icao = "LIXX", Name = "PROVA Aeroporto", Arp = new Position(41.8, 12.25), Elevation = "14 FT",
+                    Runways = [new Runway { Designator = "16L", Dimensions = "3902 x 60" }, new Runway { Designator = "34R" }],
+                    Communications = [new CommunicationFacility("TWR", "Prova Torre", "118.700")],
+                    Charts = [new AerodromeChart("ICAO INSTRUMENT APPROACH CHART ILS Z RWY 16L", "AD 2 LIXX 5-3"), new AerodromeChart("ICAO INSTRUMENT APPROACH CHART RNP RWY 16L", "AD 2 LIXX 5-5")],
+                },
+            ],
+            Procedures =
+            [
+                new Procedure
+                {
+                    Aerodrome = "LIXX", Kind = ProcedureKind.Approach, Designator = "RNP RWY16L", Runways = ["16L"], Page = new AipPage("AD 2 LIXX 5-5"),
+                    Legs = [new ProcedureLeg { PathTerminator = "IF", Fix = "UNO" }],
+                },
+            ],
+        }));
+        _lab.ScegliLaPagina(PaginaDelLab.AipIndice);
+        var pagina = _contesto.RenderComponent<Home>();
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Equal("IAP 1/2", pagina.Find("[data-scalo=LIXX] [data-copertura-iap]").TextContent.Trim());
+            Assert.Contains("1 scali", pagina.Find("[data-parte='AD 2'] summary").TextContent, StringComparison.Ordinal);
+        }, TimeSpan.FromSeconds(10));
+        await pagina.InvokeAsync(() => pagina.Find("[data-scalo=LIXX] button").Click());
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Equal("LIXX", pagina.Find("[data-pagina-scalo]").GetAttribute("data-pagina-scalo"));
+            Assert.Contains("14 FT", pagina.Find("[data-testata-scalo]").TextContent, StringComparison.Ordinal);
+            Assert.Contains("lab-scelto", pagina.Find("[data-scalo=LIXX]").ClassList);
+        }, TimeSpan.FromSeconds(10));
+        Assert.Equal(["Piste 1", "Procedure 1", "Carte · IAP 1/2", "Frequenze", "Testo AD 2"], pagina.FindAll("[data-scheda-scalo]").Select(b => b.TextContent.Trim()));
+        Assert.Equal("16L/Avvicinamenti", pagina.Find("[data-gruppo-scalo]").GetAttribute("data-gruppo-scalo"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Piste]").Click());
+        Assert.Equal("16L/34R", pagina.Find("[data-pista]").GetAttribute("data-pista"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Carte]").Click());
+        Assert.Equal(["non letta", "letta · 1 procedura"], pagina.FindAll("[data-carta] td:last-child").Select(td => td.TextContent.Trim()));
+        await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Frequenze]").Click());
+        Assert.Contains("118.700 · Prova Torre", pagina.Find("[data-frequenze-scalo]").TextContent, StringComparison.Ordinal);
+        await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Testo]").Click());
+        Assert.NotNull(pagina.Find("[data-testo-scalo] [data-scheda-aip]"));
+
+        // «Solo lo scalo sulla mappa»: lo scalo, il suo punto e la procedura, accesi da soli.
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=solo-lo-scalo]").Click());
+        Assert.Equal(3, _lab.QuanteVociDellAipAccese(Enumerable.Range(0, _lab.StratoDellAip!.Voci.Count)));
+
+        // Una procedura dello scalo: la sua scheda, con «‹ LIXX» sopra per tornare alla pagina.
+        var procedura = _lab.StratoDellAip.Voci.ToList().FindIndex(v => v.Genere == Vipi.SectorLab.Core.PdfAip.AipSullaMappa.Avvicinamenti);
+        await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", procedura));
+        pagina.WaitForAssertion(() => Assert.Equal("‹ LIXX PROVA Aeroporto", pagina.Find("[data-torna-allo-scalo]").TextContent.Trim()), TimeSpan.FromSeconds(10));
+        Assert.Empty(pagina.FindAll("[data-pagina-scalo]"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-torna-allo-scalo]").Click());
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-pagina-scalo]")), TimeSpan.FromSeconds(10));
+    }
+
     // Slice 1c: «Sostituisci» su una riga «forma diversa» — la voce riscritta con le zone dell'AIP, la testata e quel che
     // segue restano; il confronto rifatto la dà uguale; un «annulla» la rimette com'era.
     [Fact]

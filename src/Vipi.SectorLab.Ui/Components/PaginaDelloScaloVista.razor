@@ -1,0 +1,225 @@
+@inject SessioneDelLab Lab
+@using Vipi.SectorLab.Core.PdfAip
+
+@*
+    La pagina dello scalo (carta «Gli aeroporti nel Lab», S1; committente, 27 ottobre: «un visualizzatore funzionale e
+    completo, soprattutto lato aeroporti»): lo scalo scelto nell'Indice o sulla mappa, al posto della scheda. In testa i dati
+    dello scalo e i gesti; sotto cinque schede — le piste coi due lati, le procedure per pista e per genere, le carte di
+    AD 2.24 con quel che il Lab ne legge, frequenze e radioassistenze, il testo di AD 2.1-2.25.
+*@
+@if (Pagina is { } p)
+{
+    var s = p.Scalo;
+    var (lette, tutte) = p.CarteIap;
+    <div class="lab-ispettore lab-pagina-scalo" data-pagina-scalo="@s.Icao">
+        <header>
+            <p class="lab-etichetta">@s.Icao · @s.Name</p>
+            <p class="lab-nota" data-testata-scalo>@Testata(s)</p>
+            <p class="lab-gesti-record">
+                @if (s.Page is { } pagina && Ciclo is { } ciclo)
+                {
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="apri-pagina-scalo" title="Apre il PDF alla pagina dello scalo (@pagina.Reference)"
+                            @onclick="() => Apri(ciclo, pagina.Reference)">Apri il PDF</button>
+                }
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="solo-lo-scalo"
+                        title="Sulla mappa le coste e le @p.Voci.Count voci dello scalo: il resto si riaccende dagli Strati o dall'Indice"
+                        @onclick="() => Lab.MostraSoloLeVociDellAip(p.Voci)">Solo lo scalo sulla mappa</button>
+            </p>
+        </header>
+        <nav class="lab-schede-scalo" data-schede-scalo>
+            @foreach (var (scheda, nome) in Schede(p))
+            {
+                <button type="button" class="lab-chip @(_scheda == scheda ? "lab-scelto" : null)" data-scheda-scalo="@scheda" @onclick="() => _scheda = scheda">@nome</button>
+            }
+        </nav>
+        @switch (_scheda)
+        {
+            case Scheda.Piste:
+                @if (p.Piste.Count == 0)
+                {
+                    <p class="lab-nota">AD 2.12 non ha piste lette per @s.Icao.</p>
+                }
+                @foreach (var pista in p.Piste)
+                {
+                    var prima = pista.Lati[0].Pista;
+                    <section class="lab-pista" data-pista="@pista.Nome">
+                        <h3 class="lab-pista-nome">@pista.Nome <span class="lab-nota">@(prima.Dimensions is { } dim ? dim + " m" : "") @(prima.Surface is { } f ? "· " + f : "")</span></h3>
+                        @foreach (var lato in pista.Lati)
+                        {
+                            var r = lato.Pista;
+                            <dl class="lab-campi-aip" data-lato="@r.Designator">
+                                <dt>RWY @r.Designator</dt>
+                                <dd>@(r.TrueBearing is { } b ? $"rotta vera {b}" : "")@(r.ThresholdElevation is { } e ? $" · soglia {e}" : "")</dd>
+                                @if (r.Threshold is { } soglia)
+                                {
+                                    <dt>Soglia</dt>
+                                    <dd>@Coordinate(soglia)</dd>
+                                }
+                                @foreach (var d in lato.Distanze)
+                                {
+                                    <dt>@(d.Intersection ?? "Distanze")</dt>
+                                    <dd>TORA @d.Tora · TODA @d.Toda · ASDA @d.Asda · LDA @d.Lda</dd>
+                                }
+                                @foreach (var ils in lato.Ils)
+                                {
+                                    <dt>ILS</dt>
+                                    <dd>@ils.Designator @ils.Category@(ils.Slope is { } gp ? $" · GP {gp}" : "")@(ils.Components.FirstOrDefault(c => c.Frequency is not null) is { } loc ? $" · {loc.Frequency}" : "")</dd>
+                                }
+                                @if (Procedure(p, r.Designator) is { Length: > 0 } quante)
+                                {
+                                    <dt>Procedure</dt>
+                                    <dd>@quante</dd>
+                                }
+                            </dl>
+                        }
+                    </section>
+                }
+                break;
+
+            case Scheda.Procedure:
+                @if (p.Procedure.Count == 0)
+                {
+                    <p class="lab-nota">Nessuna procedura letta per @s.Icao.</p>
+                }
+                @foreach (var pista in p.PisteDelleProcedure)
+                {
+                    <section class="lab-pista" data-procedure-pista="@pista">
+                        <h3 class="lab-pista-nome">@(pista.Length == 0 ? "Senza pista" : "RWY " + pista)</h3>
+                        @foreach (var gruppo in p.Procedure.Where(g => g.Pista == pista))
+                        {
+                            var indici = gruppo.Procedure.Select(x => x.Indice).ToList();
+                            var accese = Lab.QuanteVociDellAipAccese(indici);
+                            var segnalate = gruppo.Procedure.Count(x => x.ConSegnalazione);
+                            <details class="lab-indice-gruppo" open="@gruppo.Procedure.Any(x => x.Indice == Lab.SceltaDellAip)" data-gruppo-scalo="@($"{pista}/{gruppo.Genere}")">
+                                <summary>
+                                    <input type="checkbox" class="lab-indice-accesa" checked="@(accese == indici.Count)" data-accendi-gruppo-scalo="@($"{pista}/{gruppo.Genere}")"
+                                           title="@(accese == indici.Count ? "Tutte accese sulla mappa: spegnile" : $"{accese} su {indici.Count} accese sulla mappa: accendile")"
+                                           @onchange="e => Lab.AccendiLeVociDellAip(indici, e.Value is true)" />
+                                    <span class="lab-indice-codice">@gruppo.Genere</span>
+                                    <span class="lab-nota">@gruppo.Procedure.Count@(segnalate > 0 ? $" · {segnalate} con segnalazione" : "")</span>
+                                </summary>
+                                @foreach (var proc in gruppo.Procedure)
+                                {
+                                    <p class="lab-procedura-scalo">
+                                        <button type="button" class="lab-voce @(Lab.SceltaDellAip == proc.Indice ? "lab-scelto" : null)" data-voce-aip="@proc.Indice"
+                                                @onclick="() => Scegli(proc.Indice)">@proc.Titolo</button>
+                                        <span class="lab-nota @(proc.Tratti == 0 || proc.NonTrovati > 0 ? "lab-stato-parziale" : null)">@proc.Stato@(proc.ConSegnalazione ? " · segnalazione" : "")</span>
+                                    </p>
+                                }
+                            </details>
+                        }
+                    </section>
+                }
+                break;
+
+            case Scheda.Carte:
+                <p class="lab-nota">Le carte di AD 2.24. Le carte di avvicinamento sono disegni: il Lab ne legge le tabelle (DESCRIPTION TABLES, FIX/POINT).
+                    Di @tutte carte di avvicinamento, @lette danno procedure.</p>
+                <table class="lab-tabella-da-dove lab-carte-scalo">
+                    <thead><tr><th>Carta</th><th>Pagina</th><th>Data</th><th>Il Lab</th></tr></thead>
+                    <tbody>
+                        @foreach (var c in p.Carte)
+                        {
+                            <tr data-carta="@c.Carta.Page" data-carta-avvicinamento="@(c.Avvicinamento ? "si" : "no")">
+                                <td>@c.Carta.Title</td>
+                                <td>
+                                    @if (Ciclo is { } cicloDellaCarta)
+                                    {
+                                        <button type="button" class="lab-voce" title="Apre il PDF a questa pagina" @onclick="() => Apri(cicloDellaCarta, c.Carta.Page)">@c.Carta.Page</button>
+                                    }
+                                </td>
+                                <td>@(c.Carta.Effective?.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture))</td>
+                                <td>@(c.Procedure > 0 ? $"letta · {c.Procedure} {(c.Procedure == 1 ? "procedura" : "procedure")}" : c.Avvicinamento ? "non letta" : "")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                break;
+
+            case Scheda.Frequenze:
+                <dl class="lab-campi-aip" data-frequenze-scalo>
+                    @foreach (var f in s.Communications)
+                    {
+                        <dt>@f.Service</dt>
+                        <dd>@f.Frequency@(f.CallSign is { } cs ? $" · {cs}" : "")@(f.Hours is { } h ? $" · {h}" : "")</dd>
+                    }
+                </dl>
+                @if (s.NavigationAids.Count > 0)
+                {
+                    <h3 class="lab-pista-nome">Radioassistenze (AD 2.19)</h3>
+                    <dl class="lab-campi-aip" data-radioassistenze-scalo>
+                        @foreach (var n in s.NavigationAids)
+                        {
+                            <dt>@n.Designator</dt>
+                            <dd>@n.Type@(n.Frequency is { } fr ? $" · {fr}" : "")@(n.Channel is { } ch ? $" · {ch}" : "") · @Coordinate(n.Position)</dd>
+                        }
+                    </dl>
+                }
+                break;
+
+            default:
+                @* La scheda di prima dello scalo: AD 2.1-2.25 e «Correggi», che resta da qui. *@
+                <div data-testo-scalo>@SchedaDelloScalo</div>
+                break;
+        }
+        @if (_rifiuto is { } rifiuto)
+        {
+            <p class="lab-errore">@rifiuto</p>
+        }
+    </div>
+}
+
+@code {
+    private enum Scheda { Piste, Procedure, Carte, Frequenze, Testo }
+
+    /// <summary>La pagina dello scalo: col parametro, così si ridisegna quando cambia (un componente senza parametri no).</summary>
+    [Parameter] public PaginaDelloScalo? Pagina { get; set; }
+
+    [Parameter] public string? Ciclo { get; set; }
+
+    /// <summary>La scheda dello scalo (AD 2.1-2.25, le correzioni), nella scheda «Testo AD 2».</summary>
+    [Parameter] public RenderFragment? SchedaDelloScalo { get; set; }
+
+    private Scheda _scheda = Scheda.Procedure;
+    private string? _rifiuto;
+
+    private static IEnumerable<(Scheda, string)> Schede(PaginaDelloScalo p)
+    {
+        var (lette, tutte) = p.CarteIap;
+        yield return (Scheda.Piste, $"Piste {p.Piste.Count}");
+        yield return (Scheda.Procedure, $"Procedure {p.Procedure.SelectMany(g => g.Procedure).Select(x => x.Indice).Distinct().Count()}");
+        yield return (Scheda.Carte, tutte > 0 ? $"Carte · IAP {lette}/{tutte}" : $"Carte {p.Carte.Count}");
+        yield return (Scheda.Frequenze, "Frequenze");
+        yield return (Scheda.Testo, "Testo AD 2");
+    }
+
+    private void Scegli(int indice)
+    {
+        if (Lab.StratoDellAip is { } strato)
+            Lab.Scegli(strato.File, indice);
+    }
+
+    private void Apri(string ciclo, string pagina) => _rifiuto = Lab.ApriLaPaginaDellAip(ciclo, pagina) ? null : Lab.Rifiuto;
+
+    /// <summary>«ARP 41°48'N 012°15'E · 15 ft · 3° E · IFR/VFR»: quel che lo scalo ha.</summary>
+    private static string Testata(Aip.Aerodrome s) => string.Join(" · ", new[]
+    {
+        s.Arp is { } arp ? "ARP " + Coordinate(arp) : null,
+        s.Elevation,
+        s.MagneticVariation is { } v ? $"declinazione {v}" : null,
+        s.Traffic,
+    }.OfType<string>());
+
+    /// <summary>Gradi, primi e secondi, come li stampa l'AIP: 41°48'02"N 012°14'13"E.</summary>
+    private static string Coordinate(Aip.Position p) => $"{Gms(p.Lat, 2, p.Lat < 0 ? 'S' : 'N')} {Gms(p.Lon, 3, p.Lon < 0 ? 'W' : 'E')}";
+
+    private static string Gms(double gradi, int cifre, char lato)
+    {
+        var secondi = (int)Math.Round(Math.Abs(gradi) * 3600);
+        return $"{(secondi / 3600).ToString(new string('0', cifre), System.Globalization.CultureInfo.InvariantCulture)}°{secondi / 60 % 60:00}'{secondi % 60:00}\"{lato}";
+    }
+
+    /// <summary>«SID 12 · STAR 20 · Avvicinamenti 4» del lato di una pista.</summary>
+    private static string Procedure(PaginaDelloScalo p, string lato) =>
+        string.Join(" · ", p.Procedure.Where(g => g.Pista == lato).Select(g => $"{g.Genere} {g.Procedure.Count}"));
+}

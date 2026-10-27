@@ -97,10 +97,20 @@
         @foreach (var parte in Indice(strato))
         {
             <details class="lab-indice-parte" open data-parte="@parte.Codice">
-                <summary><strong>@parte.Codice</strong> @parte.Nome <span class="lab-nota">@parte.Quante.ToString("N0")</span></summary>
+                <summary><strong>@parte.Codice</strong> @parte.Nome <span class="lab-nota">@(parte.Codice is "AD 2" or "AD 3" && string.IsNullOrWhiteSpace(_filtro) ? $"{parte.Gruppi.Count(g => g.Voci.Any(v => v.Genere == AipSullaMappa.Scali))} scali" : parte.Quante.ToString("N0"))</span></summary>
                 @foreach (var gruppo in parte.Gruppi)
                 {
-                    @Gruppo(gruppo)
+                    @* Carta «Gli aeroporti nel Lab», S1: in AD 2 e AD 3 uno scalo è una riga, e il clic apre la sua pagina; cercando
+                       («ELKAP») si vedono le voci dentro gli scali, come prima. *@
+                    @if (parte.Codice is "AD 2" or "AD 3" && string.IsNullOrWhiteSpace(_filtro)
+                         && gruppo.Voci.FirstOrDefault(v => v.Genere == AipSullaMappa.Scali) is { } scalo)
+                    {
+                        @RigaDelloScalo(gruppo, scalo)
+                    }
+                    else
+                    {
+                        @Gruppo(gruppo)
+                    }
                 }
             </details>
         }
@@ -170,6 +180,27 @@
                 @Gruppo(sotto)
             }
         </details>
+    };
+
+    /// <summary>Uno scalo in una riga: la casella che accende tutte le sue voci, il nome, e quante carte IAP danno procedure.</summary>
+    private RenderFragment RigaDelloScalo(GruppoDellIndice gruppo, VoceDellIndice scalo) => __builder =>
+    {
+        var indici = Indici(gruppo);
+        var accese = Lab.QuanteVociDellAipAccese(indici);
+        var scelto = Lab.SceltaDellAip == scalo.Indice || Lab.ScaloDellaVoceScelta?.Icao == gruppo.Codice;
+        <div class="lab-riga-scalo @(scelto ? "lab-scelto" : null)" data-scalo="@gruppo.Codice">
+            <input type="checkbox" class="lab-indice-accesa" data-accendi-gruppo="@gruppo.Codice" checked="@(accese == indici.Count)"
+                   title="@(accese == indici.Count ? "Tutte accese sulla mappa: spegnile" : accese == 0 ? "Spente sulla mappa: accendile" : $"{accese} su {indici.Count} accese sulla mappa: accendile tutte")"
+                   @onchange="e => Lab.AccendiLeVociDellAip(indici, e.Value is true)" />
+            <button type="button" class="lab-voce" data-voce-aip="@scalo.Indice" title="Apre la pagina dello scalo" @onclick="() => Scegli(scalo)">
+                <span class="lab-indice-codice">@gruppo.Codice</span> @gruppo.Nome
+            </button>
+            @if (Lab.CopertureIap.TryGetValue(gruppo.Codice, out var iap) && iap.Tutte > 0)
+            {
+                <span class="lab-nota" data-copertura-iap="@($"{iap.Lette}/{iap.Tutte}")"
+                      title="Carte di avvicinamento di AD 2.24 da cui il Lab legge almeno una procedura, su tutte">IAP @iap.Lette/@iap.Tutte</span>
+            }
+        </div>
     };
 
     /// <summary>Aperto se si sta cercando, o se dentro c'è la voce scelta (anche quando la si è scelta dalla mappa).</summary>

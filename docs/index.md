@@ -393,6 +393,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-22-lettura-e-consegna.md`](feature/2026-10-22-lettura-e-consegna.md) — «Lettura e consegna» dell'AIP espanso, rifatta (22 ottobre 2026)
 - [`feature/2026-10-22-testo-comune.md`](feature/2026-10-22-testo-comune.md) — Testo comune delle torri radar — carta (22 ottobre 2026)
 - [`feature/2026-10-23-segnalazioni-2611.md`](feature/2026-10-23-segnalazioni-2611.md) — Le segnalazioni della lettura del 2611 (23 ottobre 2026)
+- [`feature/2026-10-27-aeroporti-nel-lab.md`](feature/2026-10-27-aeroporti-nel-lab.md) — Gli aeroporti nel Lab (27 ottobre 2026)
 
 ### `filoni`
 

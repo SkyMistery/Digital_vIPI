@@ -189,6 +189,13 @@ public static class IndiceDellAip
             : null;
     }
 
+    /// <summary>Lo scalo di una voce di AD 2 o AD 3 (lo scalo stesso, una procedura, un punto RNAV, un'attesa), o null.</summary>
+    public static string? ScaloDi(VoceDellAip voce)
+    {
+        ArgumentNullException.ThrowIfNull(voce);
+        return Scalo(voce)?.ToUpperInvariant();
+    }
+
     private static string? Campo(VoceDellAip voce, string nome) =>
         voce.Campi.FirstOrDefault(c => c.Nome == nome) is { Valore: { Length: > 0 } valore } ? valore : null;
 

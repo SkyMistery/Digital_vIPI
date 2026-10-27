@@ -38,14 +38,33 @@
             <IndiceDellAipVista />
         </aside>
         <div class="lab-divisore" data-divide="@($"{_p}indice")" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
-        <aside class="lab-colonna lab-colonna-ispettore @(NellaFinestraDeiPannelli ? "lab-colonna-modifiche" : null)">
+        var paginaDelloScalo = Lab.PaginaDelloScaloScelto;
+        <aside class="lab-colonna lab-colonna-ispettore @(paginaDelloScalo is null ? null : "lab-colonna-scalo") @(NellaFinestraDeiPannelli ? "lab-colonna-modifiche" : null)">
             @if (Lab.VoceDellAipScelta is null)
             {
                 <p class="lab-nota" data-scheda-aip-vuota>Scegli una voce nell'indice, o clicca una forma dell'AIP sulla mappa.</p>
             }
-            @* 🔴 Col parametro: un componente senza parametri non si ridisegna quando la scheda cambia (come in Scheda.razor). *@
-            <AipNellaScheda Voce="Lab.VoceDellAipScelta" Ciclo="@Lab.StratoDellAip?.Ciclo" Area="Lab.AreaDellAipScelta" Modello="Lab.VoceDelModelloScelta"
-                           Correzione="@(Lab.CorrezioneDellAreaScelta ?? Lab.CorrezioneDellaVoceScelta)" />
+            @* Carta «Gli aeroporti nel Lab», S1: uno scalo è una pagina; una sua voce ha sopra la scheda il ritorno allo scalo. *@
+            @if (paginaDelloScalo is not null)
+            {
+                <PaginaDelloScaloVista Pagina="paginaDelloScalo" Ciclo="@Lab.StratoDellAip?.Ciclo">
+                    <SchedaDelloScalo>
+                        <AipNellaScheda Voce="Lab.VoceDellAipScelta" Ciclo="@Lab.StratoDellAip?.Ciclo" Area="Lab.AreaDellAipScelta" Modello="Lab.VoceDelModelloScelta"
+                                       Correzione="@(Lab.CorrezioneDellAreaScelta ?? Lab.CorrezioneDellaVoceScelta)" />
+                    </SchedaDelloScalo>
+                </PaginaDelloScaloVista>
+            }
+            else
+            {
+                @if (Lab.ScaloDellaVoceScelta is var (indiceDelloScalo, icao, nome) && Lab.StratoDellAip is { } strato)
+                {
+                    <button type="button" class="lab-voce lab-torna-allo-scalo" data-torna-allo-scalo="@icao"
+                            @onclick="() => Lab.Scegli(strato.File, indiceDelloScalo)">‹ @icao @nome</button>
+                }
+                @* 🔴 Col parametro: un componente senza parametri non si ridisegna quando la scheda cambia (come in Scheda.razor). *@
+                <AipNellaScheda Voce="Lab.VoceDellAipScelta" Ciclo="@Lab.StratoDellAip?.Ciclo" Area="Lab.AreaDellAipScelta" Modello="Lab.VoceDelModelloScelta"
+                               Correzione="@(Lab.CorrezioneDellAreaScelta ?? Lab.CorrezioneDellaVoceScelta)" />
+            }
         </aside>
         @if (!NellaFinestraDeiPannelli)
         {

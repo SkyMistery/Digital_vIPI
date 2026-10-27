@@ -4,7 +4,22 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 26 ottobre 2026, notte: la lettura si ricorda, «Vai alla voce» mostra la voce sola
+## Dove siamo — 27 ottobre 2026: gli aeroporti, la carta e la pagina dello scalo
+
+Il committente, dopo le prove A63-A67: ENR 2-5 vanno bene; gli aeroporti no — «parziale e incompleto o a pezzi»,
+soprattutto le IAP, e manca il ground («regole speciali e un metodo misto tra sector file e PDF sovrapposto»). E la
+revisione grafica dell'Indice, come per Lettura e consegna.
+
+Misurato sul 2611: le carte degli aeroporti nel PDF sono immagini (di testo solo la testata). Di 433 carte di
+avvicinamento in AD 2.24 il Lab ne legge 126, quasi tutte tabelle RNP. Da qui la carta
+[«Gli aeroporti nel Lab»](../feature/2026-10-27-aeroporti-nel-lab.md): la pagina dello scalo (S1), le IAP per carta
+(S2), la carta del PDF posata sulla mappa (S3-S4), il ground col metodo misto (S5).
+
+**S1 fatta**: nell'Indice AD 2 e AD 3 hanno una riga per scalo con «IAP lette/tutte»; lo scalo si apre in una pagina
+(piste coi due lati, procedure per pista e per genere con lo stato, carte di AD 2.24 con quel che il Lab ne legge,
+frequenze e radioassistenze, il testo AD 2 con «Correggi»), con «Solo lo scalo sulla mappa». Prove A68-A71.
+
+## 26 ottobre 2026, notte: la lettura si ricorda, «Vai alla voce» mostra la voce sola
 
 Il committente ha chiesto tre cose.
 1. «Quando chiudo e poi riapro, la lista delle cose da sistemare sull'AIP su cui sto lavorando: per averla devo rileggere

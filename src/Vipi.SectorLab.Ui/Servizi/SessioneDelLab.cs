@@ -4859,7 +4859,22 @@ public sealed class SessioneDelLab
     /// Sulla mappa dell'AIP espanso solo quella voce (26 ottobre, «Vai alla voce»): le coste, lo strato dell'AIP coi suoi
     /// generi spenti e la voce accesa da sola. Il resto si riaccende dagli Strati, o voce per voce dall'Indice.
     /// </summary>
-    private void MostraSoloLaVoceDellAip(Core.PdfAip.StratoDellAip strato, int indice)
+    private void MostraSoloLaVoceDellAip(Core.PdfAip.StratoDellAip strato, int indice) => MostraSoloLeVociDellAip(strato, [indice]);
+
+    /// <summary>
+    /// «Solo lo scalo sulla mappa» (carta «Gli aeroporti nel Lab», S1): le coste, e dello strato dell'AIP le sole voci dello
+    /// scalo — lo scalo, l'ATZ, i punti, le attese, le procedure.
+    /// </summary>
+    public void MostraSoloLeVociDellAip(IEnumerable<int> indici)
+    {
+        ArgumentNullException.ThrowIfNull(indici);
+        if (StratoDellAip is not { } strato)
+            return;
+        MostraSoloLeVociDellAip(strato, [.. indici.Where(i => i >= 0 && i < strato.Voci.Count)]);
+        Avvisa();
+    }
+
+    private void MostraSoloLeVociDellAip(Core.PdfAip.StratoDellAip strato, IReadOnlyList<int> indici)
     {
         var mappa = _mappe[SpazioDiLavoro.Aip];
         var aip = Core.PdfAip.AipSullaMappa.Tipo.Id;
@@ -4869,8 +4884,9 @@ public sealed class SessioneDelLab
         mappa.Spenti.RemoveWhere(s => s.StartsWith(ChiaveDelGenere(aip, ""), StringComparison.Ordinal) || VoceDellaChiave(s) is not null);
         foreach (var genere in strato.Strato.Forme.Select(f => f.Genere).OfType<string>().Distinct(StringComparer.Ordinal))
             mappa.Spenti.Add(ChiaveDelGenere(aip, genere));
-        mappa.Spenti.Add(AccesaDaSola + ChiaveDellaVoce(strato, indice));
-        Registro.Scrivi("voci", $"AIP {strato.Ciclo}: solo {strato.Voci[indice].Titolo}");
+        foreach (var indice in indici)
+            mappa.Spenti.Add(AccesaDaSola + ChiaveDellaVoce(strato, indice));
+        Registro.Scrivi("voci", $"AIP {strato.Ciclo}: solo {(indici.Count == 1 ? strato.Voci[indici[0]].Titolo : $"{indici.Count} voci")}");
         mappa.VersioneDeiSpenti++;
         mappa.VersioneDellaVista++;
     }
@@ -5398,6 +5414,67 @@ public sealed class SessioneDelLab
     /// <summary>La voce scelta, per la scheda.</summary>
     public Core.PdfAip.VoceDellAip? VoceDellAipScelta =>
         SceltaDellAip is { } i && StratoDellAip is { } s && i >= 0 && i < s.Voci.Count ? s.Voci[i] : null;
+
+    // --- la pagina dello scalo (carta «Gli aeroporti nel Lab», S1) ------------------------------------------------------
+
+    private (object Strato, string Icao, object? Lettura, Core.PdfAip.PaginaDelloScalo? Pagina)? _paginaDelloScalo;
+
+    /// <summary>
+    /// La pagina dello scalo scelto (S1): lo scalo scelto nell'Indice o sulla mappa diventa una pagina, al posto della scheda.
+    /// Null se la voce scelta non è uno scalo. Si rifà quando cambiano lo strato, lo scalo o la lettura.
+    /// </summary>
+    public Core.PdfAip.PaginaDelloScalo? PaginaDelloScaloScelto
+    {
+        get
+        {
+            if (VoceDellAipScelta is not { Genere: Core.PdfAip.AipSullaMappa.Scali } scalo || StratoDellAip is not { } strato || _modelloSullaMappa is not { } modello)
+                return null;
+            var lettura = UltimoAipEspanso;
+            if (_paginaDelloScalo is { } c && ReferenceEquals(c.Strato, strato) && c.Icao == scalo.Titolo && ReferenceEquals(c.Lettura, lettura))
+                return c.Pagina;
+            // Le procedure su cui la lettura del ciclo mostrato ha una segnalazione.
+            var conSegnalazione = lettura?.Ciclo == strato.Ciclo
+                ? lettura.Problemi.Where(p => p.Problema.Kind == Aip.Pdf.Italia.ImportIssueKind.Procedure && p.Problema.Key is not null)
+                    .Select(p => p.Problema.Key!).ToHashSet(StringComparer.Ordinal)
+                : null;
+            var pagina = Core.PdfAip.PagineDegliScali.Di(strato, modello, scalo.Titolo, conSegnalazione);
+            _paginaDelloScalo = (strato, scalo.Titolo, lettura, pagina);
+            return pagina;
+        }
+    }
+
+    private (object Modello, IReadOnlyDictionary<string, (int Lette, int Tutte)> Coperture)? _copertureIap;
+
+    /// <summary>Per ogni scalo, le carte IAP che danno procedure su quelle di AD 2.24 (la riga dello scalo nell'Indice).</summary>
+    public IReadOnlyDictionary<string, (int Lette, int Tutte)> CopertureIap
+    {
+        get
+        {
+            if (_modelloSullaMappa is not { } modello)
+                return new Dictionary<string, (int, int)>();
+            if (_copertureIap is not { } c || !ReferenceEquals(c.Modello, modello))
+                _copertureIap = c = (modello, Core.PdfAip.PagineDegliScali.CopertureIap(modello));
+            return c.Coperture;
+        }
+    }
+
+    /// <summary>
+    /// Lo scalo della voce scelta, se non è lo scalo stesso (una SID, un punto RNAV, un'attesa): l'indice della sua voce e il
+    /// nome, per «‹ LIRF» sopra la scheda. Null altrimenti.
+    /// </summary>
+    public (int Indice, string Icao, string Nome)? ScaloDellaVoceScelta
+    {
+        get
+        {
+            if (VoceDellAipScelta is not { } voce || voce.Genere == Core.PdfAip.AipSullaMappa.Scali || StratoDellAip is not { } strato
+                || Core.PdfAip.IndiceDellAip.ScaloDi(voce) is not { } icao)
+                return null;
+            for (var i = 0; i < strato.Voci.Count; i++)
+                if (strato.Voci[i] is { Genere: Core.PdfAip.AipSullaMappa.Scali } s && string.Equals(s.Titolo, icao, StringComparison.OrdinalIgnoreCase))
+                    return (i, s.Titolo, s.Campi.FirstOrDefault(c => c.Nome == "Nome").Valore ?? "");
+            return null;
+        }
+    }
 
     /// <summary>Quel che la mappa evidenzia: il record scelto, o la voce dell'AIP.</summary>
     public (string File, int Record)? SceltaSullaMappa =>

@@ -2276,6 +2276,67 @@ body.lab-trascina * {
     vertical-align: middle;
 }
 
+/* La pagina dello scalo (carta «Gli aeroporti nel Lab», S1): nell'Indice uno scalo per riga; a destra la pagina, più
+   larga della scheda di una voce. */
+.lab-riga-scalo {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .05rem .25rem;
+    border-radius: 4px;
+}
+
+.lab-riga-scalo > .lab-voce {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lab-colonna-scalo {
+    width: var(--lab-l-ispettore-scalo, 30rem);
+}
+
+.lab-schede-scalo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    margin: .4rem 0 .6rem;
+}
+
+.lab-pista {
+    margin-bottom: .6rem;
+}
+
+.lab-pista-nome {
+    font-size: .85rem;
+    margin: .3rem 0 .2rem;
+}
+
+.lab-procedura-scalo {
+    display: flex;
+    align-items: baseline;
+    gap: .4rem;
+    margin: 0;
+}
+
+.lab-procedura-scalo > .lab-voce {
+    flex: 0 1 auto;
+    min-width: 0;
+    text-align: left;
+}
+
+.lab-stato-parziale {
+    color: var(--lab-avviso);
+}
+
+.lab-torna-allo-scalo {
+    display: block;
+    margin-bottom: .3rem;
+}
+
 .lab-indice-voce {
     display: block;
     margin-left: 1rem;
