@@ -530,6 +530,8 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Equal("16L/Avvicinamenti", pagina.Find("[data-gruppo-scalo]").GetAttribute("data-gruppo-scalo"));
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Piste]").Click());
         Assert.Equal("16L/34R", pagina.Find("[data-pista]").GetAttribute("data-pista"));
+        // Le procedure del lato contano anche le carte di avvicinamento (S2: non stanno più nei gruppi).
+        Assert.Contains("IAP 1/2", pagina.Find("[data-lato='16L']").TextContent, StringComparison.Ordinal);
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Carte]").Click());
         Assert.Equal(["solo immagine", "in parte · 1 parte, 1 tratto · 1 parte con un punto solo"], pagina.FindAll("[data-carta] td:last-child").Select(td => td.TextContent.Trim()));
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Frequenze]").Click());

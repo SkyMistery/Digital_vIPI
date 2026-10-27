@@ -158,6 +158,8 @@ casella per accenderne le parti), poi quelle fuori dalle carte. Il clic su una c
 e date (il clic apre il PDF), piste, «Accendi/Spegni le parti sulla mappa», le parti con la loro casella; da una parte, «‹
 LIRN» riporta alla carta (la scheda e la carta aperte stanno nella sessione, `SchedaDellaPaginaDelloScalo`). Nella scheda
 Carte una carta di avvicinamento dice il suo stato, le sue tabelle «tabelle di AD 2 LIRF 5-7»; tutte e due aprono la carta.
+Nella scheda Piste la riga «Procedure» di un lato conta le carte del lato, «IAP 1/3» (con parti su tutte): le prove sul
+banco (A70) hanno trovato che dopo S2 non contava più gli avvicinamenti, che non stanno più nei gruppi.
 Misurato sul 2611: 302 carte di avvicinamento, **141 con parti**; 131 DESCRIPTION TABLES, tutte legate; 5 avvicinamenti su
 240 fuori dalle carte (LICR RNP G RWY33 a 5-17, carta che AD 2.24 non elenca; LIMG, «break clouds»). LIRN 7/7, LIRF 6/17,
 LIMC 10/15, LICC 4/13. Provato sul banco a 1400 px: LIRN, la carta ILS Z RWY 24 con le sue cinque parti, andata e ritorno

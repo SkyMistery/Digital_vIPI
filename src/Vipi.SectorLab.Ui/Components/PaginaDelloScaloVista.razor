@@ -367,7 +367,14 @@
         return $"{(secondi / 3600).ToString(new string('0', cifre), System.Globalization.CultureInfo.InvariantCulture)}°{secondi / 60 % 60:00}'{secondi % 60:00}\"{lato}";
     }
 
-    /// <summary>«SID 12 · STAR 20 · Avvicinamenti 4» del lato di una pista.</summary>
-    private static string Procedure(PaginaDelloScalo p, string lato) =>
-        string.Join(" · ", p.Procedure.Where(g => g.Pista == lato).Select(g => $"{g.Genere} {g.Procedure.Count}"));
+    /// <summary>
+    /// «SID 12 · STAR 20 · IAP 1/3» del lato di una pista: gli avvicinamenti per carta (S2), quelle con parti su tutte; quelli
+    /// fuori dalle carte col loro gruppo.
+    /// </summary>
+    private static string Procedure(PaginaDelloScalo p, string lato)
+    {
+        var carte = p.AvvicinamentiDi(lato).ToList();
+        return string.Join(" · ", p.Procedure.Where(g => g.Pista == lato).Select(g => $"{g.Genere} {g.Procedure.Count}")
+            .Concat(carte.Count == 0 ? [] : [$"IAP {carte.Count(c => c.Parti.Count > 0)}/{carte.Count}"]));
+    }
 }
