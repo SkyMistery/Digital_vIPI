@@ -43,6 +43,39 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A170 — 1.76.0 pronta da caricare: lo stato dei documenti (S133) (28 ottobre 2026)
+
+MINOR con **due migrazioni ADDITIVE**, misurata dalla **1.75.0** (`1aa329c`) che gira. Timbro **`1.76.0 · cae2b84`**.
+Fusa da `sito/lavori` @ `bdae7239` (cartellino 🟢, CI run 40693124888), fusione `a458fb94` senza conflitti (`main` era
+antenato del ramo).
+- **S133**: il confronto fra copie guarda il testo (prima contava i blocchi); la scheda del documento negli editor e
+  nella pagina Documenti; la pagina Documenti come cruscotto (chip `?lavoro=` e quattro colonne fisse); le sezioni
+  facoltative (`/services/vsop/admin/required-sections`). Carta `2026-10-28-stato-dei-documenti.md`, storia in
+  `docs/filoni/sito.md`. Codice comune: `Vipi.Application` (`ReleaseService`, `ImpactDriftUseCase`,
+  `SezioniDaScrivere`).
+- **Migrazioni**: `AggiungiConfrontiDocumenti` (tabella nuova `DocumentComparisons`) e `AggiungiSezioniFacoltative`
+  (tabella nuova `OptionalSections`), sui due provider; nessuna colonna toccata nelle tabelle che ci sono. Le applica il
+  sito al primo avvio.
+- ⚠️ Al primo giro in produzione più righe «da ripubblicare» di oggi: voluto (la frase riscritta nello stesso blocco
+  prima non si vedeva).
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone`). `lab/f3` non toccato (non fuso per scelta del committente).
+
+**17 file** (`solo-17-file-1.76.0`, lo stesso elenco della 1.68.0): Domain, Application, Infrastructure,
+Infrastructure.MySqlMigrations, Ui, Host (dll + pdb), `en/Vipi.Ui.resources.dll`, `vipi-theme.css` (+ `.br`, `.gz`) con
+`Vipi.Host.staticwebassets.endpoints.json`. Confrontati col publish della **1.75.0** (`publish_old/20261026a`): 23 file
+con impronta diversa, nessuno nuovo né sparito; fuori Hosting, AuroraBridge.Contracts e AuroraProfiles (sorgente
+invariato, solo MVID). Le due `const` nuove (`TestoDelConfronto`) si usano solo dentro Application. CSS
+`vipi-theme.css?v=7f7eb20c`. Zip 6,84 MB, sha256 `2ff9002e532ba95eb3a1e45d7d1950fed1c51943fd1975bd3fac8b93c5544877`.
+Build Release senza avvisi; `dotnet test`: 18 riepiloghi `Passed!`, nessun rosso, conteggi identici all'atteso (App
+3485, Ui 2139, Infra 2258, Hosting 111). Prova sul publish win-x64 su un database **nuovo** (SQLite, scalo LIRQ
+inventato; la copia del database di sviluppo non è stata usata): tutte le migrazioni fino alle due nuove applicate al
+primo avvio, timbro nel piè di pagina, `Schema 0`, scheda del documento nell'editor di LIRQ («6 empty sections»), pagina
+Documenti con chip e colonne, pagina «Sections to write». Non rifatte: la Ricerca su `LIRF` (database vuoto) e la
+partenza della 1.75.0 prima della nuova. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.76.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0` (dice che le due tabelle ci sono), la pagina Documenti sui dati veri.
+Rollback: le rinomine (le tabelle restano, la 1.75.0 le ignora).
+
 ### ✅ A169 — 1.75.0 ONLINE: l'API aeroporti dice la pista in uso adesso (S132) (26 ottobre 2026)
 
 ✅ Online dal 26 ottobre 2026: il committente dice «online 1.75.0». Da fuori, da anonimo, alle 18:30Z circa: `/` 302,
