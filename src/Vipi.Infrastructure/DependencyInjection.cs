@@ -320,6 +320,9 @@ public static class DependencyInjection
         // La scheda del documento (S133, carta 2026-10-28-stato-dei-documenti): sezioni, traduzione e i due confronti.
         services.AddScoped<Vipi.Application.Content.IStatoDelDocumentoService, Vipi.Application.Content.StatoDelDocumentoService>();
         services.AddScoped<Vipi.Application.Content.IConfrontiDocumentiRepository, EfConfrontiDocumenti>();
+        // Le sezioni facoltative (S133): la pagina admin e il conto delle sezioni da scrivere.
+        services.AddScoped<Vipi.Application.Content.ISezioniFacoltativeStore, EfSezioniFacoltative>();
+        services.AddScoped<Vipi.Application.Content.ISezioniFacoltativeService, Vipi.Application.Content.SezioniFacoltativeService>();
         // Chi ha girato per ultimo e chi sta girando adesso. SINGLETON: il lucchetto che tiene separati il
         // giro automatico e il tasto «traduci ora» non sincronizza niente se ce n'e' uno per richiesta.
         services.AddSingleton<Vipi.Application.Translation.IRegistroDeiGiri,

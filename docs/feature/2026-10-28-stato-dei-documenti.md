@@ -1,6 +1,6 @@
 # Lo stato dei documenti — carta (28 ottobre 2026)
 
-> **Stato: 🔨 in corso** sul ramo `sito/lavori` (filone Sito, voce S133). Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
+> **Stato: ✅ eseguita il 28 ottobre 2026** sul ramo `sito/lavori` (filone Sito, voce S133): quattro fette, due migrazioni additive. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > Estende [«Da fare»: una lista sola](2026-08-26-da-fare-una-lista-sola.md), [«Da fare» per cambiamento](2026-09-23-da-fare-per-cambiamento.md),
 > [Sezioni da scrivere](2026-10-18-sezioni-da-scrivere.md) e [il ciclo entrante](2026-09-02-il-ciclo-entrante.md).
 
@@ -98,3 +98,38 @@ traduzione, 📝, impatti, lock), ognuna al suo posto solo quando c'è qualcosa:
   delle pastiglie traduzione, 📝 e impatti. Una colonna vuota vuol dire «niente». La regola delle colonne, dei chip e
   dei loro numeri è una sola: `LavoroSulDocumento` (Application), così si prova senza la pagina.
 - Test: `LavoroSulDocumentoTests` (6), `Il_giro_conserva_il_riassunto_dei_confronti`, `I_riassunti_si_riscrivono_e_si_tolgono`.
+
+**Fetta 4 — le sezioni facoltative** (28 ottobre).
+- Tabella nuova `OptionalSections` (profilo per nome, chiave, chi e quando; unica per profilo e chiave): una riga =
+  quella sezione, in quel tipo di documento, vuota non conta. Migrazione **additiva** `AggiungiSezioniFacoltative`.
+- `SezioniDaScrivere.DaScrivere(profilo, chiave, facoltative)` e `Conta(…, facoltative)`: la regola di partenza meno le
+  facoltative; `EfSezioniDaScrivere` le legge una volta per conto. `DelCatalogo(profilo)` elenca quel che la regola
+  conta, col percorso dei titoli.
+- Pagina admin «Sezioni da scrivere» (`/services/vsop/admin/required-sections`, voce in `AdminNav` dopo «Da
+  sistemare»): un elenco per tipo di documento con l'interruttore «Facoltativa». Solo admin (`SezioniFacoltativeService`),
+  e solo sulle sezioni che la regola conta. Dalla scheda, per gli admin, il collegamento «Quali sezioni contano».
+- Test: `SezioniFacoltativeServiceTests` (3), due in `SezioniDaScrivereTests`, `Una_sezione_facoltativa_non_si_conta_piu`,
+  uno in `SchedaDocumentoTests`; `AdminNavTests` conta 19 voci.
+
+**Trovato alla prova a schermo e corretto** (28 ottobre): con una programmata che porta già la bozza, la colonna «Da
+pubblicare» chiedeva un lavoro già fatto — ora no (`LavoroSulDocumento.Pubblicare`, stessa regola che fa tacere la riga
+«da ripubblicare»), e la scheda dice «arrivano con la programmata AIRAC …»; «Programma i mancanti» non rileggeva la
+scheda; mancava uno spazio prima di «Vai a Versioni».
+
+## §5 — La prova a schermo (28 ottobre)
+
+Host di sviluppo su un database SQLite **nuovo**, dati inventati (ACC LIRR, scali LIRQ e LIRP), niente login vero,
+nessuna chiamata verso IVAO; il paragrafo di prova scritto nel database con uno script, come lo salverebbe l'editor.
+- Editor di LIRQ: la scheda sopra le Versioni, stesso titolo dei pannelli accanto (28 px), tema scuro e chiaro.
+  «Pubblica ora» → la scheda si rilegge da sola: in vigore AIRAC 2610, uguale alla bozza.
+- Paragrafo aggiunto → «1 sezione cambiata», 0 → 1 elementi, la riga «+». Pubblicato, poi la stessa frase riscritta
+  nello stesso blocco (10 → 15 kt) → «testo cambiato» con «−» e «+»: **il caso che prima non si vedeva**.
+- Pagina Documenti: chip e colonne (5 vuote, 1 da pubblicare), intestazione allineata, scheda compatta nel pannello.
+  «Programma i mancanti per 2611» → «porta già la bozza»; testo cambiato ancora (20 kt) → «la bozza è andata avanti»,
+  con 10 → 20 rispetto al pubblico e 15 → 20 rispetto alla programmata; colonna e chip «Programmata indietro» a 1,
+  `?lavoro=scheduled` filtra.
+- «Sezioni da scrivere»: «Carte VFR» facoltativa per le vIPI d'aeroporto → la scheda di LIRQ passa da 5 a 4 vuote.
+- A 375 px la striscia del lavoro va a capo sotto la riga, allineata all'intestazione; nessuno scorrimento orizzontale.
+- **Non visti**: i dati veri (nessuna copia di produzione), l'editor della vIPI ACC, dell'APP, del vSOP militare e della
+  vLOA (stesso componente, stessi parametri dell'editor provato), un documento unito, il giro notturno dal vivo (provato
+  nei test d'integrazione).

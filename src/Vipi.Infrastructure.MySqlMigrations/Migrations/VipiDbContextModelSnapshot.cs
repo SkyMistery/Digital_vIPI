@@ -3414,6 +3414,40 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("Notams");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.OptionalSection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Profile")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SectionKey")
+                        .IsRequired()
+                        .HasMaxLength(96)
+                        .HasColumnType("varchar(96)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("SetByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SetUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Profile", "SectionKey")
+                        .IsUnique();
+
+                    b.ToTable("OptionalSections");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.RfoSharedState", b =>
                 {
                     b.Property<string>("EventId")

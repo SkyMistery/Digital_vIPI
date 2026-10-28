@@ -3029,8 +3029,18 @@
     pubblicare, programmata indietro, da rivedere; `?lavoro=`) e quattro colonne fisse in fondo a ogni riga, al posto
     delle tre pastiglie che comparivano dove capitava. I due confronti per tutto l'elenco vengono dalla tabella nuova
     `DocumentComparisons` (una riga per documento), scritta dal giro della deriva e dalla scheda.
-  - **Migrazione SÌ, additiva**: `AggiungiConfrontiDocumenti` crea `DocumentComparisons` e non tocca altro. Codice
-    comune: `Vipi.Application` (`ReleaseService`, `ImpactDriftUseCase`).
+  - **Fetta 4, le sezioni facoltative**: pagina admin «Sezioni da scrivere» (`/services/vsop/admin/required-sections`),
+    un interruttore «Facoltativa» per tipo di documento e sezione; vuota, una facoltativa non conta più. Tabella
+    `OptionalSections`.
+  - **Due migrazioni, tutte e due additive**: `AggiungiConfrontiDocumenti` (crea `DocumentComparisons`) e
+    `AggiungiSezioniFacoltative` (crea `OptionalSections`); non toccano altro. Niente `deploy/`. Codice comune:
+    `Vipi.Application` (`ReleaseService`, `ImpactDriftUseCase`, `SezioniDaScrivere`).
+  - **Provato a schermo** su DB nuovo con dati inventati (LIRQ): editor, pagina Documenti, programmata allineata e
+    indietro, la frase riscritta nello stesso blocco, sezione facoltativa, tema chiaro e scuro, 375 px. La prova ha
+    trovato tre cose, corrette (carta §4). Non visti: dati veri, gli altri quattro editor, un documento unito.
+  - ⚠️ **Al primo giro in produzione** il confronto sul testo aprirà righe «da ripubblicare» su ogni documento il cui
+    testo è cambiato dall'ultima pubblicazione senza che cambiassero i blocchi: è voluto (D3), ma il numero può
+    sorprendere. La colonna «Da pubblicare» si riempie al primo giro dopo l'avvio (o aprendo la scheda).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

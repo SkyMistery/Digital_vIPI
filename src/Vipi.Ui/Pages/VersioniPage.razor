@@ -618,6 +618,7 @@
             _status = string.Format(L["Airac_NextDone"].Value, esito.Programmati, _airac?.CicloEntrante ?? "");
             await LoadAsync();
             await LeggiCicloEntranteAsync();
+            if (_scheda is not null) await _scheda.RicaricaAsync();
         }
         catch (Exception ex) { _error = ex.Message; }
         finally { _busy = false; }

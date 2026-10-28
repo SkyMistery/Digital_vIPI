@@ -1,6 +1,7 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Ui.Components.Doc;
@@ -34,14 +35,35 @@ public class SchedaDocumentoTests : TestContext
         }
     }
 
+    private sealed class Authz : IEditAuthorizationService
+    {
+        public VipiRole Role { get; set; } = VipiRole.Editor;
+        public bool IsAdmin => Role >= VipiRole.Admin;
+        public int? CurrentUserId => 7;
+        public string? CurrentName => "Prova";
+    }
+
     private readonly ServizioFinto _servizio = new();
+    private readonly Authz _authz = new();
 
     public SchedaDocumentoTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeValore());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IStatoDelDocumentoService>(_servizio);
+        Services.AddSingleton<IEditAuthorizationService>(_authz);
         JSInterop.Mode = JSRuntimeMode.Loose;
+    }
+
+    /// <summary>S133, D4: quali sezioni contano lo decide un admin, e solo lui vede il collegamento alla pagina.</summary>
+    [Fact]
+    public void Solo_un_admin_vede_quali_sezioni_contano()
+    {
+        _servizio.Scheda = Scheda(Milano());
+        Assert.DoesNotContain("required-sections", Render().Markup);
+
+        _authz.Role = VipiRole.Admin;
+        Assert.Contains("/services/vsop/admin/required-sections", Render().Find("[data-voce=completare] .sd-h a").GetAttribute("href"));
     }
 
     private static StatoSezioni Milano() => new(7, new[]

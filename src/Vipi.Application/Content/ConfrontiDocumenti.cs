@@ -14,6 +14,9 @@ public sealed record ConfrontoSalvato(int DocumentId, DateTime CalcolatoUtc, str
     /// <summary>La prossima programmata non porta la bozza di oggi.</summary>
     public bool ProgrammataIndietro => CicloProgrammata is not null && (VsProgrammata > 0 || DerivateProgrammata);
 
+    /// <summary>La prossima programmata porta già la bozza di oggi: quel che il pubblico non vede ancora arriva con lei.</summary>
+    public bool ProgrammataAllineata => CicloProgrammata is not null && !ProgrammataIndietro;
+
     /// <summary>Dalla scheda calcolata dal vivo.</summary>
     public static ConfrontoSalvato Da(SchedaDelDocumento s) => new(s.DocumentId, s.CalcolataUtc, s.CicloInVigore,
         s.RispettoAlPubblico.Count, s.Programmata?.Ciclo, s.Programmata?.Righe.Count ?? 0,
@@ -36,7 +39,10 @@ public sealed record LavoroSulDocumento(int Vuote, int Traduzioni, ConfrontoSalv
         new HashSet<string>(StringComparer.Ordinal) { "any", "complete", "publish", "scheduled", "review" };
 
     public bool Completare => Vuote > 0 || Traduzioni > 0;
-    public bool Pubblicare => !Nascosto && Confronto is { DaPubblicare: true };
+    /// <summary>Da pubblicare: il pubblico legge altro, e nessuna programmata porta già la bozza. Con una programmata
+    /// allineata il lavoro è fatto — arriva al suo ciclo — ed è la stessa regola che fa tacere la riga «da ripubblicare»
+    /// (<c>ProgrammataAllineataAsync</c>): trovato a schermo il 28 ottobre, la colonna chiedeva un lavoro già fatto.</summary>
+    public bool Pubblicare => !Nascosto && Confronto is { DaPubblicare: true, ProgrammataAllineata: false };
     public bool Programmata => !Nascosto && Confronto is { ProgrammataIndietro: true };
     public bool DaRivedere => Rivedere is { Total: > 0 };
     public bool Qualcosa => Completare || Pubblicare || Programmata || DaRivedere;

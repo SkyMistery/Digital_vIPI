@@ -35,6 +35,15 @@ public class LavoroSulDocumentoTests
         Assert.False(new LavoroSulDocumento(0, 0, null, null, false).Passa("publish"));   // il giro non l'ha ancora visto
     }
 
+    /// <summary>Trovato a schermo il 28 ottobre: con una programmata che porta già la bozza, quel che il pubblico non vede
+    /// ancora arriva con lei, e «da pubblicare» chiedeva un lavoro già fatto. Se la programmata è indietro, sì.</summary>
+    [Fact]
+    public void Con_una_programmata_allineata_non_e_da_pubblicare()
+    {
+        Assert.False(new LavoroSulDocumento(0, 0, Confronto(pubblico: 1, programmata: "2611"), null, false).Passa("publish"));
+        Assert.True(new LavoroSulDocumento(0, 0, Confronto(pubblico: 1, programmata: "2611", vsProgrammata: 1), null, false).Passa("publish"));
+    }
+
     /// <summary>Anche le sole derivate congelate cambiate fanno una programmata indietro: è il caso U-053.</summary>
     [Fact]
     public void La_programmata_e_indietro_per_le_sezioni_o_per_le_derivate()

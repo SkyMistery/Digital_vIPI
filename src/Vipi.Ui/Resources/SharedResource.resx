@@ -4291,6 +4291,27 @@
   <data name="Ver_ColPublishTitle" xml:space="preserve"><value>Da pubblicare: la bozza è diversa da quello che il pubblico legge oggi</value></data>
   <data name="Ver_ColScheduledTitle" xml:space="preserve"><value>Programmata indietro: la prossima release programmata non porta la bozza di oggi</value></data>
   <data name="Ver_ColReviewTitle" xml:space="preserve"><value>Da rivedere: le righe aperte di «Da fare» su questo documento</value></data>
-  <data name="Ver_SlotPublishTitle" xml:space="preserve"><value>{0} sezioni diverse da quelle in vigore (AIRAC {1})</value></data>
+  <data name="Ver_SlotPublishTitle" xml:space="preserve"><value>Sezioni diverse da quelle in vigore (AIRAC {1}): {0}</value></data>
   <data name="Ver_SlotScheduledTitle" xml:space="preserve"><value>La programmata AIRAC {0} non porta la bozza di oggi</value></data>
+  <data name="Opt_Nav" xml:space="preserve"><value>Sezioni da scrivere</value></data>
+  <data name="Opt_Title" xml:space="preserve"><value>Sezioni da scrivere</value></data>
+  <data name="Opt_Intro" xml:space="preserve"><value>Le sezioni che lo stato del documento chiede di scrivere, tipo di documento per tipo di documento. Una sezione segnata «facoltativa» vuota non conta più: né nella scheda del documento né nella colonna «Da completare» di Documenti.</value></data>
+  <data name="Opt_Help" xml:space="preserve"><value>Vale per tutti i documenti di quel tipo. Le sezioni che non compaiono qui non si contano mai: contenitori, sezioni che il sito disegna dai dati, sezioni libere.</value></data>
+  <data name="Opt_Counted" xml:space="preserve"><value>{0} da scrivere su {1}</value></data>
+  <data name="Opt_ColSection" xml:space="preserve"><value>Sezione</value></data>
+  <data name="Opt_ColOptional" xml:space="preserve"><value>Facoltativa</value></data>
+  <data name="Opt_ToggleAria" xml:space="preserve"><value>Facoltativa: {0}</value></data>
+  <data name="Opt_ToggleTitle" xml:space="preserve"><value>Facoltativa: se resta vuota non conta fra le sezioni da scrivere, in tutti i documenti di questo tipo</value></data>
+  <data name="Opt_NowOptional" xml:space="preserve"><value>«{0}» è facoltativa in {1}.</value></data>
+  <data name="Opt_NowRequired" xml:space="preserve"><value>«{0}» è di nuovo da scrivere in {1}.</value></data>
+  <data name="Opt_AdminOnly" xml:space="preserve"><value>Solo gli admin decidono quali sezioni sono da scrivere.</value></data>
+  <data name="Opt_Profile_App" xml:space="preserve"><value>vIPI APP</value></data>
+  <data name="Opt_Profile_AccAerovia" xml:space="preserve"><value>vIPI ACC · blocco di aerovia</value></data>
+  <data name="Opt_Profile_AccAppBlock" xml:space="preserve"><value>vIPI ACC · blocco APP</value></data>
+  <data name="Opt_Profile_Vloa" xml:space="preserve"><value>vLOA</value></data>
+  <data name="Opt_Profile_Airport" xml:space="preserve"><value>vIPI d'aeroporto</value></data>
+  <data name="Opt_Profile_AirportMil" xml:space="preserve"><value>vSOP militare</value></data>
+  <data name="Opt_Profile_AppMil" xml:space="preserve"><value>vIPI APP militare</value></data>
+  <data name="Sd_WhichCount" xml:space="preserve"><value>Quali sezioni contano</value></data>
+  <data name="Sd_ArrivesWith" xml:space="preserve"><value>arrivano con la programmata AIRAC {0}</value></data>
 </root>

@@ -2,6 +2,7 @@
 @using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
+@inject IEditAuthorizationService Authz
 @* La scheda del documento (S133, carta docs/feature/2026-10-28-stato-dei-documenti.md §1 D1): che cosa manca e che
    cosa è cambiato, in un posto solo e sempre nello stesso ordine — da completare, rispetto al pubblico, la prossima
    programmata e, nella pagina Documenti, da rivedere. Prende il posto del riquadro «Sezioni da scrivere».
@@ -50,6 +51,11 @@
                 {
                     <span class="pill amber">@string.Format(L["TrEd_Wait_Missing"].Value, s.TraduzioniMancanti)</span>
                 }
+                @* Quali sezioni contano lo decide un admin (S133, D4): a lui il collegamento, agli altri niente. *@
+                @if (Authz.IsAdmin)
+                {
+                    <a class="sd-go" href="/services/vsop/admin/required-sections">@L["Sd_WhichCount"] →</a>
+                }
             </p>
             @if (s.Sezioni is { Vuote: > 0 } sz)
             {
@@ -91,6 +97,11 @@
                     else
                     {
                         <span class="pill blue">@Sezioni(s.RispettoAlPubblico.Count)</span>
+                        @* Le differenze ci sono, ma il lavoro è fatto: arrivano con la programmata. *@
+                        @if (s.Programmata is { Allineata: true } arriva)
+                        {
+                            <span class="muted">@string.Format(L["Sd_ArrivesWith"].Value, arriva.Ciclo)</span>
+                        }
                     }
                 }
             </p>
@@ -135,7 +146,7 @@
                     @L["Sd_ScheduledHow"]
                     @if (!Compatto)
                     {
-                        <text> </text><a href="#sec-versioni" @onclick='() => VaiAncoraAsync("sec-versioni")' @onclick:preventDefault>@L["Sd_GoVersions"] →</a>
+                        @(" ")<a href="#sec-versioni" @onclick='() => VaiAncoraAsync("sec-versioni")' @onclick:preventDefault>@L["Sd_GoVersions"] →</a>
                     }
                 </p>
             }

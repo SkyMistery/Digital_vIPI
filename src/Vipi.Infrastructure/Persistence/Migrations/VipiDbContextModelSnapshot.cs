@@ -2961,6 +2961,36 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("Notams");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.OptionalSection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Profile")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SectionKey")
+                        .IsRequired()
+                        .HasMaxLength(96)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SetByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("SetUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Profile", "SectionKey")
+                        .IsUnique();
+
+                    b.ToTable("OptionalSections");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.RfoSharedState", b =>
                 {
                     b.Property<string>("EventId")
