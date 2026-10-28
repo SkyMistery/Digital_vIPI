@@ -4,7 +4,13 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 26 ottobre 2026
+## Dove siamo — 28 ottobre 2026
+
+> **Al 28 ottobre**: 🟢 **S133** pronto da fondere su `sito/lavori` @ `527fbba9` — lo **stato dei documenti** rifatto:
+> il confronto con la copia pubblicata guarda il testo, una scheda per documento (editor e pagina Documenti), la
+> pagina Documenti come cruscotto (chip e quattro colonne), le sezioni facoltative decise da un admin. **Due
+> migrazioni additive** (`AggiungiConfrontiDocumenti`, `AggiungiSezioniFacoltative`). Carta
+> `docs/feature/2026-10-28-stato-dei-documenti.md`.
 
 > **Al 26 ottobre**: 🟢 **S132** pronto da fondere su `sito/lavori` — la scheda dell'API aeroporti porta anche la
 > **pista in uso adesso** (`runwayInUse`), con lo stesso calcolo della pagina del documento. Niente migrazione.
@@ -3015,7 +3021,7 @@
     `CancelloDelLoginTests` verdi. Dal vivo su DB nuovo (LIMC inventata: 17L/17R/35L/35R, regola «Nord» coda ≤ 5 kt,
     METAR vero 15003KT): 401 senza chiave; con la chiave `rule`, 35L/35R, `position` 1 — la pagina pubblica dello
     stesso scalo marca le stesse piste con la stessa regola.
-- 🔨 **S133** (28-ott, committente in chat: «vorrei rivedere il sistema di gestione di cosa manca e cosa è modificato
+- 🟢 **S133** (28-ott, committente in chat: «vorrei rivedere il sistema di gestione di cosa manca e cosa è modificato
   nei documenti, deve essere più user friendly […] oggi mi risulta abbastanza scomodo»; approvata la proposta, «lo
   stile della UI deve combaciare con quello del resto del sito»). Carta `2026-10-28-stato-dei-documenti.md`.
   - **Fetta 1, confronto sul testo**: la firma di sezione del confronto fra copie porta le righe di testo
