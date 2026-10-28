@@ -352,6 +352,7 @@ public class WorkItemRowTests : TestContext
         public Task<IReadOnlyDictionary<(ReleaseTargetType Type, string Key), ReleaseSummary>> SummariesAsync(
             IReadOnlyList<(ReleaseTargetType Type, string Key)> targets, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ConfrontoProgrammata?> DriftFromScheduledAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => Task.FromResult<ConfrontoProgrammata?>(null);
         public AiracCycleInfo NextCycle() => throw new NotSupportedException();
         public Task<int> PruneAllAsync(CancellationToken ct = default) => throw new NotSupportedException();
     }

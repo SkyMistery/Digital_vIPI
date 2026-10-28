@@ -772,6 +772,7 @@ public class ImpactDriftTests : IAsyncLifetime
 
         public Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
             Task.FromResult(Programmata);
+        public Task<ConfrontoProgrammata?> DriftFromScheduledAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => Task.FromResult<ConfrontoProgrammata?>(null);
 
         public Vipi.Domain.Services.AiracCycleInfo NextCycle() =>
             new("2609", new DateTime(2026, 9, 3, 0, 0, 0, DateTimeKind.Utc));

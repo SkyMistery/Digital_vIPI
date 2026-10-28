@@ -222,6 +222,7 @@ public class ProssimoAiracServiceTests
         public Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key, string? alCiclo = null, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ReleaseDiffRow>>(Array.Empty<ReleaseDiffRow>());
         public Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => Task.FromResult<string?>(null);
+        public Task<ConfrontoProgrammata?> DriftFromScheduledAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => Task.FromResult<ConfrontoProgrammata?>(null);
         public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ReleaseInfo>>(Array.Empty<ReleaseInfo>());
         public Task<bool> PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) => Task.FromResult(true);
