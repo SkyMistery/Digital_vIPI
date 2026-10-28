@@ -43,7 +43,12 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A170 — 1.76.0 pronta da caricare: lo stato dei documenti (S133) (28 ottobre 2026)
+### ✅ A170 — 1.76.0 ONLINE: lo stato dei documenti (S133) (28 ottobre 2026)
+
+✅ Online dal 28 ottobre 2026 sera: il committente dice «online 1.76». Da fuori, da anonimo: `/` 302, Ricerca 401, API
+aeroporti senza chiave 401, `vipi-theme.css?v=7f7eb20c` (quello nuovo, come atteso), `/vsop/health` e
+`/vsop/health/ready` Healthy. Non visti da qui (serve il login): il timbro nel piè di pagina, `Schema 0` in Diagnostica
+(dice che le due tabelle nuove ci sono), la pagina Documenti sui dati veri.
 
 MINOR con **due migrazioni ADDITIVE**, misurata dalla **1.75.0** (`1aa329c`) che gira. Timbro **`1.76.0 · cae2b84`**.
 Fusa da `sito/lavori` @ `bdae7239` (cartellino 🟢, CI run 40693124888), fusione `a458fb94` senza conflitti (`main` era

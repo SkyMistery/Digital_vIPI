@@ -6,10 +6,11 @@
 >
 > ## ▶ Il punto — 28 ottobre 2026
 >
-> **📦 Pronta da caricare: 1.76.0** (§A170, timbro `1.76.0 · cae2b84`, 17 file, zip `2ff9002e…`, MINOR con due
-> migrazioni ADDITIVE, misurata dalla 1.75.0): Sito S133, lo stato dei documenti (confronto sul testo, scheda del
-> documento, cruscotto Documenti, sezioni facoltative). Online è la **1.75.0** finché il committente non carica.
-> `lab/f3` non fuso (scelta del committente). ⚠️ Aperto: SDK 10.0.402.
+> **✅ Online: 1.76.0** (health Healthy, CSS `7f7eb20c`; **in `main` non resta codice fuori pacchetto**) (§A170, timbro
+> `1.76.0 · cae2b84`, 17 file, zip `2ff9002e…`, MINOR con due migrazioni ADDITIVE, misurata dalla 1.75.0): Sito S133,
+> lo stato dei documenti (confronto sul testo, scheda del documento, cruscotto Documenti, sezioni facoltative). Da
+> guardare col login: `Schema 0` e la pagina Documenti sui dati veri. `lab/f3` non fuso (scelta del committente).
+> ⚠️ Aperto: SDK 10.0.402.
 >
 > ## Il punto — 26 ottobre 2026
 >
