@@ -1884,7 +1884,7 @@
   <data name="Rel_BaselineCycle" xml:space="preserve"><value>AIRAC {0}</value></data>
   <data name="Rel_BaselineNone" xml:space="preserve"><value>first publication (no earlier release)</value></data>
   <data name="Rel_ComparedWith" xml:space="preserve"><value>Compared with:</value></data>
-  <data name="Rel_NoDiff" xml:space="preserve"><value>No structural difference detected.</value></data>
+  <data name="Rel_NoDiff" xml:space="preserve"><value>No differences.</value></data>
   <data name="Rel_ColItem" xml:space="preserve"><value>Item</value></data>
   <data name="Rel_ColChange" xml:space="preserve"><value>Change</value></data>
   <data name="Rel_ColDetail" xml:space="preserve"><value>Detail</value></data>
@@ -4233,15 +4233,8 @@
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Sectors the list does not name, hence unconstrained: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector.</value></data>
   <data name="Nav_ReqOpenTitle" xml:space="preserve"><value>Requests still open (new or taken on): {0}</value></data>
-  <data name="SdS_Title" xml:space="preserve"><value>Sections to write</value></data>
-  <data name="SdS_Help" xml:space="preserve"><value>The sections of the document that a person writes. Those filled from data (AOR, frequencies, SID, weather…) and hidden ones do not count. Updated on «Finish editing».</value></data>
-  <data name="SdS_Count" xml:space="preserve"><value>{0} with content · {1} empty, of {2}</value></data>
-  <data name="SdS_Part" xml:space="preserve"><value>{0} of {1} with content</value></data>
-  <data name="SdS_AllDone" xml:space="preserve"><value>Every section to write has some content.</value></data>
-  <data name="SdS_None" xml:space="preserve"><value>This document has no sections to write: everything is filled from data.</value></data>
   <data name="SdS_Pill" xml:space="preserve"><value>{0} empty sections</value></data>
   <data name="SdS_PillOne" xml:space="preserve"><value>1 empty section</value></data>
-  <data name="SdS_PillTitle" xml:space="preserve"><value>Sections to write that are still empty, of {0}. The list is in the document's panel.</value></data>
   <data name="Cfgs_DocShowsAll" xml:space="preserve"><value>Until a list is written here, the document's AOR map offers a single choice, «All sectors», which lights up the whole group. It is not a configuration: it is the map making do.</value></data>
   <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Area sectors · {0}</value></data>
   <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>The possible configurations are not applied: apply or cancel them before «Finish editing».</value></data>
@@ -4253,4 +4246,64 @@
   <data name="Cfgs_StateExhaustive" xml:space="preserve"><value>complete: constrains</value></data>
   <data name="Cfgs_StateExamples" xml:space="preserve"><value>examples: does not constrain</value></data>
   <data name="Cfgs_ConsequencesIf" xml:space="preserve"><value>What would follow from it, if the list were complete</value></data>
+  <data name="Rel_ChangeHidden" xml:space="preserve"><value>Hidden</value></data>
+  <data name="Rel_ChangeShown" xml:space="preserve"><value>Visible again</value></data>
+  <data name="Rel_TextChanged" xml:space="preserve"><value>text changed</value></data>
+  <data name="Rel_DiffSeeText" xml:space="preserve"><value>Changed text ({0} lines)</value></data>
+  <data name="Rel_DiffMoreLines" xml:space="preserve"><value>… and {0} more lines.</value></data>
+  <data name="Rel_LineAdded" xml:space="preserve"><value>Added</value></data>
+  <data name="Rel_LineRemoved" xml:space="preserve"><value>Removed</value></data>
+  <data name="Sd_Title" xml:space="preserve"><value>Document status</value></data>
+  <data name="Sd_Help" xml:space="preserve"><value>What is missing and what changed compared with what readers see today and with the next scheduled release. It refreshes on opening, on «Done editing» and with the ↻ button.</value></data>
+  <data name="Sd_At" xml:space="preserve"><value>updated at {0}</value></data>
+  <data name="Sd_RefreshTitle" xml:space="preserve"><value>Recompute the document status</value></data>
+  <data name="Sd_Complete" xml:space="preserve"><value>To complete</value></data>
+  <data name="Sd_CompleteOk" xml:space="preserve"><value>Nothing to complete</value></data>
+  <data name="Sd_Write" xml:space="preserve"><value>write</value></data>
+  <data name="Sd_Public" xml:space="preserve"><value>Compared with the public copy</value></data>
+  <data name="Sd_PublicCycle" xml:space="preserve"><value>in force: AIRAC {0}</value></data>
+  <data name="Sd_NeverPublished" xml:space="preserve"><value>Never published</value></data>
+  <data name="Sd_Same" xml:space="preserve"><value>Same as the draft</value></data>
+  <data name="Sd_Changed" xml:space="preserve"><value>{0} sections changed</value></data>
+  <data name="Sd_ChangedOne" xml:space="preserve"><value>1 section changed</value></data>
+  <data name="Sd_Scheduled" xml:space="preserve"><value>Next scheduled release</value></data>
+  <data name="Sd_NoScheduled" xml:space="preserve"><value>No scheduled release.</value></data>
+  <data name="Sd_ScheduledCycle" xml:space="preserve"><value>AIRAC {0}, from {1}</value></data>
+  <data name="Sd_ScheduledAligned" xml:space="preserve"><value>Already carries the draft</value></data>
+  <data name="Sd_ScheduledBehind" xml:space="preserve"><value>The draft has moved on</value></data>
+  <data name="Sd_ScheduledDerived" xml:space="preserve"><value>The derived data the release freezes (runways, minima…) changed too.</value></data>
+  <data name="Sd_ScheduledHow" xml:space="preserve"><value>To make it carry today's draft, schedule it again at the same cycle: it replaces the previous one.</value></data>
+  <data name="Sd_GoVersions" xml:space="preserve"><value>Go to Versions</value></data>
+  <data name="Ver_WorkAny" xml:space="preserve"><value>To do</value></data>
+  <data name="Ver_WorkAnyTitle" xml:space="preserve"><value>Documents with something to do: to complete, to publish, with the scheduled release behind, or to review</value></data>
+  <data name="Ver_WorkPublish" xml:space="preserve"><value>To publish</value></data>
+  <data name="Ver_WorkScheduled" xml:space="preserve"><value>Scheduled behind</value></data>
+  <data name="Ver_WorkReview" xml:space="preserve"><value>To review</value></data>
+  <data name="Ver_ColCompleteTitle" xml:space="preserve"><value>To complete: sections to write that are still empty, or phrases to translate</value></data>
+  <data name="Ver_ColPublishTitle" xml:space="preserve"><value>To publish: the draft differs from what readers see today</value></data>
+  <data name="Ver_ColScheduledTitle" xml:space="preserve"><value>Scheduled behind: the next scheduled release does not carry today's draft</value></data>
+  <data name="Ver_ColReviewTitle" xml:space="preserve"><value>To review: the open «To do» rows on this document</value></data>
+  <data name="Ver_SlotPublishTitle" xml:space="preserve"><value>Sections that differ from the ones in force (AIRAC {1}): {0}</value></data>
+  <data name="Ver_SlotScheduledTitle" xml:space="preserve"><value>The scheduled AIRAC {0} release does not carry today's draft</value></data>
+  <data name="Opt_Nav" xml:space="preserve"><value>Sections to write</value></data>
+  <data name="Opt_Title" xml:space="preserve"><value>Sections to write</value></data>
+  <data name="Opt_Intro" xml:space="preserve"><value>The sections the document status asks to write, document type by document type. A section marked «optional» no longer counts when empty: neither in the document status nor in the «To complete» column of Documents.</value></data>
+  <data name="Opt_Help" xml:space="preserve"><value>It applies to every document of that type. Sections not listed here are never counted: containers, sections the site draws from data, free sections.</value></data>
+  <data name="Opt_Counted" xml:space="preserve"><value>{0} to write out of {1}</value></data>
+  <data name="Opt_ColSection" xml:space="preserve"><value>Section</value></data>
+  <data name="Opt_ColOptional" xml:space="preserve"><value>Optional</value></data>
+  <data name="Opt_ToggleAria" xml:space="preserve"><value>Optional: {0}</value></data>
+  <data name="Opt_ToggleTitle" xml:space="preserve"><value>Optional: if it stays empty it does not count among the sections to write, in every document of this type</value></data>
+  <data name="Opt_NowOptional" xml:space="preserve"><value>«{0}» is optional in {1}.</value></data>
+  <data name="Opt_NowRequired" xml:space="preserve"><value>«{0}» is to write again in {1}.</value></data>
+  <data name="Opt_AdminOnly" xml:space="preserve"><value>Only admins decide which sections are to write.</value></data>
+  <data name="Opt_Profile_App" xml:space="preserve"><value>APP vIPI</value></data>
+  <data name="Opt_Profile_AccAerovia" xml:space="preserve"><value>ACC vIPI · airway block</value></data>
+  <data name="Opt_Profile_AccAppBlock" xml:space="preserve"><value>ACC vIPI · APP block</value></data>
+  <data name="Opt_Profile_Vloa" xml:space="preserve"><value>vLOA</value></data>
+  <data name="Opt_Profile_Airport" xml:space="preserve"><value>Airport vIPI</value></data>
+  <data name="Opt_Profile_AirportMil" xml:space="preserve"><value>Military vSOP</value></data>
+  <data name="Opt_Profile_AppMil" xml:space="preserve"><value>Military APP vIPI</value></data>
+  <data name="Sd_WhichCount" xml:space="preserve"><value>Which sections count</value></data>
+  <data name="Sd_ArrivesWith" xml:space="preserve"><value>they arrive with the scheduled AIRAC {0}</value></data>
 </root>

@@ -98,11 +98,42 @@ public static class SezioniDaScrivere
     }
 
     /// <summary>
+    /// Vero se la sezione è da scrivere tenendo conto delle <b>facoltative</b> (S133, carta
+    /// 2026-10-28-stato-dei-documenti §1 D4): la regola qui sopra, meno quelle che un admin ha spento per il profilo.
+    /// </summary>
+    public static bool DaScrivere(SectionProfile profilo, string chiave,
+        IReadOnlySet<(SectionProfile Profilo, string Chiave)>? facoltative) =>
+        DaScrivere(profilo, chiave)
+        && (facoltative is null || !facoltative.Any(f => f.Profilo == profilo && OIC.Equals(f.Chiave, chiave)));
+
+    /// <summary>
+    /// Le sezioni di catalogo che la regola di partenza conta per un profilo, a ogni profondità, nell'ordine del
+    /// catalogo, col percorso dei titoli nella lingua data. È l'elenco della pagina delle sezioni facoltative (S133).
+    /// </summary>
+    public static IReadOnlyList<(string Chiave, string Percorso)> DelCatalogo(SectionProfile profilo, string? lingua = null)
+    {
+        var elenco = new List<(string, string)>();
+        void Scendi(IEnumerable<SectionDescriptor> descrittori, string sopra)
+        {
+            foreach (var d in descrittori.OrderBy(d => d.Order))
+            {
+                var titolo = d.TitleIn(lingua);
+                var percorso = sopra.Length == 0 ? titolo : $"{sopra} › {titolo}";
+                if (DaScrivere(profilo, d.Key)) elenco.Add((d.Key, percorso));
+                if (d.Children is { Count: > 0 } figli) Scendi(figli, percorso);
+            }
+        }
+        Scendi(SectionCatalog.For(profilo), "");
+        return elenco;
+    }
+
+    /// <summary>
     /// Conta le sezioni da scrivere fra queste: tutte quelle date, a ogni profondità, di un profilo solo.
-    /// Le nascoste — o sotto una madre nascosta — non contano.
+    /// Le nascoste — o sotto una madre nascosta — non contano, e nemmeno le <paramref name="facoltative"/>.
     /// </summary>
     /// <param name="sezioni">Le sezioni della parte di documento; le madri fuori da qui si ignorano.</param>
-    public static ContoSezioni Conta(SectionProfile profilo, IReadOnlyList<SezioneDaContare> sezioni, string? titolo = null)
+    public static ContoSezioni Conta(SectionProfile profilo, IReadOnlyList<SezioneDaContare> sezioni, string? titolo = null,
+        IReadOnlySet<(SectionProfile Profilo, string Chiave)>? facoltative = null)
     {
         var perId = sezioni.ToDictionary(s => s.Id);
         var figlie = sezioni.Where(s => s.ParentId is int m && perId.ContainsKey(m))
@@ -112,7 +143,7 @@ public static class SezioniDaScrivere
         var vuote = new List<SezioneVuota>();
         foreach (var s in sezioni)
         {
-            if (!DaScrivere(profilo, s.Chiave) || NascostaConLeMadri(s, perId)) continue;
+            if (!DaScrivere(profilo, s.Chiave, facoltative) || NascostaConLeMadri(s, perId)) continue;
             if (Piena(s, figlie, piene, 0)) scritte++;
             else vuote.Add(new SezioneVuota(s.Id, s.Chiave, Percorso(s, perId)));
         }

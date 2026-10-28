@@ -4,7 +4,13 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 26 ottobre 2026
+## Dove siamo — 28 ottobre 2026
+
+> **Al 28 ottobre**: 🟢 **S133** pronto da fondere su `sito/lavori` @ `527fbba9` — lo **stato dei documenti** rifatto:
+> il confronto con la copia pubblicata guarda il testo, una scheda per documento (editor e pagina Documenti), la
+> pagina Documenti come cruscotto (chip e quattro colonne), le sezioni facoltative decise da un admin. **Due
+> migrazioni additive** (`AggiungiConfrontiDocumenti`, `AggiungiSezioniFacoltative`). Carta
+> `docs/feature/2026-10-28-stato-dei-documenti.md`.
 
 > **Al 26 ottobre**: 🟢 **S132** pronto da fondere su `sito/lavori` — la scheda dell'API aeroporti porta anche la
 > **pista in uso adesso** (`runwayInUse`), con lo stesso calcolo della pagina del documento. Niente migrazione.
@@ -3015,6 +3021,32 @@
     `CancelloDelLoginTests` verdi. Dal vivo su DB nuovo (LIMC inventata: 17L/17R/35L/35R, regola «Nord» coda ≤ 5 kt,
     METAR vero 15003KT): 401 senza chiave; con la chiave `rule`, 35L/35R, `position` 1 — la pagina pubblica dello
     stesso scalo marca le stesse piste con la stessa regola.
+- 🟢 **S133** (28-ott, committente in chat: «vorrei rivedere il sistema di gestione di cosa manca e cosa è modificato
+  nei documenti, deve essere più user friendly […] oggi mi risulta abbastanza scomodo»; approvata la proposta, «lo
+  stile della UI deve combaciare con quello del resto del sito»). Carta `2026-10-28-stato-dei-documenti.md`.
+  - **Fetta 1, confronto sul testo**: la firma di sezione del confronto fra copie porta le righe di testo
+    (`TestoDelConfronto`) e la visibilità; prima contava i blocchi, e una frase riscritta in un paragrafo esistente non
+    era un cambiamento. La tabella delle differenze mostra le righe tolte e aggiunte. Conseguenza accettata dal
+    committente: più righe «da ripubblicare».
+  - **Fetta 2, la scheda del documento** (`SchedaDocumento`): da completare, rispetto al pubblico, la prossima
+    programmata (confronto nuovo, `DriftFromScheduledAsync`) e, nella pagina Documenti, da rivedere. Nei cinque editor
+    sopra le Versioni e nel pannello della pagina Documenti; prende il posto del riquadro «Sezioni da scrivere».
+  - **Fetta 3, il cruscotto**: nella pagina Documenti chip che contano e filtrano (da fare, da completare, da
+    pubblicare, programmata indietro, da rivedere; `?lavoro=`) e quattro colonne fisse in fondo a ogni riga, al posto
+    delle tre pastiglie che comparivano dove capitava. I due confronti per tutto l'elenco vengono dalla tabella nuova
+    `DocumentComparisons` (una riga per documento), scritta dal giro della deriva e dalla scheda.
+  - **Fetta 4, le sezioni facoltative**: pagina admin «Sezioni da scrivere» (`/services/vsop/admin/required-sections`),
+    un interruttore «Facoltativa» per tipo di documento e sezione; vuota, una facoltativa non conta più. Tabella
+    `OptionalSections`.
+  - **Due migrazioni, tutte e due additive**: `AggiungiConfrontiDocumenti` (crea `DocumentComparisons`) e
+    `AggiungiSezioniFacoltative` (crea `OptionalSections`); non toccano altro. Niente `deploy/`. Codice comune:
+    `Vipi.Application` (`ReleaseService`, `ImpactDriftUseCase`, `SezioniDaScrivere`).
+  - **Provato a schermo** su DB nuovo con dati inventati (LIRQ): editor, pagina Documenti, programmata allineata e
+    indietro, la frase riscritta nello stesso blocco, sezione facoltativa, tema chiaro e scuro, 375 px. La prova ha
+    trovato tre cose, corrette (carta §4). Non visti: dati veri, gli altri quattro editor, un documento unito.
+  - ⚠️ **Al primo giro in produzione** il confronto sul testo aprirà righe «da ripubblicare» su ogni documento il cui
+    testo è cambiato dall'ultima pubblicazione senza che cambiassero i blocchi: è voluto (D3), ma il numero può
+    sorprendere. La colonna «Da pubblicare» si riempie al primo giro dopo l'avvio (o aprendo la scheda).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

@@ -1,0 +1,109 @@
+@page "/services/vsop/admin/required-sections"
+@layout SopLayout
+@rendermode InteractiveServer
+@inherits Vipi.Ui.ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Opt_Title"] · IVAO Italy</PageTitle>
+
+@* ---- Le sezioni da scrivere, e quali sono facoltative (S133, carta 2026-10-28-stato-dei-documenti §1 D4) ------
+   Il committente: le sezioni da scrivere le decide il catalogo. La regola di partenza resta nel codice (editoriale, non
+   un contenitore, non una sezione che la pagina disegna da sé); qui un admin ne spegne una per un tipo di documento, e da
+   quel momento vuota non conta più — nella scheda del documento e nella colonna «Da completare» di Documenti.
+   ⚠️ Vale per TUTTI i documenti di quel tipo: lo dice l'aiuto, e lo dice la riga.
+   ⚠️ SCOPE PROPRIO, come le altre pagine admin che leggono: il circuito ha già il suo DbContext. *@
+<div class="wrap struct">
+    <AdminNav />
+
+    <div class="doc-head st-head">
+        <h1 class="st-h2 page-h1">@L["Opt_Title"]</h1>
+        <HelpHint AriaLabel="@L["Opt_Title"]" ExtraClass="wide">@L["Opt_Intro"]</HelpHint>
+        <LiveRegion>
+            @if (_stato is { Length: > 0 })
+            {
+                <span class="st-msg ok"><Icon Name="check-circle" Size="14" /> <span class="st-msg-t">@_stato</span></span>
+            }
+        </LiveRegion>
+    </div>
+
+    @if (_errore is { Length: > 0 })
+    {
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
+    }
+    else if (_righe is null)
+    {
+        <LoadingState />
+    }
+    else
+    {
+        <p class="help">@L["Opt_Help"]</p>
+        @foreach (var profilo in _righe.GroupBy(r => r.Profilo))
+        {
+            var spente = profilo.Count(r => r.Facoltativa);
+            <h2 class="h-card" style="margin:18px 0 8px">
+                @Profilo(profilo.Key)
+                <span class="muted">· @string.Format(L["Opt_Counted"].Value, profilo.Count() - spente, profilo.Count())</span>
+            </h2>
+            <div class="panel">
+                <table class="res-table" data-profilo="@profilo.Key">
+                    <thead>
+                        <tr>
+                            <th>@L["Opt_ColSection"]</th>
+                            <th style="width:1%;white-space:nowrap">@L["Opt_ColOptional"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in profilo)
+                        {
+                            <tr class="@(r.Facoltativa ? "row-off" : "")">
+                                <td>@r.Percorso <code class="muted" style="font-size:11px">@r.Chiave</code></td>
+                                <td style="text-align:center">
+                                    <input type="checkbox" checked="@r.Facoltativa" disabled="@_busy"
+                                           aria-label="@string.Format(L["Opt_ToggleAria"].Value, r.Percorso)"
+                                           title="@L["Opt_ToggleTitle"]"
+                                           @onchange="e => ImpostaAsync(r, e.Value is true)" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<SezioneDelCatalogo>? _righe;
+    private string? _errore;
+    private string? _stato;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { await InFilaAsync(async () => _righe = await Servizio.ElencoAsync()); }
+        catch (EditNotAllowedException) { _errore = L["Opt_AdminOnly"]; }
+    }
+
+    private ISezioniFacoltativeService Servizio => ScopedServices.GetRequiredService<ISezioniFacoltativeService>();
+
+    private async Task ImpostaAsync(SezioneDelCatalogo r, bool facoltativa)
+    {
+        if (_busy) return;
+        _busy = true; _stato = null;
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                await Servizio.ImpostaAsync(r.Profilo, r.Chiave, facoltativa);
+                _righe = await Servizio.ElencoAsync();
+            });
+            _stato = string.Format(L[facoltativa ? "Opt_NowOptional" : "Opt_NowRequired"].Value, r.Percorso, Profilo(r.Profilo));
+        }
+        catch (EditNotAllowedException) { _errore = L["Opt_AdminOnly"]; }
+        catch (Vipi.Application.Aor.ValidationException ex) { _errore = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private string Profilo(SectionProfile p) => L[$"Opt_Profile_{p}"];
+}

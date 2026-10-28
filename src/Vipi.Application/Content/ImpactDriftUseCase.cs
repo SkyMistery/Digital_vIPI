@@ -87,15 +87,20 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
     /// <summary>Il testo comune delle sezioni (S127). Opzionale: senza, il passo del testo comune non gira.</summary>
     private readonly ITestoComuneStore? _comune;
 
+    /// <summary>I riassunti dei confronti per la pagina Documenti (S133). Opzionale: senza, il giro non li scrive.</summary>
+    private readonly IConfrontiDocumentiRepository? _confronti;
+
     /// <param name="cataloghi">Porta di lettura delle righe di catalogo stantìe. Opzionale: senza, il giro fa
     /// solo la deriva delle pubblicazioni.</param>
     /// <param name="stati">Ultimo giro riuscito degli import: è il metro contro cui un timbro è «vecchio».</param>
     public ImpactDriftUseCase(IDocumentAdminRepository admin, IReleaseService releases,
         IReleaseRepository releaseRepo, IDocumentImpactService impacts, IAiracService airac,
         IReleaseTargetRegistry targets, IOrphanSectorRepository? cataloghi = null,
-        IImportStateStore? stati = null, ITestoComuneStore? comune = null)
+        IImportStateStore? stati = null, ITestoComuneStore? comune = null,
+        IConfrontiDocumentiRepository? confronti = null)
     {
         _comune = comune;
+        _confronti = confronti;
         _admin = admin;
         _releases = releases;
         _releaseRepo = releaseRepo;
@@ -155,12 +160,13 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         // ricalcolarlo per riga significherebbe due documenti valutati contro cicli diversi se il giro
         // scavalcasse la mezzanotte del rollover.
         var entrante = _releases.NextCycle();
+        var vsPubblico = new Dictionary<int, int>();
 
         foreach (var d in candidati)
         {
             ct.ThrowIfCancellationRequested();
 
-            var (riga, ripuntata) = await ValutaAsync(d, entrante.Cycle, causa, ct);
+            var (riga, ripuntata) = await ValutaAsync(d, entrante.Cycle, causa, ct, vsPubblico);
             if (ripuntata) ripuntate++;
             if (riga is null) continue;
 
@@ -190,6 +196,9 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         var (apertiComune, chiusiComune) = await TestoComuneAsync(candidati, ct);
 
         var potati = await _impacts.PruneClearedBeforeAsync(SogliaRitenzione(), ct);
+
+        // 5) I riassunti per la pagina Documenti (S133): per ultimi, perché non decidono niente delle righe.
+        await ConfrontiAsync(gestiti, vsPubblico, giroIntero: true, ct);
 
         return new ImpactDriftResult(
             candidati.Count,
@@ -224,9 +233,10 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         var d = (await _admin.ListAsync(ct)).FirstOrDefault(x => x.DocumentId == documentId);
 
         var righe = new List<RaiseImpactInput>();
+        var vsPubblico = new Dictionary<int, int>();
         if (d is { DocumentId: not null } && d.VaTenutoAggiornato)
         {
-            if ((await ValutaAsync(d, _releases.NextCycle().Cycle, causa: null, ct)).Riga is { } riga) righe.Add(riga);
+            if ((await ValutaAsync(d, _releases.NextCycle().Cycle, causa: null, ct, vsPubblico)).Riga is { } riga) righe.Add(riga);
             // ⚠️ Anche il testo comune: è la pubblicazione che lo rimette in pari, e senza questa riga la casella
             // continuerebbe a chiedere di ripubblicare un documento appena ripubblicato fino al giro della notte.
             if (await FirmaComuneAsync(ct) is { } firma && await TestoComuneDiAsync(d, firma, ct) is { } comune)
@@ -234,6 +244,7 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         }
 
         var (aperti, chiusi) = await _impacts.ReconcileForDocumentAsync(documentId, TipiDellaPubblicazione, righe, ct);
+        if (d is not null) await ConfrontiAsync(new[] { d }, vsPubblico, giroIntero: false, ct);
 
         return new ImpactDriftResult(Esaminati: d is null ? 0 : 1, aperti, chiusi, Potati: 0);
     }
@@ -295,8 +306,11 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
     /// documento solo. La stessa domanda scritta in due posti è il modo in cui due racconti divergono, e
     /// qui divergere vorrebbe dire che pubblicare chiude una riga che stanotte si riapre.</para>
     /// </summary>
+    /// <param name="vsPubblico">Se c'è, ci si scrive quante sezioni cambiano rispetto alla release in vigore: lo stesso
+    /// confronto che decide la riga, conservato per la pagina Documenti senza rifarlo (S133).</param>
     private async Task<(RaiseImpactInput? Riga, bool Ripuntata)> ValutaAsync(
-        ManagedDoc d, string entrante, FinestraDiModifiche? causa, CancellationToken ct)
+        ManagedDoc d, string entrante, FinestraDiModifiche? causa, CancellationToken ct,
+        Dictionary<int, int>? vsPubblico = null)
     {
         var docId = d.DocumentId!.Value;
 
@@ -336,6 +350,7 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
 
         // 2) La deriva vera e propria.
         var righe = await _releases.DriftFromEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, ct: ct);
+        if (vsPubblico is not null) vsPubblico[docId] = righe.Count;
 
         // 3) La deriva al CICLO ENTRANTE. È la riga che mancava: le derivate che dipendono dal ciclo —
         //    le SID d'aeroporto, le shape dei settori — nascondono quel che entra dopo, quindi guardando
@@ -451,6 +466,33 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
 
     /// <summary>Le sezioni toccate, non il conteggio: «AoR, Frequenze» dice all'editore dove guardare, «3
     /// differenze» no.</summary>
+    /// <summary>
+    /// Scrive i riassunti dei confronti per la pagina Documenti (S133, carta 2026-10-28-stato-dei-documenti §2.3). Il
+    /// confronto col pubblico viene da <see cref="ValutaAsync"/>; quello con la programmata si fa qui, solo per chi ne
+    /// ha una (sono pochi). Documenti nascosti o senza release né programmata: niente riassunto, e il giro intero toglie
+    /// quelli rimasti da prima.
+    /// </summary>
+    private async Task ConfrontiAsync(IReadOnlyList<ManagedDoc> gestiti, IReadOnlyDictionary<int, int> vsPubblico,
+        bool giroIntero, CancellationToken ct)
+    {
+        if (_confronti is null) return;
+        var adesso = DateTime.UtcNow;
+        var righe = new List<ConfrontoSalvato>();
+        foreach (var d in gestiti)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (d.DocumentId is not int id || d.IsHidden) continue;
+            if (!d.HasEffectiveRelease && d.NextScheduledCycle is null) continue;
+            var programmata = d.NextScheduledCycle is null
+                ? null
+                : await _releases.DriftFromScheduledAsync(d.ReleaseTarget, d.ReleaseKey, ct);
+            righe.Add(new ConfrontoSalvato(id, adesso, d.EffectiveCycle, vsPubblico.GetValueOrDefault(id),
+                programmata?.Ciclo, programmata?.Righe.Count ?? 0, programmata?.DerivateCambiate ?? false));
+        }
+        await _confronti.ScriviAsync(righe, ct);
+        if (giroIntero) await _confronti.TogliAltriAsync(righe.Select(r => r.DocumentId).ToList(), ct);
+    }
+
     private static string Riassunto(IReadOnlyList<ReleaseDiffRow> righe)
     {
         const int quante = 3;

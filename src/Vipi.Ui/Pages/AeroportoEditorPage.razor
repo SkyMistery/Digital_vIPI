@@ -30,9 +30,9 @@
                                InModifica="@(_editor?.Guscio.IsEditing == true)" LockNegato="MembroBloccato" />
         }
 
-        @* Quante sezioni da scrivere hanno qualcosa (carta 2026-10-18-sezioni-da-scrivere). Uno scalo senza
-           documento ancora non ne ha: il riquadro non compare. *@
-        <SezioniDaScriverePanel Target="ReleaseTargetType.Airport" Key="@Codice" InModifica="@(_editor?.Guscio.IsEditing == true)" />
+        @* Lo stato del documento: da completare, rispetto al pubblico, la programmata (S133, carta
+           2026-10-28-stato-dei-documenti). Uno scalo senza documento ancora non ne ha: la scheda non compare. *@
+        <SchedaDocumento @ref="_scheda" Target="ReleaseTargetType.Airport" Key="@Codice" InModifica="@(_editor?.Guscio.IsEditing == true)" />
 
         @* ===================== VERSIONI (release AIRAC) =====================
            ⚠️ L'ancora `sec-versioni` è la stessa nei cinque editor: è dove atterra «Ripubblica» dalla lista
@@ -216,9 +216,13 @@
     /// bozza non era più. Il gesto dopo (congelare una sezione resa live un attimo prima) finiva in «Modifica
     /// consentita solo su una versione in bozza». Segnalato dal campo su Catania, 25 settembre 2026.</para>
     /// </summary>
+    /// <summary>La scheda del documento (S133): dopo una pubblicazione il bersaglio non cambia, e si rilegge a mano.</summary>
+    private SchedaDocumento? _scheda;
+
     private async Task Pubblicato()
     {
         await Ricarica();
+        if (_scheda is not null) await _scheda.RicaricaAsync();
         if (_membri is not null) await _membri.RicaricaAsync(_altri.Select(a => a.DocumentId).ToList());
     }
 

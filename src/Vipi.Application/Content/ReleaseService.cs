@@ -109,9 +109,10 @@ public interface IReleaseService
     /// quella in vigore. Vuoto = la release dice ancora il vero (o non c'è una release in vigore, e allora
     /// non c'è niente da cui derivare). Operazione di sistema: nessuna autorizzazione, la chiama un giro.
     ///
-    /// <para>⚠️ Il confronto è quello del <c>Diff</c> fra release — voce (sezione/blocco) → conteggio degli
-    /// elementi — quindi vede una sezione che cambia numero di righe, <b>non</b> un testo riscritto dentro
-    /// una riga esistente. È un limite dichiarato: la casella deve promettere quel che misura.</para>
+    /// <para>⚠️ Il confronto è quello del <c>Diff</c> fra release — per sezione: numero di blocchi, righe di testo
+    /// (<see cref="TestoDelConfronto"/>, dal 28 ottobre 2026, S133) e visibilità. Fino ad allora contava solo i
+    /// blocchi, e un testo riscritto dentro un blocco esistente non era un cambiamento. Resta fuori quel che non è
+    /// testo: grassetto, colore di un callout, un'immagine sostituita (carta 2026-10-28-stato-dei-documenti §3).</para>
     /// </summary>
     /// <param name="alCiclo">
     /// A che ciclo AIRAC si guarda. <c>null</c> = quello corrente, cioè «adesso».
@@ -144,6 +145,14 @@ public interface IReleaseService
     /// confronto guarda anche quelle, che nessun conteggio di blocchi vede.</para>
     /// </summary>
     Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
+
+    /// <summary>
+    /// Che cosa ha la bozza di oggi che la <b>prossima</b> release programmata non porta (S133, carta
+    /// 2026-10-28-stato-dei-documenti §2.2): la prima per data fra quelle non ancora in vigore. <c>null</c> se non ce
+    /// n'è nessuna. Stessa firma di <see cref="DriftFromEffectiveAsync"/>, snapshot al ciclo di quella release.
+    /// Operazione di sistema: nessuna autorizzazione.
+    /// </summary>
+    Task<ConfrontoProgrammata?> DriftFromScheduledAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
 
     /// <summary>Il ciclo AIRAC <b>entrante</b> con la sua data efficace: il primo che non è ancora in vigore.</summary>
     AiracCycleInfo NextCycle();
@@ -692,6 +701,27 @@ public sealed class ReleaseService : IReleaseService
         return null;
     }
 
+    public async Task<ConfrontoProgrammata?> DriftFromScheduledAsync(ReleaseTargetType type, string key,
+        CancellationToken ct = default)
+    {
+        // ⚠️ Sulla DATA, come ProgrammataAllineataAsync: la colonna `Status` la riscrive solo RecomputeStatuses.
+        var now = DateTime.UtcNow;
+        var prossima = (await _repo.ListAsync(type, key, ct))
+            .Where(r => r.ReleaseEffectiveUtc > now && r.Status != ReleaseStatus.Superseded)
+            .OrderBy(r => r.ReleaseEffectiveUtc).ThenByDescending(r => r.VersionNumber)
+            .FirstOrDefault();
+        if (prossima is null) return null;
+        var rel = await _repo.GetByIdAsync(prossima.Id, ct);
+        if (rel is null) return null;
+
+        var oggiJson = await BuildSnapshotJsonAsync(type, key, rel.ReleaseAiracCycle, ct);
+        if (oggiJson is null) return null;
+
+        return new ConfrontoProgrammata(rel.ReleaseAiracCycle, rel.ReleaseEffectiveUtc,
+            Confronta(Signature(oggiJson), Signature(rel.PayloadJson)),
+            !StesseCongelate(FirmaCongelate(oggiJson), FirmaCongelate(rel.PayloadJson)));
+    }
+
     /// <summary>Due firme editoriali dicono la stessa cosa? Il confronto non trova nessuna differenza.</summary>
     private static bool StesseFirme(Dictionary<string, Voce> a, Dictionary<string, Voce> b) =>
         Confronta(a, b).Count == 0;
@@ -734,8 +764,10 @@ public sealed class ReleaseService : IReleaseService
         return new ReleaseLocation(rel.TargetType, rel.TargetKey, rel.ReleaseAiracCycle, acc);
     }
 
-    /// <summary>Una voce della firma: l'etichetta che si mostra (il percorso dei TITOLI) e il numero di blocchi.</summary>
-    private sealed record Voce(string Etichetta, int Blocchi);
+    /// <summary>Una voce della firma: l'etichetta che si mostra (il percorso dei TITOLI), il numero di blocchi, le righe
+    /// di testo dei suoi blocchi (S133, <see cref="TestoDelConfronto"/>) e se il lettore la vede: nascosta lei o una
+    /// sua madre.</summary>
+    private sealed record Voce(string Etichetta, int Blocchi, IReadOnlyList<string> Testo, bool Nascosta);
 
     /// <summary>Firma editoriale di un payload: identità della sezione → voce. Base del diff e della deriva.
     /// Post-08 tutti i tipi sono su DocReleasePayload → firma unica, nessuno switch per-tipo.
@@ -783,7 +815,7 @@ public sealed class ReleaseService : IReleaseService
     }
 
     private static void FlattenSections(IReadOnlyList<RawSection> sections, string idPrefix, string labelPrefix,
-        Dictionary<string, Voce> sig, Action<string, RawSection>? ogni = null)
+        Dictionary<string, Voce> sig, Action<string, RawSection>? ogni = null, bool madreNascosta = false)
     {
         var ripetute = sections.GroupBy(s => s.SectionKey ?? "", StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -795,9 +827,10 @@ public sealed class ReleaseService : IReleaseService
             var id = perChiave ? "#" + s.SectionKey : s.Title;
             var idPath = idPrefix.Length == 0 ? id : $"{idPrefix} / {id}";
             var label = labelPrefix.Length == 0 ? s.Title : $"{labelPrefix} / {s.Title}";
-            sig[idPath] = new Voce(label, s.Blocks.Count);
+            var nascosta = madreNascosta || s.IsHidden;
+            sig[idPath] = new Voce(label, s.Blocks.Count, TestoDelConfronto.Righe(s.Blocks), nascosta);
             ogni?.Invoke(idPath, s);
-            if (s.Children.Count > 0) FlattenSections(s.Children, idPath, label, sig, ogni);
+            if (s.Children.Count > 0) FlattenSections(s.Children, idPath, label, sig, ogni, nascosta);
         }
     }
 
@@ -817,28 +850,55 @@ public sealed class ReleaseService : IReleaseService
         var righe = new List<ReleaseDiffRow>();
 
         foreach (var kv in nuova)
-            if (vecchia.TryGetValue(kv.Key, out var v) && v.Blocchi != kv.Value.Blocchi)
-                righe.Add(new ReleaseDiffRow(kv.Value.Etichetta, ReleaseChangeKind.Modified, v.Blocchi, kv.Value.Blocchi));
+            if (vecchia.TryGetValue(kv.Key, out var v) && Cambio(v, kv.Value) is { } riga)
+                righe.Add(riga);
 
         foreach (var a in aggiunte)
         {
             var gemella = tolte.FirstOrDefault(t => string.Equals(t.Etichetta, a.Etichetta, StringComparison.OrdinalIgnoreCase));
             if (gemella is null)
             {
-                righe.Add(new ReleaseDiffRow(a.Etichetta, ReleaseChangeKind.Added, null, a.Blocchi));
+                // S133: quel che il lettore non vede non è cambiato per lui — né una sezione nascosta che nasce, né una
+                // nascosta che sparisce.
+                if (!a.Nascosta)
+                    righe.Add(new ReleaseDiffRow(a.Etichetta, ReleaseChangeKind.Added, null, a.Blocchi,
+                        TuttoIl(a.Testo, TextDiffKind.Added)));
                 continue;
             }
             tolte.Remove(gemella);
-            if (gemella.Blocchi != a.Blocchi)
-                righe.Add(new ReleaseDiffRow(a.Etichetta, ReleaseChangeKind.Modified, gemella.Blocchi, a.Blocchi));
+            if (Cambio(gemella, a) is { } riga) righe.Add(riga);
         }
-        foreach (var t in tolte)
-            righe.Add(new ReleaseDiffRow(t.Etichetta, ReleaseChangeKind.Removed, t.Blocchi, null));
+        foreach (var t in tolte.Where(t => !t.Nascosta))
+            righe.Add(new ReleaseDiffRow(t.Etichetta, ReleaseChangeKind.Removed, t.Blocchi, null,
+                TuttoIl(t.Testo, TextDiffKind.Removed)));
 
         // L'ordine di prima: le presenti per etichetta, poi le tolte per etichetta.
         return righe.OrderBy(r => r.Change == ReleaseChangeKind.Removed)
             .ThenBy(r => r.Label, StringComparer.OrdinalIgnoreCase).ToList();
     }
+
+    /// <summary>
+    /// Che cosa è cambiato per il LETTORE in una sezione che c'è in tutt'e due le copie; <c>null</c> se niente (S133).
+    /// Nascosta prima e dopo: niente, qualunque cosa ci sia scritto. Nascosta o mostrata: la riga lo dice, e se mostrata
+    /// porta anche il testo cambiato. Visibile prima e dopo: cambiata se cambia il numero di blocchi o il testo.
+    /// </summary>
+    private static ReleaseDiffRow? Cambio(Voce prima, Voce dopo)
+    {
+        if (prima.Nascosta && dopo.Nascosta) return null;
+        if (!prima.Nascosta && dopo.Nascosta)
+            return new ReleaseDiffRow(dopo.Etichetta, ReleaseChangeKind.Hidden, prima.Blocchi, dopo.Blocchi);
+
+        var testo = TestoDelConfronto.Differenze(prima.Testo, dopo.Testo);
+        var righe = testo.Count > 0 ? testo : null;
+        if (prima.Nascosta)
+            return new ReleaseDiffRow(dopo.Etichetta, ReleaseChangeKind.Shown, prima.Blocchi, dopo.Blocchi, righe);
+        return prima.Blocchi != dopo.Blocchi || righe is not null
+            ? new ReleaseDiffRow(dopo.Etichetta, ReleaseChangeKind.Modified, prima.Blocchi, dopo.Blocchi, righe)
+            : null;
+    }
+
+    private static IReadOnlyList<TextDiffLine>? TuttoIl(IReadOnlyList<string> testo, TextDiffKind verso) =>
+        testo.Count == 0 ? null : testo.Select(r => new TextDiffLine(verso, r)).ToList();
 
     /// <returns><c>false</c> se la release non è stata scritta perché identica a quella in vigore (U-241).</returns>
     private async Task<bool> SnapshotAndSaveAsync(ReleaseTargetType type, string key, string cycle, DateTime effectiveUtc,

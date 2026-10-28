@@ -584,6 +584,188 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.Empty(await svc.DriftFromEffectiveAsync(FakeType, "fake-key"));
     }
 
+    /// <summary>Una sezione libera con un paragrafo nell'ultima bozza (S133).</summary>
+    private async Task SezioneConTestoAsync(string titolo, string testo, bool nascosta = false)
+    {
+        var draft = await _db.DocumentVersions
+            .Where(v => v.DocumentId == _docId && v.Status == DocumentStatus.Draft)
+            .OrderByDescending(v => v.VersionNumber).FirstAsync();
+        var sezione = new DocumentSection
+        {
+            DocumentVersionId = draft.Id, Title = titolo, Order = 3, Depth = 0, IsHidden = nascosta,
+            SectionKey = "custom:t1", RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(sezione);
+        await _db.SaveChangesAsync();
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersionId = draft.Id, SectionId = sezione.Id, Order = 0, Format = BlockFormat.Prose,
+            Tier = BlockTier.Reduced, Visibility = BlockVisibility.Always, Body = testo,
+        });
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// S133, carta 2026-10-28-stato-dei-documenti §2.1. Una frase riscritta dentro un paragrafo che c'era già: stesso
+    /// numero di blocchi, testo diverso. Fino al 28 ottobre la deriva contava i blocchi e qui taceva — la copia
+    /// pubblicata diceva 5 kt e nessuna riga chiedeva di ripubblicarla.
+    /// </summary>
+    [Fact]
+    public async Task Un_testo_riscritto_nello_stesso_blocco_e_una_deriva_con_le_sue_righe()
+    {
+        var (svc, _, _) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneConTestoAsync("Regole piste", "Pista 05 con vento in coda fino a 5 kt.");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await SezioneConTestoAsync("Regole piste", "Pista 05 con vento in coda fino a 10 kt.");
+
+        var riga = Assert.Single(await svc.DriftFromEffectiveAsync(FakeType, "fake-key"));
+        Assert.Equal(ReleaseChangeKind.Modified, riga.Change);
+        Assert.Equal(riga.PreviousCount, riga.Count);
+        Assert.Equal(new[]
+        {
+            new TextDiffLine(TextDiffKind.Removed, "Pista 05 con vento in coda fino a 5 kt."),
+            new TextDiffLine(TextDiffKind.Added, "Pista 05 con vento in coda fino a 10 kt."),
+        }, riga.Righe);
+    }
+
+    /// <summary>S133: lo stesso testo battuto con altri a-capo e spazi non è un cambiamento.</summary>
+    [Fact]
+    public async Task Lo_stesso_testo_con_altri_a_capo_non_e_una_deriva()
+    {
+        var (svc, _, _) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneConTestoAsync("Note", "Prima frase.\r\n\r\nSeconda frase.");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await SezioneConTestoAsync("Note", "Prima frase.\n\nSeconda frase.");
+
+        Assert.Empty(await svc.DriftFromEffectiveAsync(FakeType, "fake-key"));
+    }
+
+    /// <summary>S133: quel che il lettore non vede non cambia per lui. Nascosta prima e dopo, il testo può cambiare.</summary>
+    [Fact]
+    public async Task Una_sezione_nascosta_prima_e_dopo_non_e_una_deriva()
+    {
+        var (svc, _, _) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneConTestoAsync("Bozza interna", "uno", nascosta: true);
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await SezioneConTestoAsync("Bozza interna", "due", nascosta: true);
+
+        Assert.Empty(await svc.DriftFromEffectiveAsync(FakeType, "fake-key"));
+    }
+
+    /// <summary>S133: nascondere una sezione che il lettore vedeva è un cambiamento, e la riga lo dice.</summary>
+    [Fact]
+    public async Task Nascondere_una_sezione_pubblicata_e_una_deriva_che_lo_dice()
+    {
+        var (svc, _, _) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneConTestoAsync("Note", "Testo.");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await SezioneConTestoAsync("Note", "Testo.", nascosta: true);
+
+        var riga = Assert.Single(await svc.DriftFromEffectiveAsync(FakeType, "fake-key"));
+        Assert.Equal(ReleaseChangeKind.Hidden, riga.Change);
+        Assert.False(riga.TestoCambiato);
+    }
+
+    /// <summary>
+    /// S133, carta 2026-10-28-stato-dei-documenti §2.2. La scheda dice se la prossima programmata porta la bozza di oggi
+    /// e, se no, che cosa le manca: prima nessuna pagina lo diceva, e la programmata faceva solo tacere la deriva.
+    /// </summary>
+    [Fact]
+    public async Task La_programmata_si_confronta_con_la_bozza_di_oggi()
+    {
+        var (svc, _, _) = ConDeriva();
+        Assert.Null(await svc.DriftFromScheduledAsync(FakeType, "fake-key"));   // nessuna programmata
+
+        await AddDraftAsync(2);
+        await SezioneConTestoAsync("Note", "Prima.");
+        var entrante = svc.NextCycle().Cycle;
+        await svc.PublishAsync(FakeType, "fake-key", entrante, null);
+
+        var allineata = await svc.DriftFromScheduledAsync(FakeType, "fake-key");
+        Assert.NotNull(allineata);
+        Assert.Equal(entrante, allineata!.Ciclo);
+        Assert.True(allineata.Allineata);
+
+        await AddDraftAsync(3);
+        await SezioneConTestoAsync("Note", "Dopo.");
+
+        var indietro = await svc.DriftFromScheduledAsync(FakeType, "fake-key");
+        Assert.False(indietro!.Allineata);
+        var riga = Assert.Single(indietro.Righe);
+        Assert.Equal("Note", riga.Label);
+        Assert.True(riga.TestoCambiato);
+    }
+
+    /// <summary>
+    /// S133, carta 2026-10-28-stato-dei-documenti §2.3. Il giro della deriva conserva, per documento, quante sezioni
+    /// cambiano rispetto al pubblico e alla programmata: la pagina Documenti li legge senza rifare gli snapshot.
+    /// </summary>
+    [Fact]
+    public async Task Il_giro_conserva_il_riassunto_dei_confronti()
+    {
+        var (svc, _, impattiRepo) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneConTestoAsync("Note", "Prima.");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+        await AddDraftAsync(3);
+        await SezioneConTestoAsync("Note", "Dopo.");
+        var entrante = svc.NextCycle().Cycle;
+        await svc.PublishAsync(FakeType, "fake-key", entrante, null);   // la programmata porta «Dopo.»
+        await AddDraftAsync(4);
+        await SezioneConTestoAsync("Note", "Ancora dopo.");
+
+        var confronti = new EfConfrontiDocumenti(_db);
+        var giro = new ImpactDriftUseCase(
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
+            svc, new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)),
+            new DocumentImpactService(impattiRepo, new AllowAuthz()), new Vipi.Domain.Services.AiracService(), Registry(),
+            confronti: confronti);
+        await giro.RunAsync();
+
+        var c = (await confronti.TuttiAsync())[_docId];
+        Assert.NotNull(c.CicloInVigore);
+        Assert.Equal(1, c.VsPubblico);
+        Assert.Equal(entrante, c.CicloProgrammata);
+        Assert.Equal(1, c.VsProgrammata);
+        Assert.True(c.DaPubblicare);
+        Assert.True(c.ProgrammataIndietro);
+    }
+
+    /// <summary>S133: riscrivere è aggiornare la riga, un documento che non c'è si salta, e il giro intero toglie i
+    /// riassunti dei documenti che non guarda più.</summary>
+    [Fact]
+    public async Task I_riassunti_si_riscrivono_e_si_tolgono()
+    {
+        var confronti = new EfConfrontiDocumenti(_db);
+        var ora = DateTime.UtcNow;
+        await confronti.ScriviAsync(new[]
+        {
+            new ConfrontoSalvato(_docId, ora, "2611", 2, null, 0, false),
+            new ConfrontoSalvato(999_999, ora, "2611", 1, null, 0, false),   // non esiste: si salta
+        });
+        await confronti.ScriviAsync(new[] { new ConfrontoSalvato(_docId, ora, "2611", 0, "2612", 1, false) });
+
+        var tutti = await confronti.TuttiAsync();
+        var c = Assert.Single(tutti).Value;
+        Assert.Equal(0, c.VsPubblico);
+        Assert.Equal("2612", c.CicloProgrammata);
+
+        await confronti.TogliAltriAsync(Array.Empty<int>());
+        Assert.Empty(await confronti.TuttiAsync());
+    }
+
     private Task<int> ArchivedCountAsync() =>
         _db.DocumentVersions.CountAsync(v => v.DocumentId == _docId && v.Status == DocumentStatus.Archived);
 

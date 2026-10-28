@@ -62,6 +62,39 @@ public class SezioniDaScrivereTests
         Assert.False(SezioniDaScrivere.DaScrivere(SectionProfile.App, "configurations"));
     }
 
+    /// <summary>S133 (carta 2026-10-28-stato-dei-documenti §1 D4): una sezione che un admin ha dichiarato facoltativa
+    /// non conta più, né scritta né vuota — e solo nel suo profilo.</summary>
+    [Fact]
+    public void Una_sezione_facoltativa_non_conta_e_solo_nel_suo_profilo()
+    {
+        var facoltative = new HashSet<(SectionProfile, string)> { (SectionProfile.App, "VFR") };
+        var sezioni = new[]
+        {
+            S(2, SectionKeys.TrafficManagement, "Gestione del traffico"),
+            S(4, "vfr", "VFR", 2),
+            S(6, "operationaltechnique", "Procedure generali"),
+        };
+
+        var conto = SezioniDaScrivere.Conta(SectionProfile.App, sezioni, facoltative: facoltative);
+
+        Assert.Equal(new[] { "Procedure generali" }, conto.Vuote.Select(v => v.Percorso));
+        Assert.Equal(1, conto.Totale);
+        Assert.False(SezioniDaScrivere.DaScrivere(SectionProfile.App, "vfr", facoltative));
+        Assert.True(SezioniDaScrivere.DaScrivere(SectionProfile.AppMil, "vfr", facoltative));
+    }
+
+    /// <summary>S133: l'elenco della pagina admin è la regola di partenza, col percorso dei titoli.</summary>
+    [Fact]
+    public void Il_catalogo_da_scrivere_e_quello_che_la_regola_conta()
+    {
+        var elenco = SezioniDaScrivere.DelCatalogo(SectionProfile.App);
+
+        Assert.NotEmpty(elenco);
+        Assert.All(elenco, e => Assert.True(SezioniDaScrivere.DaScrivere(SectionProfile.App, e.Chiave)));
+        Assert.DoesNotContain(elenco, e => e.Chiave == "aor");
+        Assert.Contains(elenco, e => e.Chiave == "vfr" && e.Percorso.EndsWith("› VFR", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void Conta_Scritte_E_Vuote_Col_Percorso()
     {

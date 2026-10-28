@@ -76,6 +76,10 @@ public sealed class EfSezioniDaScrivere : ISezioniDaScrivereService
                 blocchi.GetValueOrDefault(s.Id) ?? Array.Empty<BloccoDaContare>()))
             .ToList());
 
+        // Le sezioni che un admin ha dichiarato facoltative (S133, carta 2026-10-28-stato-dei-documenti §1 D4): poche
+        // righe, lette una volta per tutto il conto.
+        var facoltative = await new EfSezioniFacoltative(_db).TutteAsync(ct);
+
         var esito = new Dictionary<int, StatoSezioni>();
         foreach (var d in documenti)
         {
@@ -93,7 +97,7 @@ public sealed class EfSezioniDaScrivere : ISezioniDaScrivereService
 
             if (profilo is SectionProfile p)
             {
-                esito[d.Id] = new StatoSezioni(d.Id, new[] { SezioniDaScrivere.Conta(p, tutte) });
+                esito[d.Id] = new StatoSezioni(d.Id, new[] { SezioniDaScrivere.Conta(p, tutte, facoltative: facoltative) });
                 continue;
             }
             if (d.Type != DocumentType.Vipi || d.Edition != DocumentEdition.Civil) continue;
@@ -108,7 +112,7 @@ public sealed class EfSezioniDaScrivere : ISezioniDaScrivereService
                     : null;
                 if (delBlocco is not SectionProfile pb) continue;
                 // ⚠️ Senza la radice: il percorso di una vuota parte dal blocco, che il titolo della parte dice già.
-                parti.Add(SezioniDaScrivere.Conta(pb, Discendenti(blocco.Id, tutte), blocco.Titolo));
+                parti.Add(SezioniDaScrivere.Conta(pb, Discendenti(blocco.Id, tutte), blocco.Titolo, facoltative));
             }
             if (parti.Count > 0) esito[d.Id] = new StatoSezioni(d.Id, parti);
         }
