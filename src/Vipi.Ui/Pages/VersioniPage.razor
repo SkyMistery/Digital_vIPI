@@ -411,11 +411,13 @@
                     </div>
                     @* Dentro il pannello scorre SOLO il corpo: testata e azioni restano ferme. *@
                     <div class="st-scroll">
-                        @* Le sezioni da scrivere, con l'elenco delle vuote: lo stesso riquadro dell'editor (carta
-                           2026-10-18-sezioni-da-scrivere). La riga d'elenco ne porta solo il numero. *@
-                        @if (sel.DocumentId is int docSezioni)
+                        @* Lo stato del documento: la stessa scheda dell'editor, più le righe «Da rivedere» (S133, carta
+                           2026-10-28-stato-dei-documenti §1 D1). Prima qui c'erano le sole sezioni da scrivere, e per
+                           leggere che cosa c'era da rivedere bisognava aprire l'editor. *@
+                        @if (sel.DocumentId is not null)
                         {
-                            <SezioniDaScriverePanel DocumentId="docSezioni" Compatto="true" />
+                            <SchedaDocumento @key="RowKey(sel)" @ref="_scheda" Target="sel.ReleaseTarget" Key="@sel.ReleaseKey"
+                                             Compatto="true" ConDaRivedere="true" EditorHref="@EditorLink(sel)" />
                         }
                         @DetailBlock(sel)
                     </div>
@@ -1190,7 +1192,12 @@
         _history.Remove(key);
         await LoadDetailAsync(key);
         await LoadAsync();
+        // La scheda del documento: pubblicare o programmare cambia i suoi confronti, non il suo bersaglio.
+        if (_scheda is not null) await _scheda.RicaricaAsync();
     }
+
+    /// <summary>La scheda del documento aperto nel pannello (S133).</summary>
+    private SchedaDocumento? _scheda;
 
     /// <summary>
     /// Scarta la bozza: come la pubblicazione dalla lista, prende prima il lock (un documento mai aperto non

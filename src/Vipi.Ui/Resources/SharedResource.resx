@@ -4241,12 +4241,6 @@
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Settori che l&apos;elenco non nomina, quindi senza vincoli: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>Nessuna configurazione con un settore aperto.</value></data>
   <data name="Nav_ReqOpenTitle" xml:space="preserve"><value>Richieste ancora aperte (nuove o prese in carico): {0}</value></data>
-  <data name="SdS_Title" xml:space="preserve"><value>Sezioni da scrivere</value></data>
-  <data name="SdS_Help" xml:space="preserve"><value>Le sezioni del documento che scrive una persona. Quelle che si riempiono dai dati (AOR, frequenze, SID, meteo…) e quelle nascoste non contano. Si aggiorna a «Fine modifica».</value></data>
-  <data name="SdS_Count" xml:space="preserve"><value>{0} con qualcosa · {1} vuote, su {2}</value></data>
-  <data name="SdS_Part" xml:space="preserve"><value>{0} di {1} con qualcosa</value></data>
-  <data name="SdS_AllDone" xml:space="preserve"><value>Tutte le sezioni da scrivere hanno qualcosa.</value></data>
-  <data name="SdS_None" xml:space="preserve"><value>Questo documento non ha sezioni da scrivere: si riempie tutto dai dati.</value></data>
   <data name="SdS_Pill" xml:space="preserve"><value>{0} sezioni vuote</value></data>
   <data name="SdS_PillOne" xml:space="preserve"><value>1 sezione vuota</value></data>
   <data name="SdS_PillTitle" xml:space="preserve"><value>Sezioni da scrivere ancora vuote, su {0}. L&apos;elenco è nel pannello del documento.</value></data>
@@ -4268,4 +4262,25 @@
   <data name="Rel_DiffMoreLines" xml:space="preserve"><value>… e altre {0} righe.</value></data>
   <data name="Rel_LineAdded" xml:space="preserve"><value>Aggiunta</value></data>
   <data name="Rel_LineRemoved" xml:space="preserve"><value>Tolta</value></data>
+  <data name="Sd_Title" xml:space="preserve"><value>Stato del documento</value></data>
+  <data name="Sd_Help" xml:space="preserve"><value>Che cosa manca e che cosa è cambiato rispetto a quello che il pubblico legge oggi e alla prossima release programmata. Si aggiorna all'apertura, a «Fine modifica» e col tasto ↻.</value></data>
+  <data name="Sd_At" xml:space="preserve"><value>aggiornato alle {0}</value></data>
+  <data name="Sd_RefreshTitle" xml:space="preserve"><value>Ricalcola lo stato del documento</value></data>
+  <data name="Sd_Complete" xml:space="preserve"><value>Da completare</value></data>
+  <data name="Sd_CompleteOk" xml:space="preserve"><value>Niente da completare</value></data>
+  <data name="Sd_Write" xml:space="preserve"><value>scrivi</value></data>
+  <data name="Sd_Public" xml:space="preserve"><value>Rispetto al pubblico</value></data>
+  <data name="Sd_PublicCycle" xml:space="preserve"><value>in vigore: AIRAC {0}</value></data>
+  <data name="Sd_NeverPublished" xml:space="preserve"><value>Mai pubblicato</value></data>
+  <data name="Sd_Same" xml:space="preserve"><value>Uguale alla bozza</value></data>
+  <data name="Sd_Changed" xml:space="preserve"><value>{0} sezioni cambiate</value></data>
+  <data name="Sd_ChangedOne" xml:space="preserve"><value>1 sezione cambiata</value></data>
+  <data name="Sd_Scheduled" xml:space="preserve"><value>Prossima programmata</value></data>
+  <data name="Sd_NoScheduled" xml:space="preserve"><value>Nessuna release programmata.</value></data>
+  <data name="Sd_ScheduledCycle" xml:space="preserve"><value>AIRAC {0}, dal {1}</value></data>
+  <data name="Sd_ScheduledAligned" xml:space="preserve"><value>Porta già la bozza</value></data>
+  <data name="Sd_ScheduledBehind" xml:space="preserve"><value>La bozza è andata avanti</value></data>
+  <data name="Sd_ScheduledDerived" xml:space="preserve"><value>Sono cambiati anche i dati derivati che la release congela (piste, minimi…).</value></data>
+  <data name="Sd_ScheduledHow" xml:space="preserve"><value>Per farle portare la bozza di oggi, riprogrammala allo stesso ciclo: prende il posto di quella di prima.</value></data>
+  <data name="Sd_GoVersions" xml:space="preserve"><value>Vai a Versioni</value></data>
 </root>

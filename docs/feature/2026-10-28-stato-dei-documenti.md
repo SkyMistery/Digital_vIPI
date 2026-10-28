@@ -74,3 +74,14 @@ traduzione, 📝, impatti, lock), ognuna al suo posto solo quando c'è qualcosa:
 - Test: `TestoDelConfrontoTests` (7), quattro in `ReleaseGenericFlowTests` (frase riscritta nello stesso blocco,
   stessi a-capo diversi, nascosta prima e dopo, nascondere), tre in `ReleaseDiffTableTests`. La prova rossa è per
   costruzione: prima il confronto guardava solo `Blocchi`, e `Hidden` non esisteva.
+
+**Fetta 2 — la scheda del documento** (28 ottobre).
+- `SchedaDocumento` (Components/Doc) prende il posto di `SezioniDaScriverePanel` (tolto, coi suoi test e le sue
+  frasi) nei cinque editor, sopra le Versioni (ancora `sec-stato`), e nel pannello del documento della pagina
+  Documenti (compatta, con le righe «Da rivedere» di `DocReviewBar` come quarta voce). Voci: da completare (sezioni
+  vuote col collegamento `#s-{id}`, frasi da tradurre), rispetto al pubblico (tabella delle differenze col testo), la
+  prossima programmata (allineata, o cosa le manca, derivate cambiate, come rimediare). Si rilegge all'apertura, a
+  «Fine modifica», col ↻ e dopo una pubblicazione (i cinque editor e la pagina Documenti la richiamano).
+- Negli editor «Da rivedere» resta il banner in cima: due liste delle stesse righe nella stessa pagina sarebbero una
+  di troppo.
+- Test: `SchedaDocumentoTests` (11, ereditano le quattro del riquadro tolto), `La_programmata_si_confronta_con_la_bozza_di_oggi`.

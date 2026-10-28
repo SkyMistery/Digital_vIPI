@@ -4233,12 +4233,6 @@
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Sectors the list does not name, hence unconstrained: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>No configuration with an open sector.</value></data>
   <data name="Nav_ReqOpenTitle" xml:space="preserve"><value>Requests still open (new or taken on): {0}</value></data>
-  <data name="SdS_Title" xml:space="preserve"><value>Sections to write</value></data>
-  <data name="SdS_Help" xml:space="preserve"><value>The sections of the document that a person writes. Those filled from data (AOR, frequencies, SID, weather…) and hidden ones do not count. Updated on «Finish editing».</value></data>
-  <data name="SdS_Count" xml:space="preserve"><value>{0} with content · {1} empty, of {2}</value></data>
-  <data name="SdS_Part" xml:space="preserve"><value>{0} of {1} with content</value></data>
-  <data name="SdS_AllDone" xml:space="preserve"><value>Every section to write has some content.</value></data>
-  <data name="SdS_None" xml:space="preserve"><value>This document has no sections to write: everything is filled from data.</value></data>
   <data name="SdS_Pill" xml:space="preserve"><value>{0} empty sections</value></data>
   <data name="SdS_PillOne" xml:space="preserve"><value>1 empty section</value></data>
   <data name="SdS_PillTitle" xml:space="preserve"><value>Sections to write that are still empty, of {0}. The list is in the document's panel.</value></data>
@@ -4260,4 +4254,25 @@
   <data name="Rel_DiffMoreLines" xml:space="preserve"><value>… and {0} more lines.</value></data>
   <data name="Rel_LineAdded" xml:space="preserve"><value>Added</value></data>
   <data name="Rel_LineRemoved" xml:space="preserve"><value>Removed</value></data>
+  <data name="Sd_Title" xml:space="preserve"><value>Document status</value></data>
+  <data name="Sd_Help" xml:space="preserve"><value>What is missing and what changed compared with what readers see today and with the next scheduled release. It refreshes on opening, on «Done editing» and with the ↻ button.</value></data>
+  <data name="Sd_At" xml:space="preserve"><value>updated at {0}</value></data>
+  <data name="Sd_RefreshTitle" xml:space="preserve"><value>Recompute the document status</value></data>
+  <data name="Sd_Complete" xml:space="preserve"><value>To complete</value></data>
+  <data name="Sd_CompleteOk" xml:space="preserve"><value>Nothing to complete</value></data>
+  <data name="Sd_Write" xml:space="preserve"><value>write</value></data>
+  <data name="Sd_Public" xml:space="preserve"><value>Compared with the public copy</value></data>
+  <data name="Sd_PublicCycle" xml:space="preserve"><value>in force: AIRAC {0}</value></data>
+  <data name="Sd_NeverPublished" xml:space="preserve"><value>Never published</value></data>
+  <data name="Sd_Same" xml:space="preserve"><value>Same as the draft</value></data>
+  <data name="Sd_Changed" xml:space="preserve"><value>{0} sections changed</value></data>
+  <data name="Sd_ChangedOne" xml:space="preserve"><value>1 section changed</value></data>
+  <data name="Sd_Scheduled" xml:space="preserve"><value>Next scheduled release</value></data>
+  <data name="Sd_NoScheduled" xml:space="preserve"><value>No scheduled release.</value></data>
+  <data name="Sd_ScheduledCycle" xml:space="preserve"><value>AIRAC {0}, from {1}</value></data>
+  <data name="Sd_ScheduledAligned" xml:space="preserve"><value>Already carries the draft</value></data>
+  <data name="Sd_ScheduledBehind" xml:space="preserve"><value>The draft has moved on</value></data>
+  <data name="Sd_ScheduledDerived" xml:space="preserve"><value>The derived data the release freezes (runways, minima…) changed too.</value></data>
+  <data name="Sd_ScheduledHow" xml:space="preserve"><value>To make it carry today's draft, schedule it again at the same cycle: it replaces the previous one.</value></data>
+  <data name="Sd_GoVersions" xml:space="preserve"><value>Go to Versions</value></data>
 </root>

@@ -678,6 +678,36 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.False(riga.TestoCambiato);
     }
 
+    /// <summary>
+    /// S133, carta 2026-10-28-stato-dei-documenti §2.2. La scheda dice se la prossima programmata porta la bozza di oggi
+    /// e, se no, che cosa le manca: prima nessuna pagina lo diceva, e la programmata faceva solo tacere la deriva.
+    /// </summary>
+    [Fact]
+    public async Task La_programmata_si_confronta_con_la_bozza_di_oggi()
+    {
+        var (svc, _, _) = ConDeriva();
+        Assert.Null(await svc.DriftFromScheduledAsync(FakeType, "fake-key"));   // nessuna programmata
+
+        await AddDraftAsync(2);
+        await SezioneConTestoAsync("Note", "Prima.");
+        var entrante = svc.NextCycle().Cycle;
+        await svc.PublishAsync(FakeType, "fake-key", entrante, null);
+
+        var allineata = await svc.DriftFromScheduledAsync(FakeType, "fake-key");
+        Assert.NotNull(allineata);
+        Assert.Equal(entrante, allineata!.Ciclo);
+        Assert.True(allineata.Allineata);
+
+        await AddDraftAsync(3);
+        await SezioneConTestoAsync("Note", "Dopo.");
+
+        var indietro = await svc.DriftFromScheduledAsync(FakeType, "fake-key");
+        Assert.False(indietro!.Allineata);
+        var riga = Assert.Single(indietro.Righe);
+        Assert.Equal("Note", riga.Label);
+        Assert.True(riga.TestoCambiato);
+    }
+
     private Task<int> ArchivedCountAsync() =>
         _db.DocumentVersions.CountAsync(v => v.DocumentId == _docId && v.Status == DocumentStatus.Archived);
 
