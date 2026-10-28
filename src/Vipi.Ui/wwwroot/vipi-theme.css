@@ -571,6 +571,15 @@
    andava a capo mentre accanto restava spazio vuoto. */
 :where(.vipi-root) .struct .ver-sec-h>b{flex:none;white-space:nowrap}
 :where(.vipi-root) .struct .ver-diff{margin:2px 0 8px 24px}
+/* S133 — il testo cambiato di una sezione: «−» e «+» in colonna, tinte dei callout. Fuori da `.struct`: la tabella
+   delle differenze sta anche in «Da fare» e nella scheda del documento. */
+:where(.vipi-root) .diff-righe{list-style:none;margin:4px 0 0;padding:0;font-size:12.5px;line-height:1.45}
+:where(.vipi-root) .diff-righe li{display:flex;gap:8px;padding:2px 8px;border-radius:6px;margin-bottom:2px;overflow-wrap:anywhere}
+:where(.vipi-root) .diff-righe li.del{background:var(--tint-orange);color:var(--danger-ink)}
+:where(.vipi-root) .diff-righe li.add{background:var(--tint-green);color:var(--ok-ink)}
+:where(.vipi-root) .diff-righe .seg{flex:none;width:10px;font-family:var(--font-mono);font-weight:700}
+:where(.vipi-root) .cfg-table tr.diff-tr td{padding-top:0;border-top:0}
+:where(.vipi-root) .diff-det>summary{cursor:pointer;font-size:12px;color:var(--brand-ink)}
 :where(.vipi-root) .struct .ver-pub{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
 :where(.vipi-root) .struct .ver-cycle{min-width:270px;max-width:340px}
 :where(.vipi-root) .struct .ver-note{max-width:240px}

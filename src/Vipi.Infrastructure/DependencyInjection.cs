@@ -317,6 +317,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Translation.IStatoTraduzione, EfStatoTraduzione>();
         // Le sezioni da scrivere (carta 2026-10-18-sezioni-da-scrivere): si calcolano come lo stato della traduzione.
         services.AddScoped<Vipi.Application.Content.ISezioniDaScrivereService, EfSezioniDaScrivere>();
+        // La scheda del documento (S133, carta 2026-10-28-stato-dei-documenti): sezioni, traduzione e i due confronti.
+        services.AddScoped<Vipi.Application.Content.IStatoDelDocumentoService, Vipi.Application.Content.StatoDelDocumentoService>();
         // Chi ha girato per ultimo e chi sta girando adesso. SINGLETON: il lucchetto che tiene separati il
         // giro automatico e il tasto «traduci ora» non sincronizza niente se ce n'e' uno per richiesta.
         services.AddSingleton<Vipi.Application.Translation.IRegistroDeiGiri,

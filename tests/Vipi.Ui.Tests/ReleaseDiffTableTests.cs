@@ -79,6 +79,43 @@ public class ReleaseDiffTableTests : TestContext
         Assert.Contains(expectedPill, cut.Find("tbody tr span.pill").ClassName);
     }
 
+    /// <summary>S133: sotto una sezione col testo cambiato, le righe tolte e aggiunte; stessi elementi → «testo
+    /// cambiato» al posto di «3 → 3 elementi».</summary>
+    [Fact]
+    public void Il_Testo_Cambiato_Si_Legge_Sotto_La_Sezione()
+    {
+        var diff = new ReleaseDiff(true, "2607", new[]
+        {
+            new ReleaseDiffRow("Regole piste", ReleaseChangeKind.Modified, 1, 1, new[]
+            {
+                new TextDiffLine(TextDiffKind.Removed, "fino a 5 kt"),
+                new TextDiffLine(TextDiffKind.Added, "fino a <b>10</b> kt"),
+            }),
+        });
+
+        var cut = Render(diff);
+
+        Assert.Contains("Rel_TextChanged", cut.Find("tbody tr td.muted").TextContent);
+        Assert.DoesNotContain("Rel_DiffItemsFromTo", cut.Markup);
+        var righe = cut.FindAll(".diff-righe li");
+        Assert.Equal(2, righe.Count);
+        Assert.Contains("del", righe.First().ClassName);
+        Assert.Contains("add", righe.Last().ClassName);
+        Assert.Contains("&lt;b&gt;10", cut.Markup);   // il testo del documento non diventa markup
+    }
+
+    [Theory]
+    [InlineData(ReleaseChangeKind.Hidden, "grey", "Rel_ChangeHidden")]
+    [InlineData(ReleaseChangeKind.Shown, "green", "Rel_ChangeShown")]
+    public void Nascosta_E_Mostrata_Hanno_La_Loro_Pill(ReleaseChangeKind change, string pill, string chiave)
+    {
+        var cut = Render(new ReleaseDiff(true, "2607", new[] { new ReleaseDiffRow("X", change, 1, 1) }));
+
+        var span = cut.Find("tbody tr span.pill");
+        Assert.Contains(pill, span.ClassName);
+        Assert.Equal(chiave, span.TextContent);
+    }
+
     [Fact]
     public void Senza_Baseline_Si_Dice_Che_Non_Ce_Una_Release_In_Vigore()
     {

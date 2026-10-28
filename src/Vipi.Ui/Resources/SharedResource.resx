@@ -1889,7 +1889,7 @@
   <data name="Rel_BaselineCycle" xml:space="preserve"><value>AIRAC {0}</value></data>
   <data name="Rel_BaselineNone" xml:space="preserve"><value>prima pubblicazione (nessuna release precedente)</value></data>
   <data name="Rel_ComparedWith" xml:space="preserve"><value>Confronto con:</value></data>
-  <data name="Rel_NoDiff" xml:space="preserve"><value>Nessuna differenza strutturale rilevata.</value></data>
+  <data name="Rel_NoDiff" xml:space="preserve"><value>Nessuna differenza.</value></data>
   <data name="Rel_ColItem" xml:space="preserve"><value>Voce</value></data>
   <data name="Rel_ColChange" xml:space="preserve"><value>Modifica</value></data>
   <data name="Rel_ColDetail" xml:space="preserve"><value>Dettaglio</value></data>
@@ -4261,4 +4261,11 @@
   <data name="Cfgs_StateExhaustive" xml:space="preserve"><value>completo: vincola</value></data>
   <data name="Cfgs_StateExamples" xml:space="preserve"><value>esempi: non vincola</value></data>
   <data name="Cfgs_ConsequencesIf" xml:space="preserve"><value>Che cosa ne seguirebbe, se l&apos;elenco fosse completo</value></data>
+  <data name="Rel_ChangeHidden" xml:space="preserve"><value>Nascosta</value></data>
+  <data name="Rel_ChangeShown" xml:space="preserve"><value>Di nuovo visibile</value></data>
+  <data name="Rel_TextChanged" xml:space="preserve"><value>testo cambiato</value></data>
+  <data name="Rel_DiffSeeText" xml:space="preserve"><value>Testo cambiato ({0} righe)</value></data>
+  <data name="Rel_DiffMoreLines" xml:space="preserve"><value>… e altre {0} righe.</value></data>
+  <data name="Rel_LineAdded" xml:space="preserve"><value>Aggiunta</value></data>
+  <data name="Rel_LineRemoved" xml:space="preserve"><value>Tolta</value></data>
 </root>

@@ -1,0 +1,25 @@
+@* Le righe di testo tolte e aggiunte in una sezione (S133, carta 2026-10-28-stato-dei-documenti §2.1): «−» e «+»
+   davanti, colori dei token del tema. Oltre il tetto si dice quante ne restano: una sezione riscritta da capo non
+   deve spingere la pagina sotto la piega. *@
+@inject IStringLocalizer<SharedResource> L
+
+<ul class="diff-righe">
+    @foreach (var r in Righe.Take(Tetto))
+    {
+        <li class="@(r.Kind == TextDiffKind.Added ? "add" : "del")">
+            <span class="seg" aria-label="@(r.Kind == TextDiffKind.Added ? L["Rel_LineAdded"] : L["Rel_LineRemoved"])">@(r.Kind == TextDiffKind.Added ? "+" : "−")</span>
+            <span>@r.Text</span>
+        </li>
+    }
+</ul>
+@if (Righe.Count > Tetto)
+{
+    <p class="muted" style="margin:2px 0 0;font-size:12px">@string.Format(L["Rel_DiffMoreLines"].Value, Righe.Count - Tetto)</p>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<TextDiffLine> Righe { get; set; } = Array.Empty<TextDiffLine>();
+
+    /// <summary>Quante righe al più.</summary>
+    [Parameter] public int Tetto { get; set; } = 30;
+}

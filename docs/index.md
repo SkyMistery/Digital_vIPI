@@ -382,6 +382,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-21-api-settori.md`](feature/2026-10-21-api-settori.md) — API dei settori: gerarchia e coordinamenti fra settori per gli altri programmi — carta (21 ottobre 2026)
 - [`feature/2026-10-21-via-le-note.md`](feature/2026-10-21-via-le-note.md) — Via le note dei dati strutturati — carta (21 ottobre 2026)
 - [`feature/2026-10-22-testo-comune.md`](feature/2026-10-22-testo-comune.md) — Testo comune delle torri radar — carta (22 ottobre 2026)
+- [`feature/2026-10-28-stato-dei-documenti.md`](feature/2026-10-28-stato-dei-documenti.md) — Lo stato dei documenti — carta (28 ottobre 2026)
 
 ### `filoni`
 
