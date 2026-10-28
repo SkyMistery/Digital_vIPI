@@ -708,6 +708,64 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.True(riga.TestoCambiato);
     }
 
+    /// <summary>
+    /// S133, carta 2026-10-28-stato-dei-documenti §2.3. Il giro della deriva conserva, per documento, quante sezioni
+    /// cambiano rispetto al pubblico e alla programmata: la pagina Documenti li legge senza rifare gli snapshot.
+    /// </summary>
+    [Fact]
+    public async Task Il_giro_conserva_il_riassunto_dei_confronti()
+    {
+        var (svc, _, impattiRepo) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneConTestoAsync("Note", "Prima.");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+        await AddDraftAsync(3);
+        await SezioneConTestoAsync("Note", "Dopo.");
+        var entrante = svc.NextCycle().Cycle;
+        await svc.PublishAsync(FakeType, "fake-key", entrante, null);   // la programmata porta «Dopo.»
+        await AddDraftAsync(4);
+        await SezioneConTestoAsync("Note", "Ancora dopo.");
+
+        var confronti = new EfConfrontiDocumenti(_db);
+        var giro = new ImpactDriftUseCase(
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
+            svc, new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)),
+            new DocumentImpactService(impattiRepo, new AllowAuthz()), new Vipi.Domain.Services.AiracService(), Registry(),
+            confronti: confronti);
+        await giro.RunAsync();
+
+        var c = (await confronti.TuttiAsync())[_docId];
+        Assert.NotNull(c.CicloInVigore);
+        Assert.Equal(1, c.VsPubblico);
+        Assert.Equal(entrante, c.CicloProgrammata);
+        Assert.Equal(1, c.VsProgrammata);
+        Assert.True(c.DaPubblicare);
+        Assert.True(c.ProgrammataIndietro);
+    }
+
+    /// <summary>S133: riscrivere è aggiornare la riga, un documento che non c'è si salta, e il giro intero toglie i
+    /// riassunti dei documenti che non guarda più.</summary>
+    [Fact]
+    public async Task I_riassunti_si_riscrivono_e_si_tolgono()
+    {
+        var confronti = new EfConfrontiDocumenti(_db);
+        var ora = DateTime.UtcNow;
+        await confronti.ScriviAsync(new[]
+        {
+            new ConfrontoSalvato(_docId, ora, "2611", 2, null, 0, false),
+            new ConfrontoSalvato(999_999, ora, "2611", 1, null, 0, false),   // non esiste: si salta
+        });
+        await confronti.ScriviAsync(new[] { new ConfrontoSalvato(_docId, ora, "2611", 0, "2612", 1, false) });
+
+        var tutti = await confronti.TuttiAsync();
+        var c = Assert.Single(tutti).Value;
+        Assert.Equal(0, c.VsPubblico);
+        Assert.Equal("2612", c.CicloProgrammata);
+
+        await confronti.TogliAltriAsync(Array.Empty<int>());
+        Assert.Empty(await confronti.TuttiAsync());
+    }
+
     private Task<int> ArchivedCountAsync() =>
         _db.DocumentVersions.CountAsync(v => v.DocumentId == _docId && v.Status == DocumentStatus.Archived);
 

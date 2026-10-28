@@ -199,6 +199,21 @@
                         </select>
                     }
                     <span class="sb-chips">
+                        @* Il LAVORO (S133, carta 2026-10-28-stato-dei-documenti §1 D2): un chip per colonna, più quello
+                           che le somma. In testa, perché è la domanda per cui la pagina si apre; in giallo quando c'è
+                           qualcosa, spenti a zero come gli altri. *@
+                        @{ var lav = ContiLavoro(); }
+                        <button class="sh-chip @(lav.Qualcosa > 0 ? "warn" : "") @(_lavoroFilter == "any" ? "on" : "")" disabled="@(lav.Qualcosa == 0)"
+                                title="@L["Ver_WorkAnyTitle"]" @onclick='() => ToggleLavoro("any")'>@L["Ver_WorkAny"] <span class="chip-n">@lav.Qualcosa</span></button>
+                        <button class="sh-chip @(_lavoroFilter == "complete" ? "on" : "")" disabled="@(lav.Completare == 0)"
+                                title="@L["Ver_ColCompleteTitle"]" @onclick='() => ToggleLavoro("complete")'><Icon Name="pencil" Size="12" /> @L["Sd_Complete"] <span class="chip-n">@lav.Completare</span></button>
+                        <button class="sh-chip @(_lavoroFilter == "publish" ? "on" : "")" disabled="@(lav.Pubblicare == 0)"
+                                title="@L["Ver_ColPublishTitle"]" @onclick='() => ToggleLavoro("publish")'><Icon Name="eye" Size="12" /> @L["Ver_WorkPublish"] <span class="chip-n">@lav.Pubblicare</span></button>
+                        <button class="sh-chip @(_lavoroFilter == "scheduled" ? "on" : "")" disabled="@(lav.Programmata == 0)"
+                                title="@L["Ver_ColScheduledTitle"]" @onclick='() => ToggleLavoro("scheduled")'><Icon Name="calendar" Size="12" /> @L["Ver_WorkScheduled"] <span class="chip-n">@lav.Programmata</span></button>
+                        <button class="sh-chip @(_lavoroFilter == "review" ? "on" : "")" disabled="@(lav.Rivedere == 0)"
+                                title="@L["Ver_ColReviewTitle"]" @onclick='() => ToggleLavoro("review")'><Icon Name="warning" Size="12" /> @L["Ver_WorkReview"] <span class="chip-n">@lav.Rivedere</span></button>
+                        <span class="sb-sep"></span>
                         <button class="sh-chip @(_statusFilter == "public" ? "on" : "")" disabled="@(n.Public == 0)"
                                 title="@L["Ver_PublicChipTitle"]" @onclick='() => ToggleStatus("public")'>@L["Ver_FilterPublic"] <span class="chip-n">@n.Public</span></button>
                         <button class="sh-chip @(_statusFilter == "draft" ? "on" : "")" disabled="@(n.Draft == 0)"
@@ -227,6 +242,16 @@
                 @if (Filtered().Any())
                 {
                     <div class="st-scroll">
+                        @* L'intestazione delle quattro colonne del lavoro: appiccicata in cima, allineata alla striscia
+                           di ogni riga. Le icone sono le stesse dei chip e della scheda. *@
+                        <div class="ver-lav-head" aria-hidden="true">
+                            <span class="ver-lav">
+                                <span class="vl-slot" title="@L["Ver_ColCompleteTitle"]"><Icon Name="pencil" Size="13" /></span>
+                                <span class="vl-slot" title="@L["Ver_ColPublishTitle"]"><Icon Name="eye" Size="13" /></span>
+                                <span class="vl-slot" title="@L["Ver_ColScheduledTitle"]"><Icon Name="calendar" Size="13" /></span>
+                                <span class="vl-slot" title="@L["Ver_ColReviewTitle"]"><Icon Name="warning" Size="13" /></span>
+                            </span>
+                        </div>
                         @foreach (var d in Filtered())
                         {
                             var key = RowKey(d);
@@ -265,46 +290,6 @@
                                 {
                                     <span class="pill grey" title="@L["Ver_NoReleaseTitle"]">⚠️ @L["Ver_NoReleaseBadge"]</span>
                                 }
-                                @*  A che punto è la traduzione, e SOLO quando c'è qualcosa da dire.
-                                    ⚠️ Una pastiglia su ogni riga sarebbe rumore: qui ce ne sono già sette, e
-                                    l'ottava che dice «tutto a posto» su venti righe su ventisei si smette di
-                                    leggere — insieme alle altre. Il quadro intero sta nel Registro. *@
-                                @if (Traduzione(d) is { } tr && tr.Bozza.Mancanti > 0)
-                                {
-                                    <span class="pill amber" title="@L["TrDoc_Intro"]">
-                                        @string.Format(L["TrEd_Wait_Missing"].Value, tr.Bozza.Mancanti)
-                                    </span>
-                                }
-                                @* Le sezioni da scrivere ancora vuote (carta 2026-10-18-sezioni-da-scrivere), e SOLO quando
-                                   ce ne sono: la stessa regola della traduzione qui sopra. *@
-                                @if (Sezioni(d) is { Vuote: > 0 } sz)
-                                {
-                                    <span class="pill amber sds-pill" title="@string.Format(L["SdS_PillTitle"].Value, sz.Totale)">
-                                        📝 @(sz.Vuote == 1 ? L["SdS_PillOne"].Value : string.Format(L["SdS_Pill"].Value, sz.Vuote))
-                                    </span>
-                                }
-                                @* La casella degli impatti, riassunta in una pill. L'ordine delle tre non è
-                                   alfabetico: dice quel che è più urgente. «Già in pubblico» batte tutto — il
-                                   cambio è sotto gli occhi dei lettori senza che nessuno l'abbia approvato. *@
-                                @if (Badge(d) is { } b)
-                                {
-                                    @if (b.GiaInPubblico > 0)
-                                    {
-                                        <span class="pill red" title="@L["Impact_PublicNowTitle"]">@L["Impact_PublicNow"] (@b.GiaInPubblico)</span>
-                                    }
-                                    else if (b.Rotti > 0)
-                                    {
-                                        <span class="pill amber">@L["Impact_Broken"] (@b.Rotti)</span>
-                                    }
-                                    else if (b.DaRipubblicare > 0)
-                                    {
-                                        <span class="pill blue" title="@L["Impact_RepublishTitle"]">@L["Impact_Republish"] (@b.DaRipubblicare)</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="pill amber">@L["Impact_ToReview"] (@b.Total)</span>
-                                    }
-                                }
                                 @* Chi sta lavorando a cosa. Il nome e l'ORA sono entrambi necessari: il lock del
                                    documento dura 30 minuti e non ha battito, quindi «bloccato» senza scadenza non
                                    direbbe se aspettare o no. *@
@@ -312,6 +297,7 @@
                                 {
                                     <span class="pill @(IsMyLock(d) ? "green" : "amber")" data-utc-title="@VipiTime.Iso(d.LockExpiresUtc)" title="@LockTitle(d)">🔒 @LockBadge(d)</span>
                                 }
+                                @StrisciaLavoro(d)
                             </div>
                         }
                     </div>
@@ -483,6 +469,11 @@
     private ReleaseTargetType? _kindFilter;      // null = tutti
     private string _statusFilter = "all";     // all|public|draft|hidden|editing
     private string _releaseFilter = "all";    // all|effective|scheduled|none
+    private string _lavoroFilter = "all";     // all|any|complete|publish|scheduled|review (S133)
+    private static IReadOnlySet<string> LavoroValues => LavoroSulDocumento.Filtri;
+
+    /// <summary>I riassunti dei confronti per documento (S133, <c>DocumentComparison</c>): li scrive il giro della deriva.</summary>
+    private IReadOnlyDictionary<int, ConfrontoSalvato> _confronti = new Dictionary<int, ConfrontoSalvato>();
     private string? _accFilter;               // null = tutte
 
     /// <summary>
@@ -703,6 +694,8 @@
             _traduzione = (await StatoTraduzione.QuadroAsync()).Righe.ToDictionary(r => r.DocumentId);
             // Le sezioni da scrivere, in una passata come la traduzione (carta 2026-10-18-sezioni-da-scrivere).
             _sezioni = await ScopedServices.GetRequiredService<ISezioniDaScrivereService>().QuadroAsync();
+            // I due confronti, riassunti (S133): calcolarli qui sarebbero due snapshot per riga.
+            _confronti = await ScopedServices.GetRequiredService<IConfrontiDocumentiRepository>().TuttiAsync();
             });
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
@@ -719,6 +712,96 @@
     /// <summary>Il riassunto delle segnalazioni aperte del documento, se ne ha.</summary>
     private ImpactBadge? Badge(ManagedDoc d) =>
         d.DocumentId is int id && _impatti.TryGetValue(id, out var b) ? b : null;
+
+    /// <summary>Il riassunto dei confronti del documento, se il giro l'ha già calcolato.</summary>
+    private ConfrontoSalvato? Confronto(ManagedDoc d) =>
+        d.DocumentId is int id && _confronti.TryGetValue(id, out var c) ? c : null;
+
+    private string TitoloCompletare(LavoroSulDocumento l)
+    {
+        var t = l.Vuote == 1 ? L["SdS_PillOne"].Value : string.Format(L["SdS_Pill"].Value, l.Vuote);
+        return l.Traduzioni > 0 ? t + " · " + string.Format(L["TrEd_Wait_Missing"].Value, l.Traduzioni) : t;
+    }
+
+    /// <summary>Il lavoro su un documento, le quattro colonne (S133): la regola sta in <see cref="LavoroSulDocumento"/>.</summary>
+    private LavoroSulDocumento Lavoro(ManagedDoc d) => new(Sezioni(d)?.Vuote ?? 0, Traduzione(d)?.Bozza.Mancanti ?? 0,
+        Confronto(d), Badge(d), d.IsHidden);
+
+    /// <summary>I numeri dei chip del lavoro: ognuno conta ESATTAMENTE ciò che mostra cliccato (stessa condizione di
+    /// <see cref="LavoroSulDocumento.Passa"/>), come i chip di stato.</summary>
+    private (int Qualcosa, int Completare, int Pubblicare, int Programmata, int Rivedere) ContiLavoro()
+    {
+        var (q, c, p, s, r) = (0, 0, 0, 0, 0);
+        foreach (var d in _docs ?? Array.Empty<ManagedDoc>())
+        {
+            var l = Lavoro(d);
+            if (l.Qualcosa) q++;
+            if (l.Completare) c++;
+            if (l.Pubblicare) p++;
+            if (l.Programmata) s++;
+            if (l.DaRivedere) r++;
+        }
+        return (q, c, p, s, r);
+    }
+
+    /// <summary>
+    /// Le quattro colonne del lavoro in fondo alla riga (S133, carta 2026-10-28-stato-dei-documenti §1 D2): da
+    /// completare, da pubblicare, programmata indietro, da rivedere. Una colonna vuota vuol dire «niente» — la regola
+    /// delle pastiglie resta: nessun «tutto a posto» su ogni riga — ma il posto c'è sempre, e l'occhio scende per
+    /// colonna invece di cercare la pastiglia nella riga. Prima qui c'erano tre pastiglie che comparivano e sparivano
+    /// (traduzione, 📝, impatti), ognuna dove capitava.
+    /// <para>«Da rivedere» tiene il colore della più urgente: «già in pubblico» batte tutto, poi rotto, poi da
+    /// ripubblicare, poi da rileggere — l'ordine di prima.</para>
+    /// </summary>
+    private RenderFragment StrisciaLavoro(ManagedDoc d)
+    {
+        var l = Lavoro(d);
+        return @<span class="ver-lav" data-lavoro>
+            <span class="vl-slot" data-col="complete">
+                @if (l.Vuote > 0)
+                {
+                    <span class="pill amber" title="@TitoloCompletare(l)">@l.Vuote</span>
+                }
+                else if (l.Traduzioni > 0)
+                {
+                    <span class="pill amber" title="@string.Format(L["TrEd_Wait_Missing"].Value, l.Traduzioni)"><Icon Name="globe" Size="11" /> @l.Traduzioni</span>
+                }
+            </span>
+            <span class="vl-slot" data-col="publish">
+                @if (l.Pubblicare)
+                {
+                    <span class="pill blue" title="@string.Format(L["Ver_SlotPublishTitle"].Value, l.Confronto!.VsPubblico, l.Confronto.CicloInVigore)">@l.Confronto!.VsPubblico</span>
+                }
+            </span>
+            <span class="vl-slot" data-col="scheduled">
+                @if (l.Programmata)
+                {
+                    <span class="pill amber" title="@string.Format(L["Ver_SlotScheduledTitle"].Value, l.Confronto!.CicloProgrammata)">@(l.Confronto!.VsProgrammata > 0 ? l.Confronto.VsProgrammata.ToString() : "•")</span>
+                }
+            </span>
+            <span class="vl-slot" data-col="review">
+                @if (l.Rivedere is { Total: > 0 } b)
+                {
+                    @if (b.GiaInPubblico > 0)
+                    {
+                        <span class="pill red" title="@L["Impact_PublicNowTitle"]">@b.Total</span>
+                    }
+                    else if (b.Rotti > 0)
+                    {
+                        <span class="pill amber" title="@L["Impact_Broken"]">@b.Total</span>
+                    }
+                    else if (b.DaRipubblicare > 0)
+                    {
+                        <span class="pill blue" title="@L["Impact_RepublishTitle"]">@b.Total</span>
+                    }
+                    else
+                    {
+                        <span class="pill amber" title="@L["Impact_ToReview"]">@b.Total</span>
+                    }
+                }
+            </span>
+        </span>;
+    }
 
     // Lo stato release arriva già con l'elenco (ManagedDoc.EffectiveCycle/NextScheduledCycle): fino al 21 agosto
     // 2026 questa pagina rifaceva la stessa SummariesAsync che il repository aveva appena eseguito.
@@ -839,7 +922,7 @@
             .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(a => a, StringComparer.OrdinalIgnoreCase).ToList();
 
     private bool IsFiltering => !string.IsNullOrWhiteSpace(_q) || _kindFilter is not null
-        || _statusFilter != "all" || _releaseFilter != "all" || _accFilter is not null;
+        || _statusFilter != "all" || _releaseFilter != "all" || _accFilter is not null || _lavoroFilter != "all";
 
     // Contatore onesto accanto al titolo: «N/TOT» solo quando un filtro è attivo, il totale secco quando non
     // lo è (regola 30). Era una riga di prosa sotto la barra dei filtri.
@@ -869,6 +952,7 @@
                 "none" => !d.HasAnyRelease,
                 _ => true,
             })
+            && (_lavoroFilter == "all" || Lavoro(d).Passa(_lavoroFilter))
             && (q.Length == 0
                 || d.Title.Contains(q, StringComparison.OrdinalIgnoreCase)
                 || d.Scope.Contains(q, StringComparison.OrdinalIgnoreCase)
@@ -910,10 +994,11 @@
     // totale sta accanto al titolo e il ✕ azzera in un gesto solo.
     private void ToggleStatus(string s) { _statusFilter = _statusFilter == s ? "all" : s; SyncUrl(); }
     private void ToggleRelease(string s) { _releaseFilter = _releaseFilter == s ? "all" : s; SyncUrl(); }
+    private void ToggleLavoro(string s) { _lavoroFilter = _lavoroFilter == s ? "all" : s; SyncUrl(); }
 
     private void ClearFilters()
     {
-        _q = ""; _kindFilter = null; _statusFilter = "all"; _releaseFilter = "all"; _accFilter = null;
+        _q = ""; _kindFilter = null; _statusFilter = "all"; _releaseFilter = "all"; _accFilter = null; _lavoroFilter = "all";
         SyncUrl();
     }
 
@@ -930,6 +1015,7 @@
             ["kind"] = _kindFilter?.ToString(),
             ["stato"] = _statusFilter == "all" ? null : _statusFilter,
             ["rel"] = _releaseFilter == "all" ? null : _releaseFilter,
+            ["lavoro"] = _lavoroFilter == "all" ? null : _lavoroFilter,
             ["acc"] = _accFilter,
         };
         Nav.NavigateTo(Nav.GetUriWithQueryParameters(qp), forceLoad: false, replace: true);
@@ -942,6 +1028,7 @@
         if (q.Enum<ReleaseTargetType>("kind") is { } k) _kindFilter = k;
         if (q.Value("stato") is { } sv && StatusValues.Contains(sv)) _statusFilter = sv;
         if (q.Value("rel") is { } rv && ReleaseValues.Contains(rv)) _releaseFilter = rv;
+        if (q.Value("lavoro") is { } lv && LavoroValues.Contains(lv)) _lavoroFilter = lv;
         // L'ACC non si valida contro un elenco chiuso: l'elenco dei documenti non è ancora caricato, e una ACC
         // che non c'è filtra a zero — che è esattamente ciò che dice l'URL.
         if (q.Value("acc") is { } av && !string.IsNullOrWhiteSpace(av)) _accFilter = av.ToUpperInvariant();

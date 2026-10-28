@@ -85,3 +85,16 @@ traduzione, 📝, impatti, lock), ognuna al suo posto solo quando c'è qualcosa:
 - Negli editor «Da rivedere» resta il banner in cima: due liste delle stesse righe nella stessa pagina sarebbero una
   di troppo.
 - Test: `SchedaDocumentoTests` (11, ereditano le quattro del riquadro tolto), `La_programmata_si_confronta_con_la_bozza_di_oggi`.
+
+**Fetta 3 — il cruscotto** (28 ottobre).
+- Tabella nuova `DocumentComparisons` (entità `DocumentComparison`, una riga per documento, chiave = `DocumentId`,
+  cancellata col documento): ciclo in vigore e sezioni diverse, ciclo della prossima programmata, sezioni diverse e
+  derivate cambiate. Migrazione **additiva** `AggiungiConfrontiDocumenti` (SQLite e MySQL).
+- La scrivono: il giro della deriva (`ImpactDriftUseCase`, per ultimo — riusa il confronto col pubblico che fa già per
+  decidere la riga, e confronta con la programmata solo chi ne ha una; il giro intero toglie i riassunti dei documenti
+  che non guarda più), la riconciliazione dopo una pubblicazione, e la scheda quando la si apre.
+- Pagina Documenti: chip del lavoro in testa alla barra (da fare, da completare, da pubblicare, programmata indietro,
+  da rivedere; `?lavoro=`), e quattro colonne fisse in fondo a ogni riga con la loro intestazione appiccicata, al posto
+  delle pastiglie traduzione, 📝 e impatti. Una colonna vuota vuol dire «niente». La regola delle colonne, dei chip e
+  dei loro numeri è una sola: `LavoroSulDocumento` (Application), così si prova senza la pagina.
+- Test: `LavoroSulDocumentoTests` (6), `Il_giro_conserva_il_riassunto_dei_confronti`, `I_riassunti_si_riscrivono_e_si_tolgono`.

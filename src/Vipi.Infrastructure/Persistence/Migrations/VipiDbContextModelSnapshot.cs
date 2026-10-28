@@ -1982,6 +1982,36 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("Documents");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.DocumentComparison", b =>
+                {
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ChangedVsEffective")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ChangedVsScheduled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ComputedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EffectiveCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ScheduledCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ScheduledDerivedChanged")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DocumentId");
+
+                    b.ToTable("DocumentComparisons");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentImpact", b =>
                 {
                     b.Property<int>("Id")
@@ -4020,6 +4050,17 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("CurrentVersion");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.DocumentComparison", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithOne()
+                        .HasForeignKey("Vipi.Domain.Entities.DocumentComparison", "DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentImpact", b =>

@@ -3015,6 +3015,22 @@
     `CancelloDelLoginTests` verdi. Dal vivo su DB nuovo (LIMC inventata: 17L/17R/35L/35R, regola «Nord» coda ≤ 5 kt,
     METAR vero 15003KT): 401 senza chiave; con la chiave `rule`, 35L/35R, `position` 1 — la pagina pubblica dello
     stesso scalo marca le stesse piste con la stessa regola.
+- 🔨 **S133** (28-ott, committente in chat: «vorrei rivedere il sistema di gestione di cosa manca e cosa è modificato
+  nei documenti, deve essere più user friendly […] oggi mi risulta abbastanza scomodo»; approvata la proposta, «lo
+  stile della UI deve combaciare con quello del resto del sito»). Carta `2026-10-28-stato-dei-documenti.md`.
+  - **Fetta 1, confronto sul testo**: la firma di sezione del confronto fra copie porta le righe di testo
+    (`TestoDelConfronto`) e la visibilità; prima contava i blocchi, e una frase riscritta in un paragrafo esistente non
+    era un cambiamento. La tabella delle differenze mostra le righe tolte e aggiunte. Conseguenza accettata dal
+    committente: più righe «da ripubblicare».
+  - **Fetta 2, la scheda del documento** (`SchedaDocumento`): da completare, rispetto al pubblico, la prossima
+    programmata (confronto nuovo, `DriftFromScheduledAsync`) e, nella pagina Documenti, da rivedere. Nei cinque editor
+    sopra le Versioni e nel pannello della pagina Documenti; prende il posto del riquadro «Sezioni da scrivere».
+  - **Fetta 3, il cruscotto**: nella pagina Documenti chip che contano e filtrano (da fare, da completare, da
+    pubblicare, programmata indietro, da rivedere; `?lavoro=`) e quattro colonne fisse in fondo a ogni riga, al posto
+    delle tre pastiglie che comparivano dove capitava. I due confronti per tutto l'elenco vengono dalla tabella nuova
+    `DocumentComparisons` (una riga per documento), scritta dal giro della deriva e dalla scheda.
+  - **Migrazione SÌ, additiva**: `AggiungiConfrontiDocumenti` crea `DocumentComparisons` e non tocca altro. Codice
+    comune: `Vipi.Application` (`ReleaseService`, `ImpactDriftUseCase`).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo

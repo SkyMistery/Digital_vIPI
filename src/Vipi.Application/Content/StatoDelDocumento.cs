@@ -62,10 +62,15 @@ public sealed class StatoDelDocumentoService : IStatoDelDocumentoService
     private readonly IReleaseTargetRegistry _targets;
     private readonly ISezioniDaScrivereService _sezioni;
     private readonly IStatoTraduzione _traduzione;
+    private readonly IConfrontiDocumentiRepository? _confronti;
 
+    /// <param name="confronti">Se c'è, la scheda calcolata riscrive il riassunto della pagina Documenti: chi l'ha
+    /// appena guardata ritrova nell'elenco gli stessi numeri.</param>
     public StatoDelDocumentoService(IReleaseService releases, IReleaseRepository releaseRepo,
-        IReleaseTargetRegistry targets, ISezioniDaScrivereService sezioni, IStatoTraduzione traduzione)
+        IReleaseTargetRegistry targets, ISezioniDaScrivereService sezioni, IStatoTraduzione traduzione,
+        IConfrontiDocumentiRepository? confronti = null)
     {
+        _confronti = confronti;
         _releases = releases;
         _releaseRepo = releaseRepo;
         _targets = targets;
@@ -89,7 +94,10 @@ public sealed class StatoDelDocumentoService : IStatoDelDocumentoService
             : await _releases.DriftFromEffectiveAsync(type, key, ct: ct);
         var programmata = await _releases.DriftFromScheduledAsync(type, key, ct);
 
-        return new SchedaDelDocumento(docId, sezioni, traduzione?.Bozza.Mancanti ?? 0, effettiva?.ReleaseAiracCycle,
+        var scheda = new SchedaDelDocumento(docId, sezioni, traduzione?.Bozza.Mancanti ?? 0, effettiva?.ReleaseAiracCycle,
             pubblico, programmata, DateTime.UtcNow);
+        if (_confronti is not null && (scheda.CicloInVigore is not null || scheda.Programmata is not null))
+            await _confronti.ScriviAsync(new[] { ConfrontoSalvato.Da(scheda) }, ct);
+        return scheda;
     }
 }

@@ -4235,7 +4235,6 @@
   <data name="Nav_ReqOpenTitle" xml:space="preserve"><value>Requests still open (new or taken on): {0}</value></data>
   <data name="SdS_Pill" xml:space="preserve"><value>{0} empty sections</value></data>
   <data name="SdS_PillOne" xml:space="preserve"><value>1 empty section</value></data>
-  <data name="SdS_PillTitle" xml:space="preserve"><value>Sections to write that are still empty, of {0}. The list is in the document's panel.</value></data>
   <data name="Cfgs_DocShowsAll" xml:space="preserve"><value>Until a list is written here, the document's AOR map offers a single choice, «All sectors», which lights up the whole group. It is not a configuration: it is the map making do.</value></data>
   <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Area sectors · {0}</value></data>
   <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>The possible configurations are not applied: apply or cancel them before «Finish editing».</value></data>
@@ -4275,4 +4274,15 @@
   <data name="Sd_ScheduledDerived" xml:space="preserve"><value>The derived data the release freezes (runways, minima…) changed too.</value></data>
   <data name="Sd_ScheduledHow" xml:space="preserve"><value>To make it carry today's draft, schedule it again at the same cycle: it replaces the previous one.</value></data>
   <data name="Sd_GoVersions" xml:space="preserve"><value>Go to Versions</value></data>
+  <data name="Ver_WorkAny" xml:space="preserve"><value>To do</value></data>
+  <data name="Ver_WorkAnyTitle" xml:space="preserve"><value>Documents with something to do: to complete, to publish, with the scheduled release behind, or to review</value></data>
+  <data name="Ver_WorkPublish" xml:space="preserve"><value>To publish</value></data>
+  <data name="Ver_WorkScheduled" xml:space="preserve"><value>Scheduled behind</value></data>
+  <data name="Ver_WorkReview" xml:space="preserve"><value>To review</value></data>
+  <data name="Ver_ColCompleteTitle" xml:space="preserve"><value>To complete: sections to write that are still empty, or phrases to translate</value></data>
+  <data name="Ver_ColPublishTitle" xml:space="preserve"><value>To publish: the draft differs from what readers see today</value></data>
+  <data name="Ver_ColScheduledTitle" xml:space="preserve"><value>Scheduled behind: the next scheduled release does not carry today's draft</value></data>
+  <data name="Ver_ColReviewTitle" xml:space="preserve"><value>To review: the open «To do» rows on this document</value></data>
+  <data name="Ver_SlotPublishTitle" xml:space="preserve"><value>{0} sections differ from the ones in force (AIRAC {1})</value></data>
+  <data name="Ver_SlotScheduledTitle" xml:space="preserve"><value>The scheduled AIRAC {0} release does not carry today's draft</value></data>
 </root>
