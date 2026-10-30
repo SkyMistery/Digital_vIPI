@@ -49,6 +49,16 @@ RWY 24 con ESCOB, BENTO, URRUC: i fix dell'AIP cadono sui simboli della carta, a
 Pacchetti nuovi: `bblanchon.PDFium.Win32` e `.Linux` 158.0.8125, solo i binari; il collegamento sta in
 `Core/PdfAip/Pdfium.cs`. Il disegno sta nella carta. Prove A75-A78.
 
+**30 ottobre, pomeriggio: i controlli del ground 1 e 2.** Nella pagina dello scalo la scheda **Ground**: le soglie dei `.rw`
+contro AD 2.12 in metri e i nomi delle taxiway dei `.txi` contro AD 2.8, in sola lettura. Disegno e misura sul 2611 nella
+carta degli aeroporti. Prove A79-A81.
+
+**L'emendamento si ferma prima con file non registrati.** Era una domanda aperta dal 27 ottobre: con file non registrati
+nell'AIP espanso la lettura del ciclo nuovo non cambia ramo e si rifiuta (A40), ma lo si scopriva solo alla fine dei circa
+tre minuti dell'emendamento, con la cartella del ciclo nuovo già scritta. Ora il tasto «Applica l'emendamento» è spento e
+sotto lo dice («L'AIP espanso ha 2 file non registrati su aip/2611: … Registra l'AIP prima di applicarlo.»); e «Applica»
+guarda il repo da sé prima di scrivere, perché lo stato nella pagina può essere vecchio. Prova A82.
+
 ## 26 ottobre 2026, notte: la lettura si ricorda, «Vai alla voce» mostra la voce sola
 
 Il committente ha chiesto tre cose.

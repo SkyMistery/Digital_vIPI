@@ -5341,6 +5341,18 @@ public sealed partial class SessioneDelLab
             : null;
 
     /// <summary>
+    /// Perché l'emendamento non si applica adesso, dallo stato del repo dell'AIP espanso: file non registrati, con cui la
+    /// lettura del ciclo nuovo non partirebbe. Null se si può. Lo dice la pagina accanto al tasto, prima del clic.
+    /// </summary>
+    public string? EmendamentoBloccato => PrimaDiApplicare(StatoDellAip);
+
+    private static string? PrimaDiApplicare(Core.Git.StatoDelRamo? stato) =>
+        stato is { Cambiati.Count: > 0 } s
+            ? $"L'AIP espanso ha {(s.Cambiati.Count == 1 ? "1 file" : $"{s.Cambiati.Count} file")} non registrati su {s.Ramo ?? "un commit staccato"}: "
+              + "dopo l'emendamento la lettura del ciclo nuovo non partirebbe. Registra l'AIP prima di applicarlo."
+            : null;
+
+    /// <summary>
     /// «Applica l'emendamento» (carta «L'AIP intero e gli emendamenti», passo 7): la cartella del ciclo nuovo dal PDF
     /// dell'AMDT AIRAC, accanto a quella del ciclo prima; poi il ciclo nuovo nell'AIP espanso, con le pagine cambiate.
     /// </summary>
@@ -5353,6 +5365,11 @@ public sealed partial class SessioneDelLab
         var amdt = percorso?.Trim().Trim('"');
         if (string.IsNullOrEmpty(amdt) || !File.Exists(amdt))
             return Rifiuta("Scrivi il percorso del PDF dell'emendamento: l'AIP AIRAC AMDT scaricato da ENAV.");
+        // Con file non registrati la lettura del ciclo nuovo non cambia ramo e si rifiuta (A40), ma lo si scopriva dopo i
+        // tre minuti dell'emendamento: si dice prima, senza scrivere niente.
+        if (CartellaDellAipEspanso is { } espanso && Core.PdfAip.RepoDellAip.EUnRepo(espanso)
+            && (await Core.Git.RepoDelSector.LeggiAsync(Git, espanso, prendi: false).ConfigureAwait(false)).Stato is { Cambiati.Count: > 0 } sporco)
+            return Rifiuta(PrimaDiApplicare(sporco)! + " Non ho scritto niente.");
 
         StaApplicandoLEmendamento = true;
         AvanzamentoDellEmendamento = null;

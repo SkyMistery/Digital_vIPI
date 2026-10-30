@@ -159,6 +159,37 @@ public sealed class RepoDellAipTests : IDisposable
         Assert.Equal(2, AipJson.Deserialize(File.ReadAllText(Path.Combine(espanso, "2611", "li.json"))).Airspaces.Count);
     }
 
+    // La domanda aperta del 27 ottobre: con file non registrati la lettura del ciclo nuovo si rifiuta (A40), ma lo si scopriva
+    // dopo i tre minuti dell'emendamento. Ora lo dicono la pagina accanto al tasto e «Applica», prima di scrivere.
+    [Fact]
+    public async Task LEmendamentoSiFermaPrimaConFileNonRegistrati()
+    {
+        var lab = new SessioneDelLab(Path.Combine(_radice, "dati-del-lab"));
+        lab.CambiaLIndirizzoDellAipEspanso(Server);
+        var pdf = CartellaDeiPdf();
+        Assert.True(lab.CambiaLaCartellaDeiPdf(pdf), lab.Rifiuto);
+        var espanso = Path.Combine(_radice, "aip-espanso");
+        Assert.True(await lab.PrendiLAipEspansoAsync(espanso), lab.Rifiuto);
+        Configura(espanso);
+        Assert.True(await lab.LeggiLAipAsync("2611"), lab.Rifiuto);
+        var amdt = Path.Combine(_radice, "AMDT.pdf");
+        File.WriteAllBytes(amdt, PdfAipFinto.Enr51("06 AUG 2026", "LI R901 - Prova Uno"));
+
+        Assert.Equal("L'AIP espanso ha 3 file non registrati su aip/2611: dopo l'emendamento la lettura del ciclo nuovo non partirebbe. "
+                     + "Registra l'AIP prima di applicarlo.", lab.EmendamentoBloccato);
+        Assert.False(await lab.ApplicaLEmendamentoAsync(amdt));
+        Assert.EndsWith("Registra l'AIP prima di applicarlo. Non ho scritto niente.", lab.Rifiuto, StringComparison.Ordinal);
+        Assert.Null(lab.UltimoEmendamento);
+        Assert.Equal(["AIP 2611"], Directory.EnumerateDirectories(pdf).Select(Path.GetFileName));
+
+        // Registrato, il tasto si riaccende e «Applica» va avanti: questo PDF non è un emendamento, e lo dice l'emendamento.
+        Assert.True(await lab.RegistraLAipAsync("AIP 2611"), lab.Rifiuto);
+        Assert.Null(lab.EmendamentoBloccato);
+        Assert.False(await lab.ApplicaLEmendamentoAsync(amdt));
+        Assert.DoesNotContain("non registrati", lab.Rifiuto, StringComparison.Ordinal);
+        Assert.NotNull(lab.UltimoEmendamento);
+    }
+
     [Fact]
     public async Task IlRamoDelCicloSiPrendeDalServerSeUnAltroAodLHaGiaCominciato_ESenzaLasciareLavoroIndietro()
     {
