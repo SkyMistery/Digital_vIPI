@@ -403,6 +403,7 @@
                         }
                     </section>
                 }
+                @NoteDelloScalo(s)
                 break;
 
             default:
@@ -490,6 +491,82 @@
         if (Lab.StratoDellAip is { } strato)
             Lab.Scegli(strato.File, indice);
     }
+
+    /// <summary>Lo stand cercato nelle note dei parcheggi.</summary>
+    private string _stand = "";
+
+    /// <summary>
+    /// §2 D, controllo 3: le note delle carte dei parcheggi, lette al clic; con uno stand scritto, solo le righe che lo citano,
+    /// ognuna con quella prima (una frase va spesso a capo prima del numero).
+    /// </summary>
+    private RenderFragment NoteDelloScalo(Aip.Aerodrome s) => __builder =>
+    {
+        var carte = (s.Charts ?? []).Count(NoteDeiParcheggi.EDeiParcheggi);
+        <section class="lab-pista" data-ground-note>
+            <h3 class="lab-pista-nome">Note dei parcheggi <span class="lab-nota">le pagine di testo delle carte dei parcheggi</span></h3>
+            @if (carte == 0)
+            {
+                <p class="lab-nota">AD 2.24 non ha carte dei parcheggi per @s.Icao.</p>
+            }
+            else if (Lab.NoteDeiParcheggi(s.Icao) is not { } note)
+            {
+                <p class="lab-nota">@(carte == 1 ? "Una carta" : $"{carte} carte") dei parcheggi in AD 2.24. Il Lab legge le loro pagine di testo (REMARKS,
+                    DESCRIPTION TABLES, le tabelle dei punti d'arresto) e le mostra com'è stampate.</p>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="leggi-note" disabled="@Lab.StaLeggendoLeNote"
+                        @onclick="() => Lab.LeggiLeNoteDeiParcheggiAsync(s)">@(Lab.StaLeggendoLeNote ? "Leggo le note…" : "Leggi le note dei parcheggi")</button>
+            }
+            else if (note.Count == 0)
+            {
+                <p class="lab-nota" data-note-nessuna>Le carte dei parcheggi di @s.Icao non hanno pagine di testo: le note, se ci sono, stanno nel disegno (apri il PDF dalla scheda Carte).</p>
+            }
+            else
+            {
+                <label class="lab-campo-in-colonna lab-nota">
+                    Stand
+                    <input class="lab-campo" value="@_stand" data-campo="stand" placeholder="401" @oninput="e => _stand = e.Value?.ToString() ?? string.Empty" />
+                </label>
+                var cerca = _stand.Trim();
+                var trovate = 0;
+                @foreach (var pagina in note.Where(n => cerca.Length == 0 || n.Righe.Any(r => NoteDeiParcheggi.CitaLoStand(r, cerca))))
+                {
+                    <div class="lab-note-parcheggi" data-note-pagina="@pagina.Pagina">
+                        <p class="lab-nota">
+                            @if (Ciclo is { } cicloDelleNote)
+                            {
+                                <button type="button" class="lab-voce" title="Apre il PDF a questa pagina" @onclick="() => Apri(cicloDelleNote, pagina.Pagina)">@pagina.Pagina</button>
+                            }
+                            else
+                            {
+                                @pagina.Pagina
+                            }
+                            @(pagina.Data is { } data ? " · " + data.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) : "") · @pagina.Carta
+                        </p>
+                        @for (var i = 0; i < pagina.Righe.Count; i++)
+                        {
+                            var riga = pagina.Righe[i];
+                            if (cerca.Length == 0)
+                            {
+                                <p class="lab-riga-di-nota">@riga</p>
+                            }
+                            else if (NoteDeiParcheggi.CitaLoStand(riga, cerca))
+                            {
+                                trovate++;
+                                @if (i > 0)
+                                {
+                                    <p class="lab-riga-di-nota lab-nota">@pagina.Righe[i - 1]</p>
+                                }
+                                <p class="lab-riga-di-nota lab-riga-trovata" data-riga-stand>@riga</p>
+                            }
+                        }
+                    </div>
+                }
+                @if (cerca.Length > 0)
+                {
+                    <p class="lab-nota" data-stand-trovate>@(trovate == 0 ? $"Nessuna riga cita lo stand {cerca}." : trovate == 1 ? $"Una riga cita lo stand {cerca}." : $"{trovate} righe citano lo stand {cerca}.")</p>
+                }
+            }
+        </section>
+    };
 
     /// <summary>Il nome del file del sector senza la cartella: <c>itrw.rw</c>.</summary>
     private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOfAny(['/', '\\']) + 1)..];

@@ -571,6 +571,7 @@ public sealed class AipNellaBarraTests : IDisposable
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Ground]").Click());
         Assert.Contains("Nessun .rw ha 16L, 34R", pagina.Find("[data-ground-senza-rw]").TextContent, StringComparison.Ordinal);
         Assert.Contains("AD 2.8 non dice i nomi", pagina.Find("[data-ground-taxiway]").TextContent, StringComparison.Ordinal);
+        Assert.Contains("AD 2.24 non ha carte dei parcheggi per LIXX", pagina.Find("[data-ground-note]").TextContent, StringComparison.Ordinal);
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Testo]").Click());
         Assert.NotNull(pagina.Find("[data-testo-scalo] [data-scheda-aip]"));
 

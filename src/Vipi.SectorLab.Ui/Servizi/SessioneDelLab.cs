@@ -5496,6 +5496,57 @@ public sealed partial class SessioneDelLab
     public Core.PdfAip.ControlliDelGround? ControlliDelGround(Aip.Aerodrome scalo) =>
         Sessione is { } sessione ? Core.PdfAip.GroundDelloScalo.Di(scalo, sessione) : null;
 
+    private readonly Dictionary<(string Ciclo, string Icao), IReadOnlyList<Core.PdfAip.PaginaDiNote>> _noteDeiParcheggi = [];
+
+    /// <summary>Le note dei parcheggi lette dello scalo, nel ciclo sulla mappa; null se non sono ancora state lette.</summary>
+    public IReadOnlyList<Core.PdfAip.PaginaDiNote>? NoteDeiParcheggi(string icao) =>
+        StratoDellAip is { } strato && _noteDeiParcheggi.TryGetValue((strato.Ciclo, icao), out var note) ? note : null;
+
+    /// <summary>Sta leggendo le note dei parcheggi.</summary>
+    public bool StaLeggendoLeNote { get; private set; }
+
+    /// <summary>
+    /// «Leggi le note dei parcheggi» (§2 D, controllo 3): le pagine di testo delle carte dei parcheggi dello scalo, dai PDF
+    /// del ciclo sulla mappa. Si leggono al clic, perché un file di carte chiede qualche secondo, e restano per il ciclo.
+    /// </summary>
+    public async Task<bool> LeggiLeNoteDeiParcheggiAsync(Aip.Aerodrome scalo)
+    {
+        ArgumentNullException.ThrowIfNull(scalo);
+        if (StaLeggendoLeNote)
+            return false;
+        if (StratoDellAip is not { } strato)
+            return Rifiuta("Mostra l'AIP espanso sulla mappa: le note si leggono dal suo ciclo.");
+        if (CartellaDellAipEspanso is not { } espanso || !File.Exists(Core.PdfAip.IndiceDellePagine.File(espanso, strato.Ciclo)))
+            return Rifiuta($"Del {strato.Ciclo} non c'è l'indice delle pagine: leggi il ciclo.");
+        if (CartellaDeiPdf is not { } cartellaDeiPdf)
+            return Rifiuta("Manca la cartella dei PDF dell'AIP.");
+        StaLeggendoLeNote = true;
+        Avvisa();
+        try
+        {
+            var indice = Core.PdfAip.IndiceDellePagine.Leggi(await File.ReadAllTextAsync(Core.PdfAip.IndiceDellePagine.File(espanso, strato.Ciclo)).ConfigureAwait(false));
+            var pdf = Core.PdfAip.PdfDellAip.Elenco(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(cartellaDeiPdf, strato.Ciclo));
+            var note = await Task.Run(() => Core.PdfAip.NoteDeiParcheggi.Leggi(scalo, indice,
+                nome => pdf.FirstOrDefault(f => string.Equals(Path.GetFileName(f), nome, StringComparison.OrdinalIgnoreCase)) is { } f
+                    ? global::Aip.Pdf.PdfText.Read(f)
+                    : null)).ConfigureAwait(false);
+            _noteDeiParcheggi[(strato.Ciclo, scalo.Icao)] = note;
+            Registro.Scrivi("aip", $"note dei parcheggi di {scalo.Icao}, ciclo {strato.Ciclo}: {note.Count} pagine");
+            Rifiuto = null;
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException or System.Text.Json.JsonException)
+        {
+            Registro.Errore("aip", e);
+            return Rifiuta($"Le note dei parcheggi di {scalo.Icao} non si leggono: {e.Message}");
+        }
+        finally
+        {
+            StaLeggendoLeNote = false;
+            Avvisa();
+        }
+    }
+
     private (object Modello, IReadOnlyDictionary<string, (int Lette, int Tutte)> Coperture)? _copertureIap;
 
     /// <summary>Per ogni scalo, le carte IAP che danno procedure su quelle di AD 2.24 (la riga dello scalo nell'Indice).</summary>

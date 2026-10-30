@@ -87,8 +87,10 @@ trasparente quanto si vuole. Le regole speciali, controlli che il Lab fa da sé 
 1. **Le soglie del sector contro AD 2.12**, in metri, pista per pista.
 2. **I nomi delle taxiway** del sector contro quelli di AD 2.8.
 3. **Gli stand**: dove AD 2 stampa le coordinate come testo, il sector contro l'AIP in metri; dove no, a occhio sulla
-   carta posata. Misurato il 30 ottobre sul 2611: nessuno scalo stampa come testo le coordinate degli stand, né nelle
-   sottosezioni né nelle pagine delle carte dei parcheggi (sono disegni o note): il controllo 3 è a occhio dappertutto. LIRF no: la sua «PARKING DOCKING CHART DESCRIPTION TABLES»
+   carta posata. Misurato il 30 ottobre sul 2611 (la prima misura, la mattina, diceva «nessuno»: non riconosceva il
+   simbolo dei gradi): le sottosezioni di AD 2 non le stampano; le carte dei parcheggi di **LIPE, LIEE, LIPY e LIRP**
+   stampano sul disegno la tabella dei punti d'arresto degli stand («110-stop2 44° 31' 47.16" 011° 17' 44.29"»), LIBP e
+   LIRI pochi punti. Il confronto in metri col sector si può fare lì; altrove resta a occhio. LIRF no: la sua «PARKING DOCKING CHART DESCRIPTION TABLES»
    (AD 2 LIRF 2-9) è testo, ma sono note — gli stand col VDGS, quelli fuori dalla vista della torre, gli ingressi solo da
    una taxiway («Stands 401-405 entrance only via TWY NZ»). Anche queste sono regole che il Lab può leggere e mostrare.
 4. Le regole di uno scalo che il PDF non dice (una taxiway che il sector disegna diversa per scelta) si scrivono come
@@ -215,6 +217,24 @@ Misura sul 2611 col sector del banco: soglie oltre 10 m a LIDP (02 a 249 m, 20 a
 LIRI (05 a 367 m), LIBR (31 a 220 m), LICA (10 a 103 m), LICR (11 a 46 m), LILN (17 e 35 a 17 e 24 m); taxiway che
 il sector non ha a LIMC (GS), LIRF (CM), LIRA (BF), LIPE (TK, TY), LIRL (L, W: la L è chiusa nelle note), e tutte quelle
 degli scali senza `.txi` (LIRJ, LIRG, LIQL, LIPN…). Provato a schermo sul banco: LIRN e LIDP.
+
+**Le note dei parcheggi, 30 ottobre** (controllo 3, la parte che si legge). Nella scheda Ground, sotto le taxiway, «Leggi
+le note dei parcheggi» (`NoteDeiParcheggi`, Core): le pagine di testo delle carte dei parcheggi di AD 2.24, riga per riga
+com'è stampate, con la pagina, la data e «Apri il PDF». Una carta occupa le pagine fino alla carta seguente dello stesso
+file (come in S2). Una pagina entra se ha «REMARKS» o «DESCRIPTION TABLE» e non la legenda di un disegno («Bearings are
+magnetic»), se continua una pagina di note con almeno 40 parole, o se stampa una tabella di almeno 10 coordinate (i punti
+d'arresto di LIPE, LIEE, LIPY, LIRP, scritti sul disegno). Il campo **Stand** lascia le righe che citano lo stand, ognuna
+con quella prima: il numero da solo, non come misura («36 m»), o dentro un intervallo («from 307 to 317», «Stands 11-16»,
+non «0600-2200»).
+- **Perché riga per riga e non stand per stand.** La tabella «STAND · ACFT CODE · DIMENSIONS RESTRICTIONS · SELF
+  MANOEUVRING · PUSH BACK · REMARKS» (LIRN, LIBD, LIBR, LIPQ…), letta come testo, ha le colonne sfalsate: lo stand 201 di
+  LIBD cade accanto alle restrizioni di un altro. Dividerla per stand vorrebbe i bordi delle celle, e non tutte le pagine li
+  hanno: è un passo a parte, se servirà.
+- **Si legge al clic.** Un file di carte si legge in un secondo circa (tutti i 97 scali in 17 s); le note restano per
+  ciclo e scalo finché il Lab è aperto.
+Misura sul 2611: **18 scali** hanno note — LIBD, LIBF, LIBG, LIBR, LIEE, LIMC, LIMF, LIML, LIPE, LIPQ, LIPX, LIPY, LIRA
+(sei pagine), LIRF, LIRI, LIRN, LIRP; gli altri hanno solo il disegno. Provato a schermo sul banco: LIRF «401» trova la
+riga del VDGS e «Stands 401, 402, 403, 404, 405 entrance only via TWY NZ»; LIPE «110» i due punti d'arresto.
 
 ## §5 — Deciso e da decidere
 

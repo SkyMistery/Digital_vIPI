@@ -51,7 +51,10 @@ Pacchetti nuovi: `bblanchon.PDFium.Win32` e `.Linux` 158.0.8125, solo i binari; 
 
 **30 ottobre, pomeriggio: i controlli del ground 1 e 2.** Nella pagina dello scalo la scheda **Ground**: le soglie dei `.rw`
 contro AD 2.12 in metri e i nomi delle taxiway dei `.txi` contro AD 2.8, in sola lettura. Disegno e misura sul 2611 nella
-carta degli aeroporti. Prove A79-A81.
+carta degli aeroporti. Prove A79-A81. Poi, nella stessa scheda, **le note dei parcheggi**: le pagine di testo delle carte
+dei parcheggi lette al clic, riga per riga, e la ricerca per stand (18 scali sul 2611). Misurando è venuto fuori che
+LIPE, LIEE, LIPY e LIRP stampano sul disegno le coordinate dei punti d'arresto degli stand: la mattina avevo scritto
+«nessuno», e la carta è corretta. Prove A83-A84.
 
 **L'emendamento si ferma prima con file non registrati.** Era una domanda aperta dal 27 ottobre: con file non registrati
 nell'AIP espanso la lettura del ciclo nuovo non cambia ramo e si rifiuta (A40), ma lo si scopriva solo alla fine dei circa

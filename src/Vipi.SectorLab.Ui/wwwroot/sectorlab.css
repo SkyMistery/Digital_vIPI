@@ -2332,6 +2332,24 @@ body.lab-trascina * {
     color: var(--lab-avviso);
 }
 
+/* §2 D, controllo 3: le note dei parcheggi riga per riga, com'è stampate; quella che cita lo stand cercato in evidenza. */
+.lab-note-parcheggi {
+    border-top: 1px solid var(--lab-linea);
+    padding-top: .3rem;
+    margin-top: .3rem;
+}
+
+.lab-riga-di-nota {
+    margin: 0;
+    font-size: .85rem;
+    overflow-wrap: anywhere;
+}
+
+.lab-riga-trovata {
+    background: var(--lab-scelto);
+    font-weight: 600;
+}
+
 /* S2: una carta di avvicinamento solo immagine (il Lab non ne legge niente) si vede più tenue di una letta. */
 .lab-stato-immagine {
     font-style: italic;
