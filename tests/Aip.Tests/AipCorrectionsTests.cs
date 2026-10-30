@@ -213,6 +213,35 @@ public sealed class AipCorrectionsTests
     }
 
     [Fact]
+    public void UnaProceduraAggiunta_SiApplica_ELaSuperaIlPdfCheLaStampa()
+    {
+        // Carta «Gli aeroporti nel Lab», S4: il mancato ridisegnato sopra la carta posata, che il PDF non ha in tabella.
+        var mancato = new Procedure
+        {
+            Aerodrome = "LIXX",
+            Kind = ProcedureKind.Approach,
+            Designator = "VOR RWY 06",
+            Runways = ["06"],
+            Segment = "MISSED APPROACH",
+            Legs = [new ProcedureLeg { PathTerminator = "IF", Fix = "ABRUS" }, new ProcedureLeg { PathTerminator = "TF", Computed = "dalla carta", Position = new Position(41.2, 12.3) }],
+        };
+        Assert.Equal("LIXX Approach VOR RWY 06 RWY 06 MISSED APPROACH", AipCorrections.KeyOf(mancato));
+        var file = File(Correzione("1", CorrectionKind.Procedure, mancato.Key, CorrectionOp.Add, AipCorrections.ToNode(mancato)));
+        var testo = AipCorrections.Serialize(file);
+        Assert.Contains("\"kind\": \"procedure\"", testo, StringComparison.Ordinal);
+
+        var esito = AipCorrections.Apply(Pdf("2611", Punto("ABRUS", 41.0, 12.0)), AipCorrections.Deserialize(testo));
+        Assert.Equal(CorrectionOutcomeKind.Applied, Assert.Single(esito.Outcomes).Outcome);
+        Assert.Equal(mancato, Assert.Single(esito.Document.Procedures!));
+
+        // Un ciclo dopo il PDF ha la tabella: l'aggiunta è superata, e vale quella del PDF.
+        var delPdf = mancato with { Legs = [.. mancato.Legs.Take(1)] };
+        var dopo = AipCorrections.Apply(Pdf("2612", Punto("ABRUS", 41.0, 12.0)) with { Procedures = [delPdf] }, esito.File);
+        Assert.Equal(CorrectionOutcomeKind.SupersededByAip, Assert.Single(dopo.Outcomes).Outcome);
+        Assert.Equal(delPdf, Assert.Single(dopo.Document.Procedures!));
+    }
+
+    [Fact]
     public void LaChiaveDiUnAttesa()
     {
         var attesa = new Holding

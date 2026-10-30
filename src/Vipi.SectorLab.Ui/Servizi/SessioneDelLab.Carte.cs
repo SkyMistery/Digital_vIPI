@@ -66,8 +66,11 @@ public sealed partial class SessioneDelLab
     public string? IndirizzoDellaCarta =>
         Posa is { } p ? "/carta/immagine?v=" + Uri.EscapeDataString(p.Ciclo + "|" + p.Carta.Page) : null;
 
-    /// <summary>La mappa aspetta un clic per il punto in attesa: il clic su un punto dell'AIP ne prende le coordinate.</summary>
-    public bool PrendeUnPuntoDallaMappa => Posa?.InAttesa is not null;
+    /// <summary>
+    /// La mappa aspetta un clic per il punto in attesa della posa, o per il prossimo punto del tratto che si ridisegna (S4): il
+    /// clic su un punto dell'AIP ne prende le coordinate.
+    /// </summary>
+    public bool PrendeUnPuntoDallaMappa => Posa?.InAttesa is not null || Tracciato is not null;
 
     /// <summary>
     /// L'immagine di una pagina dell'AIP (<c>«AD 2 LIRN 5-3»</c>) del ciclo: dalla cache, o la fa PDFium e la mette lì. Null
@@ -154,6 +157,12 @@ public sealed partial class SessioneDelLab
         if (ImmagineDellaPagina(strato.Ciclo, carta.Page) is not { } immagine)
             return false;
         var salvata = PoseDi(icao).FirstOrDefault(p => p.Pagina == carta.Page);
+        // Il tratto di prima stava sopra un'altra carta.
+        if (Tracciato is not null)
+        {
+            Tracciato = null;
+            VersioneDelTracciato++;
+        }
         Posa = new PosaInCorso(icao, strato.Ciclo, carta, immagine, salvata?.Punti ?? [], null, false, salvata?.Data, salvata is not null);
         Rifiuto = null;
         Registro.Scrivi("carte", $"posa di {carta.Page} «{carta.Title}»" + (salvata is null ? "" : $", {salvata.Punti.Count} punti salvati"));
@@ -165,12 +174,17 @@ public sealed partial class SessioneDelLab
         return true;
     }
 
-    /// <summary>Chiude la posa: la carta lascia la mappa. I cambi non salvati si perdono.</summary>
+    /// <summary>Chiude la posa: la carta lascia la mappa, e con lei il tratto che le si ridisegnava sopra. I cambi non salvati si perdono.</summary>
     public void ChiudiLaPosa()
     {
         if (Posa is null)
             return;
         Posa = null;
+        if (Tracciato is not null)
+        {
+            Tracciato = null;
+            VersioneDelTracciato++;
+        }
         VersioneDellaCarta++;
         Avvisa();
     }
@@ -196,8 +210,12 @@ public sealed partial class SessioneDelLab
     /// <summary>Il posto sulla mappa del punto in attesa: un clic sulla mappa, o su un punto dell'AIP (col suo nome).</summary>
     public void PuntoDallaMappa(double lat, double lon, string? nome = null)
     {
+        // Un punto della posa in attesa viene prima: poi il clic torna al tratto.
         if (Posa is not { InAttesa: var (x, y) } p)
+        {
+            PuntoDelTracciatoDallaMappa(lat, lon, nome);
             return;
+        }
         Posa = p with { Punti = [.. p.Punti, new PuntoDellaPosa(x, y, lat, lon, string.IsNullOrWhiteSpace(nome) ? null : nome.Trim())], InAttesa = null, Modificata = true };
         Registro.Scrivi("carte", $"punto {Posa.Punti.Count} di {p.Carta.Page}: {(nome ?? "dalla mappa")} {PoseDelleCarte.InGradi(lat, lon)}");
         VersioneDellaCarta++;

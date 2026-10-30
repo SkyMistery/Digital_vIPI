@@ -1,0 +1,167 @@
+@inject SessioneDelLab Lab
+@using Vipi.SectorLab.Core.PdfAip
+
+@*
+    Ridisegnare sulla carta (carta «Gli aeroporti nel Lab», S4): con la carta di avvicinamento posata sulla mappa, quel che la
+    carta disegna e il Lab non ha — il mancato di un ILS, un arco — si traccia sopra di lei, punto per punto, e va nell'AIP
+    espanso: una parte nuova come aggiunta, o dei tratti in coda a una parte che c'è come correzione, con la carta per fonte.
+    Il clic su un fix dell'AIP lo prende per nome; altrove il punto ha le sue coordinate, «dalla carta».
+*@
+@if (Carta is { } carta && Icao is { } icao && Lab.Posa is { Posa: not null } posa && posa.Icao == icao && posa.Carta.Page == carta.Carta.Page)
+{
+    var tracciato = Lab.Tracciato is { } t && t.Icao == icao && t.Carta.Carta.Page == carta.Carta.Page ? t : null;
+    <section class="lab-posa-carta" data-tracciato="@carta.Carta.Page" data-tracciato-aperto="@(tracciato is null ? "no" : "si")">
+        <h4 class="lab-etichetta">Ridisegna sulla carta</h4>
+        @if (tracciato is null)
+        {
+            var conTratti = carta.Parti.Where(p => !p.Tabella && p.Procedura.Tratti > 0 && p.Procedura.Chiave is not null).ToList();
+            <p class="lab-nota">Quel che la carta disegna e il Lab non ha (il mancato, un arco) si traccia sopra la carta posata, e va
+                nell'AIP espanso con la carta per fonte: si manda con «Registra l'AIP», in Lettura e consegna.</p>
+            <p class="lab-gesti-record">
+                <select class="lab-campo" data-campo="tracciato-in-coda-a" value="@_inCodaA" @onchange="e => _inCodaA = e.Value?.ToString()">
+                    <option value="">una parte nuova</option>
+                    @foreach (var parte in conTratti)
+                    {
+                        <option value="@parte.Procedura.Chiave">in coda a «@parte.Nome»</option>
+                    }
+                </select>
+                <button type="button" class="lab-tasto" data-tasto="ridisegna" @onclick="() => Apri(icao, carta)">Ridisegna</button>
+            </p>
+        }
+        else
+        {
+            <p class="lab-nota" data-istruzioni-tracciato>
+                @(tracciato.InCodaA is null
+                    ? "Clicca sulla mappa i punti della parte, in ordine: sopra un fix dell'AIP il punto è il fix, altrove ha le coordinate del clic."
+                    : "Clicca sulla mappa i punti che seguono l'ultimo della parte, in ordine: sopra un fix dell'AIP il punto è il fix, altrove ha le coordinate del clic.")
+            </p>
+            @if (tracciato.InCodaA is null)
+            {
+                <label class="lab-nota">Parte *
+                    <input type="text" class="lab-campo" data-campo="tracciato-parte" placeholder="MISSED APPROACH" value="@_parte" @onchange="e => _parte = e.Value?.ToString()" />
+                </label>
+            }
+            else
+            {
+                <p class="lab-nota" data-tracciato-in-coda>In coda a «@(carta.Parti.FirstOrDefault(p => p.Procedura.Chiave == tracciato.InCodaA)?.Nome ?? tracciato.InCodaA)»</p>
+            }
+            <p class="lab-gesti-record lab-posa-nome">
+                <input type="text" class="lab-campo" placeholder="DIEZO, NAP, RWY 24…" aria-label="Il nome del punto" data-campo="nome-del-punto-tracciato"
+                       @bind="_nome" @onkeydown="Invio" />
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="aggiungi-punto-tracciato" @onclick="Trova">Aggiungi</button>
+            </p>
+            @if (tracciato.Punti.Count > 0)
+            {
+                <ol class="lab-posa-punti" data-punti-tracciato>
+                    @for (int i = 0; i < tracciato.Punti.Count; i++)
+                    {
+                        var indice = i;
+                        var punto = tracciato.Punti[i];
+                        <li data-punto-tracciato="@(i + 1)">
+                            <span>@(punto.Fix ?? PoseDelleCarte.InGradi(punto.Lat, punto.Lon))</span>
+                            <select class="lab-campo lab-campo-corto" data-campo="tracciato-tipo" value="@punto.Tipo" title="Il tratto che arriva al punto"
+                                    @onchange="e => Lab.CambiaIlPuntoDelTracciato(indice, punto with { Tipo = e.Value?.ToString() ?? punto.Tipo })">
+                                @foreach (var tipo in TracciatiSullaCarta.Tipi)
+                                {
+                                    <option value="@tipo">@tipo</option>
+                                }
+                            </select>
+                            <input class="lab-campo lab-campo-corto" data-campo="tracciato-quota" placeholder="+3000" title="La quota com'è stampata" value="@punto.Quota"
+                                   @onchange="e => Lab.CambiaIlPuntoDelTracciato(indice, punto with { Quota = e.Value?.ToString() })" />
+                            <input class="lab-campo lab-campo-corto" data-campo="tracciato-velocita" placeholder="-210" title="La velocità com'è stampata" value="@punto.Velocita"
+                                   @onchange="e => Lab.CambiaIlPuntoDelTracciato(indice, punto with { Velocita = e.Value?.ToString() })" />
+                            @if (punto.Tipo == "RF")
+                            {
+                                <input class="lab-campo lab-campo-corto" data-campo="tracciato-centro" placeholder="centro" title="Il centro dell'arco: un fix" value="@punto.Centro"
+                                       @onchange="e => Lab.CambiaIlPuntoDelTracciato(indice, punto with { Centro = e.Value?.ToString() })" />
+                                <select class="lab-campo lab-campo-corto" data-campo="tracciato-verso" value="@(punto.Verso ?? "")" title="Il verso della virata"
+                                        @onchange="e => Lab.CambiaIlPuntoDelTracciato(indice, punto with { Verso = e.Value?.ToString() })">
+                                    <option value="">verso</option>
+                                    <option value="L">L</option>
+                                    <option value="R">R</option>
+                                </select>
+                            }
+                            <button type="button" class="lab-voce" data-togli-punto-tracciato="@(i + 1)" title="Toglie questo punto dal tratto" @onclick="() => Lab.TogliIlPuntoDelTracciato(indice)">togli</button>
+                        </li>
+                    }
+                </ol>
+            }
+            <label class="lab-nota">Perché
+                <input class="lab-campo" data-campo="tracciato-perche" value="@_perche" @onchange="e => _perche = e.Value?.ToString()" />
+            </label>
+            <label class="lab-nota">Fonte
+                <input class="lab-campo" data-campo="tracciato-fonte" value="@_fonte" @onchange="e => _fonte = e.Value?.ToString()" />
+            </label>
+            <p class="lab-gesti-record">
+                <button type="button" class="lab-tasto" data-tasto="salva-tracciato" disabled="@(Lab.StaCorreggendoLAip || tracciato.Punti.Count == 0)"
+                        title="@(tracciato.InCodaA is null ? "Aggiunge la parte all'AIP espanso" : "Mette i tratti in coda alla parte, con una correzione")"
+                        @onclick="Salva">Salva nell'AIP espanso</button>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="lascia-tracciato" @onclick="Lab.ChiudiIlTracciato">Lascia stare</button>
+            </p>
+        }
+        @if (_errore is { } errore)
+        {
+            <p class="lab-errore" data-errore-tracciato>@errore</p>
+        }
+    </section>
+}
+
+@code {
+    /// <summary>Lo scalo della carta.</summary>
+    [Parameter] public string? Icao { get; set; }
+
+    /// <summary>La carta di avvicinamento, con le sue parti.</summary>
+    [Parameter] public CartaDiAvvicinamento? Carta { get; set; }
+
+    private string? _inCodaA;
+    private string? _parte;
+    private string? _nome;
+    private string? _perche;
+    private string? _fonte;
+    private string? _errore;
+
+    private void Apri(string icao, CartaDiAvvicinamento carta)
+    {
+        _errore = null;
+        _parte = null;
+        _perche = TracciatiSullaCarta.PercheProposto;
+        _fonte = TracciatiSullaCarta.Fonte(carta.Carta);
+        if (!Lab.ApriIlTracciato(icao, carta, string.IsNullOrEmpty(_inCodaA) ? null : _inCodaA))
+            _errore = Lab.Rifiuto;
+    }
+
+    private void Trova()
+    {
+        if (string.IsNullOrWhiteSpace(_nome))
+            return;
+        if (Lab.PuntoDelTracciatoPerNome(_nome))
+        {
+            _nome = null;
+            _errore = null;
+        }
+        else
+        {
+            _errore = Lab.Rifiuto;
+        }
+    }
+
+    private void Invio(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            Trova();
+    }
+
+    // Salvata, la parte compare fra quelle della carta col segno «✎»: la pagina dello scalo si rifà con lo strato nuovo.
+    private async Task Salva()
+    {
+        if (await Lab.SalvaIlTracciatoAsync(_parte, _perche, _fonte))
+        {
+            _errore = null;
+            _inCodaA = null;
+        }
+        else
+        {
+            _errore = Lab.Rifiuto;
+        }
+    }
+}

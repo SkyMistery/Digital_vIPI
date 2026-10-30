@@ -86,10 +86,18 @@
                             <button type="button" class="lab-voce @(Lab.SceltaDellAip == parte.Procedura.Indice ? "lab-scelto" : null)" data-voce-aip="@parte.Procedura.Indice"
                                     title="@parte.Procedura.Titolo" @onclick="() => Scegli(parte.Procedura.Indice)">@parte.Nome</button>
                             <span class="lab-nota @(!parte.Tabella && (parte.Procedura.Tratti < 2 || parte.Procedura.NonTrovati > 0) ? "lab-stato-parziale" : null)">@(parte.Tabella ? "tabella" : parte.Procedura.Stato)@(parte.Procedura.ConSegnalazione ? " · segnalazione" : "")</span>
+                            @* S4: una parte ridisegnata sulla carta (o allungata) è una correzione dell'AIP espanso, e si ritira da qui. *@
+                            @if (Lab.CorrezioneDellaProcedura(parte.Procedura.Chiave) is { } ridisegnata)
+                            {
+                                <span class="lab-nota" data-parte-ridisegnata="@ridisegnata.Id" title="@($"{ridisegnata.Reason} — fonte: {ridisegnata.Source}")">✎ @(ridisegnata.Op == Aip.CorrectionOp.Add ? "ridisegnata" : "allungata")</span>
+                                <button type="button" class="lab-voce" data-ritira-parte="@ridisegnata.Id" disabled="@Lab.StaCorreggendoLAip"
+                                        title="La parte torna com'è nel PDF" @onclick="() => Lab.RitiraLaCorrezioneAsync(ridisegnata.Id)">ritira</button>
+                            }
                         </p>
                     }
                 }
                 <PosaDellaCartaVista Icao="@s.Icao" Carta="carta.Carta" />
+                <TracciatoSullaCartaVista Icao="@s.Icao" Carta="carta" />
             </section>
         }
         else if (FoglioAperto is { } foglioAperto)

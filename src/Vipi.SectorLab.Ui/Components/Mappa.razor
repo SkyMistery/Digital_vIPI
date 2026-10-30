@@ -190,9 +190,17 @@
                 _prende = Lab.PrendeUnPuntoDallaMappa;
                 await Js.InvokeVoidAsync("sectorlab.mappa.prendi", _prende, Elemento);
             }
+            // S4: il tratto che si ridisegna sopra la carta, tratteggiato come l'anteprima di «incolla da testo».
+            if (_versioneDelTracciato != Lab.VersioneDelTracciato)
+            {
+                _versioneDelTracciato = Lab.VersioneDelTracciato;
+                double[] punti = [.. Lab.AnteprimaDelTracciato.SelectMany(p => new[] { p.LatitudeDeg, p.LongitudeDeg })];
+                await Js.InvokeVoidAsync("sectorlab.mappa.anteprima", punti, Array.Empty<double>(), Elemento);
+            }
         }
     }
 
+    private int _versioneDelTracciato;
     private int _versioneDellaCarta;
     private int _inquadratureDellaCarta;
     private bool _prende;

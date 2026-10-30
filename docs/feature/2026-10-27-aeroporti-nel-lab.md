@@ -201,6 +201,35 @@ d'aerodromo, i parcheggi):
 Provato sul banco a 1100 px sul 2611: LIRN ILS Z RWY 24 posata con ESCOB, BENTO e URRUC scritti per nome; i fix dell'AIP
 cadono sui simboli della carta (anche DIEZO, OLEVA, ISKIA e il mancato, che non erano punti della posa), e la scala torna.
 
+**S4 fatta il 30 ottobre, notte.** Ridisegnare sulla carta posata quel che il Lab non ha, e salvarlo come correzione:
+- **Dove.** Nella carta di avvicinamento aperta, sotto «Sulla mappa», il riquadro **«Ridisegna sulla carta»**, solo con la
+  carta posata (almeno due punti). Si sceglie **una parte nuova** o **in coda a** una parte coi tratti (il mancato che la
+  tabella non ha); per una carta solo immagine c'è solo la parte nuova. Una procedura che non è di una carta di
+  avvicinamento (una SID) resta fuori: le carte delle SID non sono nella pagina dello scalo come carte con parti.
+- **I punti.** Un clic sulla mappa, sopra la carta: su un punto dell'AIP il punto è quel fix (il nome dell'etichetta, «NAP»
+  di «NAP VOR/DME»), altrove ha le coordinate del clic e la definizione **«dalla carta»** — come i punti calcolati della
+  prosa (7b), si disegna dalla sua posizione e la scheda dice da dove viene. Oppure il nome scritto: un fix, una
+  radioassistenza, «RWY 24» (la soglia). Per ogni punto il tratto che ci arriva (IF il primo di una parte nuova, poi TF;
+  CF, DF; RF con il centro, un fix, e il verso L o R), la quota e la velocità com'è stampate. Un arco senza centro o senza
+  verso non si salva. Sulla mappa l'anteprima tratteggiata (per una coda, dall'ultimo punto della parte); gli archi in
+  anteprima sono corde, il disegno vero lo fa la mappa dopo il salvataggio.
+- **La parte nuova** è un avvicinamento con il titolo della carta per designatore («ILS Z RWY 24»), le piste della carta, il
+  titolo di AD 2.24 per sezione (senza il trattino morbido), il segmento scritto dall'AOD e la **pagina della carta**: così
+  sta sotto di lei (la regola delle pagine di S2). La coda è la parte di prima coi tratti in più, il resto com'era.
+- **Il salvataggio** è il meccanismo delle correzioni (carta F6): la parte nuova un'**aggiunta**, la coda una
+  **correzione** della parte (`before` è la parte del PDF), con il perché proposto («La carta è un'immagine: il tratto è
+  ridisegnato sopra la carta posata.») e la fonte «carta AD 2 LIRN 5-3 (02/10/2025)», tutti e due da cambiare se serve. Si
+  manda con «Registra l'AIP». Se un ciclo dopo il PDF porta la stessa parte, l'aggiunta è superata e vale il PDF, come per
+  ogni correzione.
+- **Codice comune.** Il modello `Aip` ha il tipo di correzione `procedure` (`CorrectionKind.Procedure`, la chiave è
+  `Procedure.Key`); il file delle correzioni resta allo schema 1 (un tipo in più si legge come gli altri). Nell'Indice,
+  «Aggiungi» non offre le procedure: si ridisegnano sulla carta.
+- **Dopo il salvataggio** la pagina resta sullo scalo con la carta aperta e posata (la lettura dello strato dopo una
+  correzione non chiude la posa, se il ciclo è lo stesso), la parte si accende sulla mappa e fra le parti ha «✎ ridisegnata»
+  (o «allungata») con **«ritira»**; la sua scheda dice la correzione.
+Provato sul banco a 1100 px su LIRN ILS Z RWY 24: parte nuova DIEZO-ISKIA più un punto preso sulla carta, poi URRUC-ISKIA
+(disegnata sulla mappa), in coda OLEVA (4 tratti), «ritira» (la carta torna a 5 parti); un arco senza centro rifiutato.
+
 **I controlli 1 e 2 del ground fatti il 30 ottobre** (parte di S5, prima della carta d'aerodromo sotto il ground: leggono
 solo il testo). Nella pagina dello scalo una scheda **Ground**, in sola lettura sul sector aperto (`GroundDelloScalo`, Core):
 - **Le soglie.** Ogni testata di ogni `.rw` dello scalo, file per file (le FIR possono essere diverse da `itrw.rw`), coi

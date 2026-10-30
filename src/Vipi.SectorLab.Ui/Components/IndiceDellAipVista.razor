@@ -56,7 +56,8 @@
                     <span class="lab-nota" data-aggiungi>
                         <select class="lab-campo" data-campo="aggiungi-tipo" value="@_tipoDaAggiungere"
                                 @onchange="e => _tipoDaAggiungere = Enum.TryParse<Aip.CorrectionKind>(e.Value?.ToString(), out var t) ? t : _tipoDaAggiungere">
-                            @foreach (var t in Enum.GetValues<Aip.CorrectionKind>())
+                            @* Una procedura no: si ridisegna sopra la sua carta posata (S4), dalla pagina dello scalo. *@
+                            @foreach (var t in Enum.GetValues<Aip.CorrectionKind>().Where(t => t != Aip.CorrectionKind.Procedure))
                             {
                                 <option value="@t">@CorrezioniDellAip.Nome(t)</option>
                             }

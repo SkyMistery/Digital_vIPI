@@ -12,9 +12,10 @@ public sealed record PistaDelloScalo(string Nome, IReadOnlyList<LatoDellaPista> 
 
 /// <summary>
 /// Una procedura nella pagina dello scalo: la sua voce nello strato (per sceglierla e accenderla), quanti tratti ha, i punti
-/// che non si trovano, e se la lettura ha una segnalazione su di lei.
+/// che non si trovano, e se la lettura ha una segnalazione su di lei. <see cref="Chiave"/>: quella della procedura nel modello
+/// (S4: la sua correzione, se ridisegnata).
 /// </summary>
-public sealed record ProceduraDelloScalo(int Indice, string Titolo, int Tratti, int NonTrovati, bool ConSegnalazione, string? Pagina)
+public sealed record ProceduraDelloScalo(int Indice, string Titolo, int Tratti, int NonTrovati, bool ConSegnalazione, string? Pagina, string? Chiave = null)
 {
     /// <summary>Lo stato in parole, corto: «14 tratti», «solo un punto», «senza tratti»; e i punti che non si trovano.</summary>
     public string Stato => (Tratti switch
@@ -175,7 +176,7 @@ public static partial class PagineDegliScali
             var voce = strato.Voci[i];
             var forma = strato.Strato.Forme[i];
             delloScalo.Add((p, new ProceduraDelloScalo(i, voce.Titolo, p.Legs.Count, forma.NomiNonRisolti.Count,
-                conSegnalazione?.Contains(p.Key) == true, p.Page?.Reference), voce.Genere));
+                conSegnalazione?.Contains(p.Key) == true, p.Page?.Reference, p.Key), voce.Genere));
         }
 
         // S2: un avvicinamento che sta sulle pagine di una carta di avvicinamento è una sua parte, non una voce del gruppo.

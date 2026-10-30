@@ -5605,9 +5605,10 @@ public sealed partial class SessioneDelLab
     /// <summary>
     /// «Mostra sulla mappa» (F6): legge l'AIP espanso del ciclo — quello in vigore, o quello scelto (passo 8) — e lo
     /// mette nello strato «AIP espanso», acceso. Le attese stanno dove il sector ha il loro punto. Spento, lo strato resta in
-    /// memoria fino alla prossima lettura.
+    /// memoria fino alla prossima lettura. <paramref name="tieniLaCarta"/>: la carta posata resta, se il ciclo è lo stesso (dopo
+    /// una correzione, S4: il tratto salvato si guarda sopra la carta su cui è stato ridisegnato).
     /// </summary>
-    public async Task<bool> MostraLAipAsync(bool mostra)
+    public async Task<bool> MostraLAipAsync(bool mostra, bool tieniLaCarta = false)
     {
         var id = Core.PdfAip.AipSullaMappa.Tipo.Id;
         if (!mostra)
@@ -5638,7 +5639,7 @@ public sealed partial class SessioneDelLab
             _correzioniSullaMappa = LeCorrezioniOppureNiente(espanso, modello.State);
             // S3: un altro ciclo (o il ramo dell'AIP cambiato): le pose si rileggono, e quella aperta era della carta di prima.
             _pose.Clear();
-            if (Posa is not null)
+            if (Posa is not null && !(tieniLaCarta && Posa.Ciclo == ciclo))
             {
                 Posa = null;
                 VersioneDellaCarta++;
@@ -5983,11 +5984,14 @@ public sealed partial class SessioneDelLab
             ? (tipo, voce)
             : null;
 
-    /// <summary>La correzione in piedi che ha fatto la voce scelta (non un'area), o null.</summary>
+    /// <summary>
+    /// La correzione in piedi che ha fatto la voce scelta (non un'area), o null. Una procedura non si corregge dalla scheda
+    /// (non ha un tipo), ma una ridisegnata sulla carta (S4) dice da dove viene.
+    /// </summary>
     public global::Aip.AipCorrection? CorrezioneDellaVoceScelta =>
         VoceDelModelloScelta is var (tipo, voce) && _correzioniSullaMappa is { } file
             ? Core.PdfAip.CorrezioniDellAip.Attiva(file, tipo, global::Aip.AipCorrections.KeyOf(voce))
-            : null;
+            : VoceDellAipScelta is { Tipo: null, Chiave: { } chiave } ? CorrezioneDellaProcedura(chiave) : null;
 
     /// <summary>
     /// «Correggi» (con <paramref name="chiave"/>) o «Aggiungi» (senza) una voce che non è un'area (slice 3): i campi del
@@ -6076,7 +6080,7 @@ public sealed partial class SessioneDelLab
             await Task.Run(() => Core.PdfAip.CorrezioniDellAip.Scrivi(espanso, ciclo, fatta)).ConfigureAwait(false);
             Registro.Scrivi("aip", fatta.Messaggio);
             MessaggioDellAip = fatta.Messaggio;
-            await MostraLAipAsync(true).ConfigureAwait(false);
+            await MostraLAipAsync(true, tieniLaCarta: true).ConfigureAwait(false);
             // La scheda resta sull'area: quella nuova (Correggi, Aggiungi), o la stessa tornata com'era (Ritira).
             var daScegliere = sceglie?.Invoke() ?? (sceglieLaStessa ? sceltaDiPrima : null);
             if (daScegliere is var (tipoScelto, chiaveScelta) && StratoDellAip is { } nuovo

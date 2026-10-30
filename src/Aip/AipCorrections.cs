@@ -14,6 +14,12 @@ public enum CorrectionKind
     Light,
     Aerodrome,
     Hazard,
+
+    /// <summary>
+    /// Una procedura di AD 2 (carta «Gli aeroporti nel Lab», S4): una parte di un avvicinamento ridisegnata sopra la carta
+    /// posata, dove la carta è un'immagine e il PDF non ha la tabella dei tratti.
+    /// </summary>
+    Procedure,
 }
 
 /// <summary>Che cosa fa una correzione: correggere un oggetto del PDF, aggiungerne uno che il PDF non ha, toglierne uno.</summary>
@@ -141,6 +147,7 @@ public static class AipCorrections
         GroundLight l => l.Name,
         Aerodrome a => a.Icao,
         Hazard h => h.Name,
+        Procedure p => p.Key,
         _ => throw new ArgumentException($"Nessuna chiave per {typeof(T).Name}.", nameof(voce)),
     };
 
@@ -172,6 +179,7 @@ public static class AipCorrections
             [CorrectionKind.Light] = new Elenco<GroundLight>(pdf.Lights),
             [CorrectionKind.Aerodrome] = new Elenco<Aerodrome>(pdf.Aerodromes),
             [CorrectionKind.Hazard] = new Elenco<Hazard>(pdf.Hazards),
+            [CorrectionKind.Procedure] = new Elenco<Procedure>(pdf.Procedures),
         };
 
         var correzioni = file.Corrections.ToList();
@@ -294,6 +302,7 @@ public static class AipCorrections
             Lights = ((Elenco<GroundLight>)elenchi[CorrectionKind.Light]).Lista(),
             Aerodromes = ((Elenco<Aerodrome>)elenchi[CorrectionKind.Aerodrome]).Lista(),
             Hazards = ((Elenco<Hazard>)elenchi[CorrectionKind.Hazard]).Lista(),
+            Procedures = ((Elenco<Procedure>)elenchi[CorrectionKind.Procedure]).Lista(),
         };
         return new CorrectionResult(corretto, file with { Corrections = correzioni }, esiti) { FileChanged = cambiato };
     }

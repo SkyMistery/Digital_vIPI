@@ -286,6 +286,7 @@ public static class CorrezioniDellAip
         CorrectionKind.Light => typeof(GroundLight),
         CorrectionKind.Aerodrome => typeof(Aerodrome),
         CorrectionKind.Hazard => typeof(Hazard),
+        CorrectionKind.Procedure => typeof(Procedure),
         _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "Le carte ATC SMAC non si correggono dal Lab."),
     };
 
@@ -300,6 +301,7 @@ public static class CorrezioniDellAip
         CorrectionKind.Light => "una luce",
         CorrectionKind.Aerodrome => "uno scalo",
         CorrectionKind.Hazard => "un pericolo",
+        CorrectionKind.Procedure => "una procedura",
         _ => "una voce",
     };
 
@@ -317,6 +319,7 @@ public static class CorrezioniDellAip
             CorrectionKind.Light => modello.Lights,
             CorrectionKind.Aerodrome => modello.Aerodromes,
             CorrectionKind.Hazard => modello.Hazards,
+            CorrectionKind.Procedure => modello.Procedures,
             _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "Le carte ATC SMAC non si correggono dal Lab."),
         };
         return [.. voci ?? []];
@@ -336,6 +339,7 @@ public static class CorrezioniDellAip
             CorrectionKind.Light => modello with { Lights = Lista<GroundLight>() },
             CorrectionKind.Aerodrome => modello with { Aerodromes = Lista<Aerodrome>() },
             CorrectionKind.Hazard => modello with { Hazards = Lista<Hazard>() },
+            CorrectionKind.Procedure => modello with { Procedures = Lista<Procedure>() },
             _ => throw new ArgumentOutOfRangeException(nameof(tipo), tipo, null),
         };
     }

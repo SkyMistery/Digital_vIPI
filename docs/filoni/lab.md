@@ -63,6 +63,17 @@ tre minuti dell'emendamento, con la cartella del ciclo nuovo già scritta. Ora i
 sotto lo dice («L'AIP espanso ha 2 file non registrati su aip/2611: … Registra l'AIP prima di applicarlo.»); e «Applica»
 guarda il repo da sé prima di scrivere, perché lo stato nella pagina può essere vecchio. Prova A82.
 
+**30 ottobre, notte: S4 fatta, ridisegnare sulla carta.** Con la carta di avvicinamento posata, sotto la posa c'è
+**«Ridisegna sulla carta»**: una parte nuova («MISSED APPROACH») o dei tratti in coda a una parte che c'è, punto per punto
+con un clic sulla mappa (un fix dell'AIP si prende per nome, altrove il punto ha le coordinate del clic e «dalla carta»)
+o scritto per nome; per ogni punto il tratto (IF, TF, CF, DF, RF col centro e il verso), la quota e la velocità; sulla
+mappa l'anteprima tratteggiata. Salvata, va nell'AIP espanso come **correzione** (la parte nuova è un'aggiunta, la coda
+una correzione della parte), con la carta per fonte, e compare fra le parti della carta col segno «✎» e «ritira».
+**Codice comune**: il modello `Aip` ha un tipo di correzione in più, `procedure` (`CorrectionKind.Procedure`, la chiave è
+quella della procedura); il file delle correzioni resta allo schema 1. Provato sul banco su LIRN ILS Z RWY 24: parte nuova
+DIEZO-ISKIA più un punto della carta, in coda OLEVA, ritira; il file delle correzioni del banco rimesso com'era. Prove
+A86-A88.
+
 ## 26 ottobre 2026, notte: la lettura si ricorda, «Vai alla voce» mostra la voce sola
 
 Il committente ha chiesto tre cose.
