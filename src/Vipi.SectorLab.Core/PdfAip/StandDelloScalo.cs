@@ -114,7 +114,7 @@ public static partial class StandDelloScalo
         return new ConfrontoDegliStand(righe, mancano, [.. gts.Select(v => v.Relativo).Distinct(StringComparer.OrdinalIgnoreCase)]);
     }
 
-    private static string Chiave(string stand)
+    internal static string Chiave(string stand)
     {
         var s = stand.Trim().ToUpperInvariant().TrimStart('0');
         return s.Length == 0 ? "0" : s;

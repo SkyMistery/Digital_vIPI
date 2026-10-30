@@ -182,7 +182,8 @@ public sealed partial class SessioneDelLab
     /// </summary>
     public IReadOnlyList<StratoDellaMappa> StratiDi(SpazioDiLavoro spazio) => spazio switch
     {
-        SpazioDiLavoro.Aip => [.. Strati.Where(s => s.Tipo.Sfondo), .. StratoDellAip is { } aip ? [aip.Strato] : Array.Empty<StratoDellaMappa>()],
+        // S5: col ground acceso, fra le coste e l'AIP gli strati del ground del sector.
+        SpazioDiLavoro.Aip => [.. Strati.Where(s => s.Tipo.Sfondo), .. StratiDelGroundSullaCarta(), .. StratoDellAip is { } aip ? [aip.Strato] : Array.Empty<StratoDellaMappa>()],
         SpazioDiLavoro.Sector => Strati,
         _ => StratoDellAip is { } aip ? [.. Strati, aip.Strato] : Strati,
     };
@@ -4883,6 +4884,9 @@ public sealed partial class SessioneDelLab
         mappa.Accesi.Clear();
         mappa.Accesi.Add(StratiDellaMappa.Sfondo.Id);
         mappa.Accesi.Add(aip);
+        // S5: il ground del sector sopra la carta resta, se acceso: è la carta che si guarda.
+        if (GroundSullaCarta)
+            mappa.Accesi.UnionWith(StratiDelGround);
         mappa.Spenti.RemoveWhere(s => s.StartsWith(ChiaveDelGenere(aip, ""), StringComparison.Ordinal) || VoceDellaChiave(s) is not null);
         foreach (var genere in strato.Strato.Forme.Select(f => f.Genere).OfType<string>().Distinct(StringComparer.Ordinal))
             mappa.Spenti.Add(ChiaveDelGenere(aip, genere));
@@ -5639,6 +5643,7 @@ public sealed partial class SessioneDelLab
             _correzioniSullaMappa = LeCorrezioniOppureNiente(espanso, modello.State);
             // S3: un altro ciclo (o il ramo dell'AIP cambiato): le pose si rileggono, e quella aperta era della carta di prima.
             _pose.Clear();
+            _eccezioni.Clear();
             if (Posa is not null && !(tieniLaCarta && Posa.Ciclo == ciclo))
             {
                 Posa = null;

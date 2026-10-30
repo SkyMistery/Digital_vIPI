@@ -113,6 +113,18 @@ public sealed class PosaSullaMappa
     private static (double U, double V) Mercatore(double lat, double lon) =>
         (lon * Math.PI / 180, Math.Log(Math.Tan(Math.PI / 4 + lat * Math.PI / 360)));
 
+    /// <summary>
+    /// Una distanza da leggere (S5): sotto il mezzo miglio in metri, «37 m» — una carta d'aerodromo sbaglia di decine di metri, e
+    /// «0,02 NM» non dice niente —, se no in miglia, «2,7 NM».
+    /// </summary>
+    public static string InParole(double miglia, IFormatProvider? cultura = null)
+    {
+        cultura ??= CultureInfo.GetCultureInfo("it-IT");
+        return miglia < 0.5
+            ? (miglia * 1852).ToString("0", cultura) + " m"
+            : miglia.ToString(miglia < 10 ? "0.0#" : "0", cultura) + " NM";
+    }
+
     /// <summary>La distanza in miglia nautiche (sfera di 3 440,065 NM).</summary>
     public static double DistanzaNm(Coordinate da, Coordinate a)
     {

@@ -80,6 +80,24 @@ public static partial class GroundDelloScalo
     [GeneratedRegex(@"\s+[0-9]+(?:\.[0-9]+)?\s+M\b", RegexOptions.CultureInvariant)]
     private static partial Regex RxLarghezza();
 
+    /// <summary>
+    /// Le carte di AD 2.24 che disegnano il ground, quelle da posare sotto il sector (S5): «AERODROME CHART», «AERODROME
+    /// GROUND MOVEMENT CHART», i parcheggi, le «HOT SPOT MAP», le «LOW VISIBILITY PROCEDURES CHART». Non gli ostacoli, l'atterraggio,
+    /// le quote radar; non le DESCRIPTION TABLES, che sono testo.
+    /// </summary>
+    [GeneratedRegex(@"^(?:AERODROME\s+CHART|AERODROME\s+GROUND\s+MOVEMENT|(?:AIRCRAFT|AERODROME)\s+PARKING|HOT\s?SPOT|LOW\s+VISIBILITY)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxCartaDelGround();
+
+    [GeneratedRegex(@"DESCRIPTION\s+TABLE", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex RxTabelle();
+
+    /// <summary>Vero se la carta di AD 2.24 disegna il ground (<see cref="RxCartaDelGround"/>).</summary>
+    public static bool EDelGround(AerodromeChart carta)
+    {
+        var titolo = (carta?.Title ?? "").Replace("­", "", StringComparison.Ordinal).Trim();
+        return RxCartaDelGround().IsMatch(titolo) && !RxTabelle().IsMatch(titolo);
+    }
+
     /// <summary>Le taxiway di AD 2.8 dello scalo, o null se il testo non ha la sottosezione o la sua voce 2.</summary>
     public static TaxiwayDiAd2? Taxiway(Aerodrome scalo)
     {

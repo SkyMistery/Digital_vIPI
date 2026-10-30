@@ -9,6 +9,8 @@
     S2: gli avvicinamenti per carta («ILS (Cat.II) or LOC X RWY 16L»), con lo stato; una carta si apre al posto delle schede,
     con le sue parti (le voci di prima, una per segmento stampato) e «Apri il PDF».
     §2 D, controlli 1 e 2: la scheda Ground, le soglie dei .rw contro AD 2.12 in metri e le taxiway dei .txi contro AD 2.8.
+    S5: in testa alla scheda Ground le carte che disegnano il ground, da posare, e il ground del sector sopra la carta sulla
+    mappa; sotto ogni controllo le eccezioni dello scalo (controllo 4), che il controllo salta dicendo il perché.
 *@
 @if (Pagina is { } p)
 {
@@ -104,7 +106,7 @@
         {
             @* S3: una carta che non è di avvicinamento (la carta d'aerodromo, i parcheggi…), aperta dalla scheda Carte per posarla. *@
             <section class="lab-carta-iap" data-foglio="@foglioAperto.Page">
-                <button type="button" class="lab-voce lab-torna-allo-scalo" data-chiudi-carta @onclick="ChiudiLaCarta">‹ @s.Icao · Carte</button>
+                <button type="button" class="lab-voce lab-torna-allo-scalo" data-chiudi-carta @onclick="ChiudiLaCarta">‹ @s.Icao · @(SchedaAperta == Scheda.Ground ? "Ground" : "Carte")</button>
                 <h3 class="lab-pista-nome">@foglioAperto.Title</h3>
                 <dl class="lab-campi-aip">
                     <dt>Carta</dt>
@@ -121,6 +123,7 @@
                     </dd>
                 </dl>
                 <PosaDellaCartaVista Icao="@s.Icao" Carta="foglioAperto" />
+                @GroundSullaCarta()
             </section>
         }
         else
@@ -323,6 +326,7 @@
                 }
                 else
                 {
+                    @CarteDelGround(s)
                     <section class="lab-pista" data-ground-soglie>
                         <h3 class="lab-pista-nome">Soglie <span class="lab-nota">AD 2.12 contro i .rw</span></h3>
                         @if (g.Soglie.Count == 0)
@@ -337,11 +341,12 @@
                                 <tbody>
                                     @foreach (var x in g.Soglie)
                                     {
-                                        <tr data-soglia-ground="@x.Testata" class="@(x.Diversa || !x.NellAip ? "lab-stato-parziale" : null)">
+                                        var saltata = Lab.EccezioneDi(s.Icao, ControlloDelGround.Soglia, x.Testata);
+                                        <tr data-soglia-ground="@x.Testata" class="@((x.Diversa || !x.NellAip) && saltata is null ? "lab-stato-parziale" : null)">
                                             <td>@x.Pista</td>
                                             <td>@x.Testata</td>
                                             <td>@NomeDelFile(x.File)</td>
-                                            <td>@(x.Metri is { } m ? m.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " m" : x.NellAip ? "AD 2.12 senza coordinate" : "non in AD 2.12")</td>
+                                            <td>@(x.Metri is { } m ? m.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " m" : x.NellAip ? "AD 2.12 senza coordinate" : "non in AD 2.12")@(saltata is null ? "" : " · eccezione")</td>
                                         </tr>
                                     }
                                 </tbody>
@@ -351,6 +356,7 @@
                         {
                             <p class="lab-nota lab-stato-parziale" data-ground-senza-rw>Nessun .rw ha @string.Join(", ", g.PisteSenzaSector).</p>
                         }
+                        @Eccezioni(s, ControlloDelGround.Soglia, [.. g.Soglie.Where(x => x.Diversa || !x.NellAip).Select(x => x.Testata).Distinct()])
                     </section>
                     var t = g.Taxiway;
                     <section class="lab-pista" data-ground-taxiway>
@@ -380,15 +386,19 @@
                                 <dt>In tutti e due</dt>
                                 <dd data-taxiway-uguali>@string.Join(" ", t.Uguali)</dd>
                             }
-                            @if (t.MancanoNelSector.Count > 0)
+                            @{
+                                var mancano = t.MancanoNelSector.Where(n => Lab.EccezioneDi(s.Icao, ControlloDelGround.Taxiway, n) is null).ToList();
+                                var soloSector = t.SoloNelSector.Where(n => Lab.EccezioneDi(s.Icao, ControlloDelGround.Taxiway, n) is null).ToList();
+                            }
+                            @if (mancano.Count > 0)
                             {
                                 <dt>Mancano nel sector</dt>
-                                <dd class="lab-stato-parziale" data-taxiway-mancano>@string.Join(" ", t.MancanoNelSector)</dd>
+                                <dd class="lab-stato-parziale" data-taxiway-mancano>@string.Join(" ", mancano)</dd>
                             }
-                            @if (t.SoloNelSector.Count > 0)
+                            @if (soloSector.Count > 0)
                             {
                                 <dt>Solo nel sector</dt>
-                                <dd data-taxiway-solo-sector>@string.Join(" ", t.SoloNelSector)</dd>
+                                <dd data-taxiway-solo-sector>@string.Join(" ", soloSector)</dd>
                             }
                             @if (t.AltreEtichette.Count > 0)
                             {
@@ -398,6 +408,7 @@
                             <dt>.txi</dt>
                             <dd>@(t.File.Count > 0 ? string.Join(", ", t.File.Select(NomeDelFile)) : $"nessuna etichetta per {s.Icao}")</dd>
                         </dl>
+                        @Eccezioni(s, ControlloDelGround.Taxiway, [.. t.MancanoNelSector, .. t.SoloNelSector])
                         @if (t.Aip is { } stampata)
                         {
                             <details class="lab-indice-gruppo">
@@ -464,7 +475,7 @@
             ? p.Carte.FirstOrDefault(c => c.Iap is null && c.Carta.Page == pagina)?.Carta
             : null;
 
-    private void ApriIlFoglio(Aip.AerodromeChart foglio) => Lab.SchedaDellaPaginaDelloScalo = (Pagina!.Scalo.Icao, Scheda.Carte.ToString(), foglio.Page);
+    private void ApriIlFoglio(Aip.AerodromeChart foglio, Scheda scheda = Scheda.Carte) => Lab.SchedaDellaPaginaDelloScalo = (Pagina!.Scalo.Icao, scheda.ToString(), foglio.Page);
 
     private void ChiudiLaCarta() => Lab.SchedaDellaPaginaDelloScalo = (Pagina!.Scalo.Icao, SchedaAperta.ToString(), null);
 
@@ -499,6 +510,121 @@
         if (Lab.StratoDellAip is { } strato)
             Lab.Scegli(strato.File, indice);
     }
+
+    /// <summary>
+    /// S5: le carte di AD 2.24 che disegnano il ground, ognuna con «posa…» o «posata», e il ground del sector sopra la carta.
+    /// Il metodo misto di §2 D: la carta sotto, posata sulle soglie, e sopra le forme del sector, con la carta trasparente.
+    /// </summary>
+    private RenderFragment CarteDelGround(Aip.Aerodrome s) => __builder =>
+    {
+        var carte = (s.Charts ?? []).Where(GroundDelloScalo.EDelGround).ToList();
+        <section class="lab-pista" data-ground-carte>
+            <h3 class="lab-pista-nome">La carta sotto il ground <span class="lab-nota">AD 2.24 posata, il sector sopra</span></h3>
+            @if (carte.Count == 0)
+            {
+                <p class="lab-nota">AD 2.24 non ha carte d'aerodromo o dei parcheggi per @s.Icao.</p>
+            }
+            else
+            {
+                <p class="lab-nota">Posa la carta sulle soglie delle piste («RWY 16L», …): con quattro punti il Lab dice lo scarto. Poi il
+                    ground del sector sopra, e la carta trasparente quanto serve.</p>
+                @foreach (var c in carte)
+                {
+                    var posata = Lab.PoseDi(s.Icao).Any(x => x.Pagina == c.Page);
+                    <p class="lab-procedura-scalo" data-carta-ground="@c.Page">
+                        <button type="button" class="lab-voce" data-posa-dal-ground="@c.Page" title="@c.Page" @onclick="() => ApriIlFoglio(c, Scheda.Ground)">@c.Title</button>
+                        <span class="lab-nota">@c.Page · @(posata ? "posata" : "posa…")</span>
+                    </p>
+                }
+            }
+            @GroundSullaCarta()
+        </section>
+    };
+
+    /// <summary>S5: la casella del ground del sector sopra la carta, sulla mappa dell'AIP espanso.</summary>
+    private RenderFragment GroundSullaCarta() => __builder =>
+    {
+        @if (Lab.Sessione is not null)
+        {
+            <label class="lab-nota lab-campo-in-riga" data-campo="ground-sulla-carta">
+                <input type="checkbox" checked="@Lab.GroundSullaCarta" @onchange="e => Lab.MostraIlGroundSullaCarta(e.Value is true)" />
+                Il ground del sector sopra la carta (disegni .geo, terra, piste)
+            </label>
+        }
+    };
+
+    /// <summary>Il controllo e la voce dell'eccezione che si sta scrivendo, o null.</summary>
+    private (ControlloDelGround Controllo, string Voce)? _eccezione;
+
+    private string _perche = "";
+
+    /// <summary>
+    /// Controllo 4: le eccezioni dello scalo per quel controllo — la voce, il perché, «togli» — e «Un'eccezione…» per una delle
+    /// voci <paramref name="diverse"/> che non ce l'ha. Un'eccezione la cui differenza non c'è più lo dice: si può togliere.
+    /// </summary>
+    private RenderFragment Eccezioni(Aip.Aerodrome s, ControlloDelGround controllo, IReadOnlyList<string> diverse) => __builder =>
+    {
+        var scritte = Lab.EccezioniDi(s.Icao).Where(e => e.Controllo == controllo).ToList();
+        var senza = diverse.Where(v => Lab.EccezioneDi(s.Icao, controllo, v) is null).Distinct().ToList();
+        @if (scritte.Count > 0)
+        {
+            <ul class="lab-elenco-eccezioni" data-eccezioni="@controllo.ToString().ToLowerInvariant()">
+                @foreach (var e in scritte)
+                {
+                    var ancora = diverse.Any(v => EccezioniDelGround.Di([e], controllo, v) is not null);
+                    <li data-eccezione="@e.Voce">
+                        <span class="lab-nota"><strong>@e.Voce</strong> · eccezione: @e.Perche@(e.Data is { } d ? $" ({d.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)})" : "")@(ancora ? "" : " · la differenza non c'è più")</span>
+                        <button type="button" class="lab-voce" data-togli-eccezione="@e.Voce" title="Il controllo torna a dire la differenza"
+                                @onclick="() => TogliLEccezione(s.Icao, controllo, e.Voce)">togli</button>
+                    </li>
+                }
+            </ul>
+        }
+        @if (_eccezione is { } inCorso && inCorso.Controllo == controllo)
+        {
+            <div class="lab-gesti-record lab-modulo-eccezione" data-modulo-eccezione="@controllo.ToString().ToLowerInvariant()">
+                <select class="lab-campo" aria-label="La voce" data-campo="voce-eccezione" value="@inCorso.Voce"
+                        @onchange="e => _eccezione = (controllo, e.Value?.ToString() ?? inCorso.Voce)">
+                    @foreach (var v in senza)
+                    {
+                        <option value="@v">@v</option>
+                    }
+                </select>
+                <input type="text" class="lab-campo" placeholder="Perché il sector la fa così" aria-label="Il perché" data-campo="perche-eccezione"
+                       @bind="_perche" @bind:event="oninput" />
+                <button type="button" class="lab-tasto" data-tasto="salva-eccezione" disabled="@string.IsNullOrWhiteSpace(_perche)"
+                        title="La scrive in eccezioni\@(s.Icao).json, nel repo dell'AIP espanso" @onclick="() => ScriviLEccezione(s.Icao)">Salva l'eccezione</button>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="lascia-eccezione" @onclick="() => _eccezione = null">Lascia stare</button>
+            </div>
+        }
+        else if (senza.Count > 0)
+        {
+            <p class="lab-gesti-record">
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="eccezione-@controllo.ToString().ToLowerInvariant()"
+                        title="Una differenza voluta dal sector: il controllo la salta e dice il perché"
+                        @onclick="() => { _eccezione = (controllo, senza[0]); _perche = string.Empty; }">Un'eccezione…</button>
+            </p>
+        }
+    };
+
+    private void ScriviLEccezione(string icao)
+    {
+        if (_eccezione is not { } e)
+            return;
+        if (Lab.ScriviLEccezione(icao, e.Controllo, e.Voce, _perche))
+        {
+            _eccezione = null;
+            _perche = string.Empty;
+            _rifiuto = null;
+        }
+        else
+        {
+            _rifiuto = Lab.Rifiuto;
+        }
+    }
+
+    private void TogliLEccezione(string icao, ControlloDelGround controllo, string voce) =>
+        _rifiuto = Lab.TogliLEccezione(icao, controllo, voce) ? null : Lab.Rifiuto;
 
     /// <summary>Lo stand cercato nelle note dei parcheggi.</summary>
     private string _stand = "";
@@ -544,22 +670,27 @@
                             <table class="lab-tabella-da-dove">
                                 <thead><tr><th>Stand</th><th>File</th><th>Punto dell'AIP</th><th>Scarto</th></tr></thead>
                                 <tbody>
-                                    @foreach (var x in stand.Stand.OrderByDescending(x => x.Diverso).ThenBy(x => x.Punto is null))
+                                    @foreach (var x in stand.Stand.OrderByDescending(x => x.Diverso && Lab.EccezioneDi(s.Icao, ControlloDelGround.Stand, x.Stand) is null).ThenBy(x => x.Punto is null))
                                     {
-                                        <tr data-stand-ground="@x.Stand" class="@(x.Diverso ? "lab-stato-parziale" : null)">
+                                        var saltato = Lab.EccezioneDi(s.Icao, ControlloDelGround.Stand, x.Stand);
+                                        <tr data-stand-ground="@x.Stand" class="@(x.Diverso && saltato is null ? "lab-stato-parziale" : null)">
                                             <td>@x.Stand</td>
                                             <td>@NomeDelFile(x.File)</td>
                                             <td>@(x.Punto?.Nome ?? "—")</td>
-                                            <td>@(x.Metri is { } m ? m.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " m" : "l'AIP non lo stampa")</td>
+                                            <td>@(x.Metri is { } m ? m.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " m" : "l'AIP non lo stampa")@(saltato is null ? "" : " · eccezione")</td>
                                         </tr>
                                     }
                                 </tbody>
                             </table>
                         }
-                        @if (stand.MancanoNelSector.Count > 0)
-                        {
-                            <p class="lab-nota lab-stato-parziale" data-stand-mancano>Nessun .gts ha: @string.Join(" ", stand.MancanoNelSector)</p>
+                        @{
+                            var standMancano = stand.MancanoNelSector.Where(n => Lab.EccezioneDi(s.Icao, ControlloDelGround.Stand, n) is null).ToList();
                         }
+                        @if (standMancano.Count > 0)
+                        {
+                            <p class="lab-nota lab-stato-parziale" data-stand-mancano>Nessun .gts ha: @string.Join(" ", standMancano)</p>
+                        }
+                        @Eccezioni(s, ControlloDelGround.Stand, [.. stand.Stand.Where(x => x.Diverso).Select(x => x.Stand).Distinct(), .. stand.MancanoNelSector])
                     </div>
                 }
                 <label class="lab-campo-in-colonna lab-nota">

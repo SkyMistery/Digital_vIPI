@@ -74,6 +74,14 @@ quella della procedura); il file delle correzioni resta allo schema 1. Provato s
 DIEZO-ISKIA più un punto della carta, in coda OLEVA, ritira; il file delle correzioni del banco rimesso com'era. Prove
 A86-A88.
 
+**30 ottobre, notte: S5 fatta, la carta sotto il ground e le eccezioni dello scalo.** Nella scheda Ground le carte di
+AD 2.24 che disegnano il ground, da posare sulle soglie, e la casella **«Il ground del sector sopra la carta»**, che mette
+gli strati `.geo`, terra e piste del sector sulla mappa dell'AIP espanso fra la carta e l'AIP. Lo scarto della posa sotto
+il mezzo miglio si dice in metri. **Controllo 4**: sotto ogni controllo «Un'eccezione…» con il perché, in
+`eccezioni\<ICAO>.json` nel repo dell'AIP espanso (D5); il controllo la salta e lo dice, «togli» la toglie. 🔴 «Registra
+l'AIP» lasciava fuori `posa\` (S3): ora prende `posa\` ed `eccezioni\`. Nessun codice comune. Provato sul banco: LIRN carta
+d'aerodromo posata con il ground sopra, LIDP eccezione sulla soglia 20. Prove A89-A91.
+
 ## 26 ottobre 2026, notte: la lettura si ricorda, «Vai alla voce» mostra la voce sola
 
 Il committente ha chiesto tre cose.

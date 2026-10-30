@@ -211,8 +211,8 @@
             };
         var scala = sulla.MigliaPerCentimetro(posa.Immagine.LarghezzaInPunti, posa.Immagine.AltezzaInPunti);
         return $"{posa.Punti.Count} punti"
-               + (sulla.ScartoMassimoNm is { } scarto ? $" · scarto massimo {scarto.ToString("0.00", Italiano)} NM" : posa.Punti.Count == 2 ? " · in scala e girata" : " · in scala, girata e raddrizzata")
-               + $" · 1 cm della carta = {scala.ToString("0.0", Italiano)} NM";
+               + (sulla.ScartoMassimoNm is { } scarto ? $" · scarto massimo {PosaSullaMappa.InParole(scarto, Italiano)}" : posa.Punti.Count == 2 ? " · in scala e girata" : " · in scala, girata e raddrizzata")
+               + $" · 1 cm della carta = {PosaSullaMappa.InParole(scala, Italiano)}";
     }
 
     private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");

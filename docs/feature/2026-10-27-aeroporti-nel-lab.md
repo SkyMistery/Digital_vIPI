@@ -282,6 +282,32 @@ Misura sul 2611 col sector del banco: **LIPE** 55 stand, quasi tutti a 0 m (il s
 solo 21-27); **LIRP** tutti sotto i 10 m salvo 29S1 (16 m), e gli stand «L7»-«L23» e 71-85 che nessun `.gts` ha. Provato a
 schermo sul banco: LIPE.
 
+**S5 fatta il 30 ottobre, notte: la carta sotto il ground e le eccezioni dello scalo** (controllo 4). Con i controlli 1-3
+di prima, S5 è chiusa.
+- **La carta sotto il ground.** In testa alla scheda Ground, «La carta sotto il ground»: le carte di AD 2.24 che disegnano
+  il ground (`GroundDelloScalo.EDelGround`: «AERODROME CHART», «AERODROME GROUND MOVEMENT CHART», i parcheggi, le «HOT SPOT
+  MAP», le «LOW VISIBILITY PROCEDURES CHART»; non gli ostacoli, l'atterraggio, le quote radar, le DESCRIPTION TABLES), ognuna
+  con «posa…» o «posata», che apre la carta da sola col riquadro della posa e torna al Ground. Si posa sulle soglie per nome
+  («RWY 06»), come in S3.
+- **Il ground del sector sopra.** La casella «Il ground del sector sopra la carta» (nella scheda Ground e sotto la posa)
+  mette sulla mappa dell'AIP espanso gli strati del sector aperto che fanno il ground — disegni `.geo`, terra (`.pol`,
+  `.txi`, `.gts`), piste —, fra le coste e lo strato dell'AIP: la carta sotto, il sector sopra, l'AIP in cima. Negli Strati
+  della mappa dell'AIP compaiono finché la casella è accesa, e restano con «Solo lo scalo sulla mappa». Un clic su una forma
+  del sector lì non la sceglie (chiuderebbe la pagina dello scalo): il nome lo dice il suggerimento.
+- **Lo scarto in metri.** Sotto il mezzo miglio la posa dice metri («1 cm della carta = 104 m», «scarto massimo 37 m»):
+  una carta d'aerodromo sbaglia di decine di metri, e «0,02 NM» non diceva niente.
+- **Le eccezioni dello scalo** (controllo 4, D5). Sotto ogni controllo «Un'eccezione…»: si sceglie una delle voci diverse
+  (la testata, la taxiway, lo stand) e si scrive il perché; il controllo la salta — la riga non è più arancio e dice
+  «eccezione», la taxiway o lo stand escono da «mancano» —, e sotto il controllo l'eccezione si legge col perché e la data,
+  con «togli». Un'eccezione la cui differenza non c'è più lo dice. Il file è `eccezioni\<ICAO>.json` nel repo dell'AIP
+  espanso, una per voce e controllo; «02» e «2» sono la stessa testata, «07» e «7» lo stesso stand.
+- 🔴 **«Registra l'AIP» non prendeva le pose.** I confini del repo dell'AIP (`RepoDellAip.DentroIConfini`) erano i cicli e
+  `correzioni\`: `posa\` (S3) restava fuori, e «Registra l'AIP» lasciava le pose nella cartella senza dirlo. Ora ci sono
+  `posa\` ed `eccezioni\`.
+Provato sul banco a 2400 px: LIRN, la carta d'aerodromo AD 2 LIRN 2-1 posata su RWY 06 e RWY 24 (1 cm = 104 m, i 2 039 m fra
+le soglie), il ground del sector sopra, allineato sulla pista; LIDP, l'eccezione sulla soglia 20 (62 m) nei tre `.rw` che la
+hanno, poi «togli». Banco rimesso com'era.
+
 ## §5 — Deciso e da decidere
 
 - **D1** (committente, 27 ottobre): si scrive questa carta col disegno, e si parte dalla pagina dello scalo (S1).
@@ -293,3 +319,7 @@ schermo sul banco: LIPE.
   fermi al 2023 e portano un PDFium vecchio.
 - **D4** (committente, 30 ottobre): i punti della posa stanno nel repo dell'AIP espanso, `posa\<ICAO>.json`, accanto a
   `correzioni\`; le immagini mai (si rifanno dal PDF, nella cache del Lab).
+- **D5** (proposta, fatta in S5): le eccezioni dello scalo stanno anche loro nel repo dell'AIP espanso,
+  `eccezioni\<ICAO>.json`, accanto a `posa\`. Dicono il sector, non l'AIP, ma il sector è un repo di file di Aurora (un
+  JSON lì finirebbe nel pacchetto) e il repo dell'AIP è dove il Lab tiene quel che sa degli scali, e lo registra con
+  «Registra l'AIP». Se un giorno il sector avrà un posto per i dati del Lab, il file si sposta così com'è.

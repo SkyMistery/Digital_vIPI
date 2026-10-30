@@ -2733,3 +2733,29 @@ body.lab-trascina * {
 .lab-mappa-prende .leaflet-interactive {
     cursor: crosshair !important;
 }
+
+/* S5: la casella del ground sopra la carta, e le eccezioni dello scalo sotto i controlli del ground. */
+.lab-campo-in-riga {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin: .3rem 0;
+}
+
+.lab-elenco-eccezioni {
+    margin: .3rem 0;
+    padding-left: 1.2rem;
+}
+
+.lab-elenco-eccezioni > li > span {
+    margin-right: .4rem;
+}
+
+.lab-modulo-eccezione {
+    flex-wrap: wrap;
+}
+
+.lab-modulo-eccezione > input.lab-campo {
+    flex: 1 1 12rem;
+    min-width: 0;
+}

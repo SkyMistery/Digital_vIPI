@@ -220,6 +220,10 @@
     [JSInvokable]
     public void SceltaDallaMappa(string file, int record)
     {
+        // S5: sulla mappa dell'AIP espanso il ground del sector sta sopra la carta per guardarlo; sceglierne una forma
+        // chiuderebbe la pagina dello scalo. Il nome lo dice il suggerimento.
+        if (Spazio is SpazioDiLavoro.Aip && !Vipi.SectorLab.Core.PdfAip.AipSullaMappa.EDellAip(file))
+            return;
         _dalClic = true;
         Lab.Scegli(file, record);
     }

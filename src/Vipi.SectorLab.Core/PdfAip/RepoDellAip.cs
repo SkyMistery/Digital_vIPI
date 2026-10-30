@@ -24,14 +24,19 @@ public static class RepoDellAip
 
     public static string RamoDelCiclo(string ciclo) => PrefissoDelRamo + ciclo;
 
-    /// <summary>Vero se il Lab può registrare quel file del repo (percorso dalla radice, barre in avanti).</summary>
+    /// <summary>
+    /// Vero se il Lab può registrare quel file del repo (percorso dalla radice, barre in avanti): i JSON dei cicli, delle
+    /// correzioni, delle pose delle carte (S3) e delle eccezioni del ground (S5). 🔴 Fino al 30 ottobre le pose ne restavano
+    /// fuori: «Registra l'AIP» le lasciava nella cartella senza dirlo.
+    /// </summary>
     public static bool DentroIConfini(string percorso)
     {
         ArgumentNullException.ThrowIfNull(percorso);
         if (percorso == ".gitignore")
             return true;
         var parti = percorso.Split('/');
-        return parti.Length == 2 && (CicloAirac.Valido(parti[0]) || parti[0] == AipEspanso.CartellaDelleCorrezioni)
+        return parti.Length == 2
+               && (CicloAirac.Valido(parti[0]) || parti[0] is AipEspanso.CartellaDelleCorrezioni or PoseDelleCarte.Cartella or EccezioniDelGround.Cartella)
                && parti[1].EndsWith(".json", StringComparison.OrdinalIgnoreCase);
     }
 
