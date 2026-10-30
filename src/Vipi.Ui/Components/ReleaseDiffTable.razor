@@ -1,6 +1,7 @@
 @* Tabella delle differenze di una release rispetto alla baseline. Condivisa da ReleasePanel (editor, un solo
    bersaglio) e da VersioniPage (admin, molti documenti): entrambe caricano il diff a richiesta e lo passano qui,
-   quindi Diff nullo = caricamento in corso. *@
+   quindi Diff nullo = caricamento in corso.
+   S133: sotto una sezione con il testo cambiato, le righe tolte e aggiunte (carta 2026-10-28-stato-dei-documenti). *@
 @inject IStringLocalizer<SharedResource> L
 
 @if (Diff is null)
@@ -29,6 +30,18 @@ else
                         <td><span class="pill @Pill(r.Change)">@ChangeLabel(r.Change)</span></td>
                         <td class="muted" style="font-size:12px">@Detail(r)</td>
                     </tr>
+                    @if (r.TestoCambiato)
+                    {
+                        <tr class="diff-tr">
+                            <td colspan="3">
+                                @* Chiuso di suo nella tabella: chi scorre le sezioni cambiate legge prima l'elenco. *@
+                                <details class="diff-det" open="@TestoAperto">
+                                    <summary>@string.Format(L["Rel_DiffSeeText"].Value, r.Righe.Count)</summary>
+                                    <DiffRighe Righe="r.Righe" />
+                                </details>
+                            </td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>
@@ -43,12 +56,15 @@ else
     /// pubblicata, e lo dice la riga stessa («la copia pubblicata è indietro»).</summary>
     [Parameter] public bool ShowBaseline { get; set; } = true;
 
+    /// <summary>Il testo cambiato nasce aperto (S133). No di solito: si apre sezione per sezione.</summary>
+    [Parameter] public bool TestoAperto { get; set; }
+
     // Il service consegna un enum e dei numeri (doc 13 §3k): tutto ciò che si legge lo compone la UI, quindi
     // segue la lingua della pagina — anche nel diff di una vLOA, che è un documento inglese.
     private static string Pill(ReleaseChangeKind change) => change switch
     {
-        ReleaseChangeKind.Added => "green",
-        ReleaseChangeKind.Removed => "grey",
+        ReleaseChangeKind.Added or ReleaseChangeKind.Shown => "green",
+        ReleaseChangeKind.Removed or ReleaseChangeKind.Hidden => "grey",
         _ => "blue",
     };
 
@@ -56,12 +72,22 @@ else
     {
         ReleaseChangeKind.Added => L["Rel_ChangeAdded"],
         ReleaseChangeKind.Removed => L["Rel_ChangeRemoved"],
+        ReleaseChangeKind.Hidden => L["Rel_ChangeHidden"],
+        ReleaseChangeKind.Shown => L["Rel_ChangeShown"],
         _ => L["Rel_ChangeModified"],
     };
 
-    private string Detail(ReleaseDiffRow r) => r.Change == ReleaseChangeKind.Modified
-        ? string.Format(L["Rel_DiffItemsFromTo"].Value, r.PreviousCount, r.Count)
-        : string.Format(L["Rel_DiffItems"].Value, r.Count ?? r.PreviousCount);
+    private string Detail(ReleaseDiffRow r)
+    {
+        if (r.Change is ReleaseChangeKind.Hidden or ReleaseChangeKind.Shown)
+            return r.TestoCambiato ? L["Rel_TextChanged"] : "";
+        if (r.Change != ReleaseChangeKind.Modified)
+            return string.Format(L["Rel_DiffItems"].Value, r.Count ?? r.PreviousCount);
+        // Stessi elementi e testo diverso: il numero non dice niente, e «3 → 3 elementi» sembrerebbe un errore.
+        if (r.PreviousCount == r.Count) return L["Rel_TextChanged"];
+        var conti = string.Format(L["Rel_DiffItemsFromTo"].Value, r.PreviousCount, r.Count);
+        return r.TestoCambiato ? $"{conti} · {L["Rel_TextChanged"]}" : conti;
+    }
 
     private string BaselineLabel() => Diff!.BaselineCycle is { } cycle
         ? string.Format(L["Rel_BaselineCycle"].Value, cycle)

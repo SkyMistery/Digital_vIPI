@@ -37,8 +37,8 @@
                                InModifica="@(_editor?.Guscio.IsEditing == true)" LockNegato="MembroBloccato" />
         }
 
-        @* Quante sezioni da scrivere hanno qualcosa (carta 2026-10-18-sezioni-da-scrivere). *@
-        <SezioniDaScriverePanel Target="ReleaseTargetType.App" Key="@Callsign" InModifica="@(_editor?.Guscio.IsEditing == true)" />
+        @* Lo stato del documento (S133, carta 2026-10-28-stato-dei-documenti). *@
+        <SchedaDocumento @ref="_scheda" Target="ReleaseTargetType.App" Key="@Callsign" InModifica="@(_editor?.Guscio.IsEditing == true)" />
 
         @* L'ENTE a cui il documento appartiene e le sue posizioni IVAO (S49). *@
         <AtcUnitPanel Key="@Callsign" IsEditing="_editor?.Guscio.IsEditing ?? false" Changed="EnteCambiato" />
@@ -191,9 +191,13 @@
     /// <summary>Dopo «Pubblica»: l'ospite <b>e i membri</b>. 🔴 La pubblicazione accoppiata promuove le bozze
     /// di tutti: un membro non riletto resta «in modifica» su una versione che bozza non è più (vedi
     /// <c>AeroportoEditorPage.Pubblicato</c>, Catania, 25 settembre 2026).</summary>
+    /// <summary>La scheda del documento (S133): dopo una pubblicazione il bersaglio non cambia, e si rilegge a mano.</summary>
+    private SchedaDocumento? _scheda;
+
     private async Task Pubblicato()
     {
         await Ricarica();
+        if (_scheda is not null) await _scheda.RicaricaAsync();
         if (_membri is not null) await _membri.RicaricaAsync(_altri.Select(a => a.DocumentId).ToList());
     }
 

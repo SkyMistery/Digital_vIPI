@@ -116,6 +116,26 @@ public class EfSezioniDaScrivereTests : IAsyncLifetime
         Assert.Equal((2, 2), (stato.Scritte, stato.Vuote));
     }
 
+    /// <summary>S133 (carta 2026-10-28-stato-dei-documenti §1 D4): una sezione dichiarata facoltativa dalla pagina admin
+    /// non conta più; tolto l'interruttore, conta di nuovo.</summary>
+    [Fact]
+    public async Task Una_sezione_facoltativa_non_si_conta_piu()
+    {
+        var (doc, pubblicata) = await DocumentoAsync("vIPI Roma", DocumentStatus.Published);
+        var a1 = await SezioneAsync(pubblicata, SectionKeys.AccBloccoAerovia, "Settori di aerovia");
+        await SezioneAsync(pubblicata, "operationaltechnique", "Procedure generali", a1);
+        Assert.Equal(1, (await Servizio().DocumentoAsync(doc.Id))!.Vuote);
+
+        var store = new EfSezioniFacoltative(_db);
+        await store.ImpostaAsync(SectionProfile.AccAerovia, "operationaltechnique", facoltativa: true, userId: 7);
+        await store.ImpostaAsync(SectionProfile.AccAerovia, "operationaltechnique", facoltativa: true, userId: 7);   // idempotente
+        Assert.Equal(0, (await Servizio().DocumentoAsync(doc.Id))!.Vuote);
+        Assert.Single(await store.TutteAsync());
+
+        await store.ImpostaAsync(SectionProfile.AccAerovia, "operationaltechnique", facoltativa: false, userId: 7);
+        Assert.Equal(1, (await Servizio().DocumentoAsync(doc.Id))!.Vuote);
+    }
+
     /// <summary>Si conta la versione di LAVORO: la bozza, se c'è, e non la pubblicata.</summary>
     [Fact]
     public async Task Conta_la_bozza_e_non_la_pubblicata()

@@ -1535,6 +1535,17 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.76.0 — MINOR con DUE migrazioni ADDITIVE. Su 1.75.0 (1aa329c, online dal 26 ottobre 2026). Dentro: S133, lo
+      stato dei documenti: il confronto fra copie guarda il TESTO (prima contava i blocchi), la scheda del documento
+      negli editor e nella pagina Documenti, la pagina Documenti come cruscotto del lavoro (chip e quattro colonne
+      fisse), le sezioni facoltative (pagina admin). Migrazioni AggiungiConfrontiDocumenti (tabella nuova
+      DocumentComparisons) e AggiungiSezioniFacoltative (tabella nuova OptionalSections): le applica il sito da solo
+      al primo avvio, non toccano altro. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure,
+      Vipi.Infrastructure.MySqlMigrations, Vipi.Ui (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro. Si torna
+      alla 1.75.0 con le rinomine: le due tabelle restano, vuote di significato per lei. Dettaglio:
+      LEGGIMI-PACCHETTO-1.76.0.md, §A170.
+    -->
+    <!--
       1.75.0 — MINOR, NESSUNA migrazione. Su 1.74.0 (4fdc3ac, online dal 23 ottobre 2026). Dentro: S132, la scheda
       dell'API aeroporti (GET /vsop/api/v1/airports/{icao}) porta anche runwayInUse, la pista in uso adesso con lo
       stesso calcolo della pagina del documento (regola dello scalo, poi il vento), col METAR e la sua ora. Campo in
@@ -2137,7 +2148,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.75.0</VipiVersione>
+    <VipiVersione>1.76.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

@@ -1889,7 +1889,7 @@
   <data name="Rel_BaselineCycle" xml:space="preserve"><value>AIRAC {0}</value></data>
   <data name="Rel_BaselineNone" xml:space="preserve"><value>prima pubblicazione (nessuna release precedente)</value></data>
   <data name="Rel_ComparedWith" xml:space="preserve"><value>Confronto con:</value></data>
-  <data name="Rel_NoDiff" xml:space="preserve"><value>Nessuna differenza strutturale rilevata.</value></data>
+  <data name="Rel_NoDiff" xml:space="preserve"><value>Nessuna differenza.</value></data>
   <data name="Rel_ColItem" xml:space="preserve"><value>Voce</value></data>
   <data name="Rel_ColChange" xml:space="preserve"><value>Modifica</value></data>
   <data name="Rel_ColDetail" xml:space="preserve"><value>Dettaglio</value></data>
@@ -4241,15 +4241,8 @@
   <data name="Cfgs_Unnamed" xml:space="preserve"><value>Settori che l&apos;elenco non nomina, quindi senza vincoli: {0}.</value></data>
   <data name="Cfgs_NoConstraint" xml:space="preserve"><value>Nessuna configurazione con un settore aperto.</value></data>
   <data name="Nav_ReqOpenTitle" xml:space="preserve"><value>Richieste ancora aperte (nuove o prese in carico): {0}</value></data>
-  <data name="SdS_Title" xml:space="preserve"><value>Sezioni da scrivere</value></data>
-  <data name="SdS_Help" xml:space="preserve"><value>Le sezioni del documento che scrive una persona. Quelle che si riempiono dai dati (AOR, frequenze, SID, meteo…) e quelle nascoste non contano. Si aggiorna a «Fine modifica».</value></data>
-  <data name="SdS_Count" xml:space="preserve"><value>{0} con qualcosa · {1} vuote, su {2}</value></data>
-  <data name="SdS_Part" xml:space="preserve"><value>{0} di {1} con qualcosa</value></data>
-  <data name="SdS_AllDone" xml:space="preserve"><value>Tutte le sezioni da scrivere hanno qualcosa.</value></data>
-  <data name="SdS_None" xml:space="preserve"><value>Questo documento non ha sezioni da scrivere: si riempie tutto dai dati.</value></data>
   <data name="SdS_Pill" xml:space="preserve"><value>{0} sezioni vuote</value></data>
   <data name="SdS_PillOne" xml:space="preserve"><value>1 sezione vuota</value></data>
-  <data name="SdS_PillTitle" xml:space="preserve"><value>Sezioni da scrivere ancora vuote, su {0}. L&apos;elenco è nel pannello del documento.</value></data>
   <data name="Cfgs_DocShowsAll" xml:space="preserve"><value>Finché qui non c&apos;è un elenco, la mappa AOR del documento offre una sola scelta, «Tutti i settori», che accende tutto il gruppo. Non è una configurazione: è la mappa che si arrangia.</value></data>
   <data name="Cfgs_AreaGroup" xml:space="preserve"><value>Settori d&apos;area · {0}</value></data>
   <data name="Cfgs_UnsavedRelease" xml:space="preserve"><value>Le configurazioni possibili non sono applicate: applicale o annullale prima di «Fine modifica».</value></data>
@@ -4261,4 +4254,64 @@
   <data name="Cfgs_StateExhaustive" xml:space="preserve"><value>completo: vincola</value></data>
   <data name="Cfgs_StateExamples" xml:space="preserve"><value>esempi: non vincola</value></data>
   <data name="Cfgs_ConsequencesIf" xml:space="preserve"><value>Che cosa ne seguirebbe, se l&apos;elenco fosse completo</value></data>
+  <data name="Rel_ChangeHidden" xml:space="preserve"><value>Nascosta</value></data>
+  <data name="Rel_ChangeShown" xml:space="preserve"><value>Di nuovo visibile</value></data>
+  <data name="Rel_TextChanged" xml:space="preserve"><value>testo cambiato</value></data>
+  <data name="Rel_DiffSeeText" xml:space="preserve"><value>Testo cambiato ({0} righe)</value></data>
+  <data name="Rel_DiffMoreLines" xml:space="preserve"><value>… e altre {0} righe.</value></data>
+  <data name="Rel_LineAdded" xml:space="preserve"><value>Aggiunta</value></data>
+  <data name="Rel_LineRemoved" xml:space="preserve"><value>Tolta</value></data>
+  <data name="Sd_Title" xml:space="preserve"><value>Stato del documento</value></data>
+  <data name="Sd_Help" xml:space="preserve"><value>Che cosa manca e che cosa è cambiato rispetto a quello che il pubblico legge oggi e alla prossima release programmata. Si aggiorna all'apertura, a «Fine modifica» e col tasto ↻.</value></data>
+  <data name="Sd_At" xml:space="preserve"><value>aggiornato alle {0}</value></data>
+  <data name="Sd_RefreshTitle" xml:space="preserve"><value>Ricalcola lo stato del documento</value></data>
+  <data name="Sd_Complete" xml:space="preserve"><value>Da completare</value></data>
+  <data name="Sd_CompleteOk" xml:space="preserve"><value>Niente da completare</value></data>
+  <data name="Sd_Write" xml:space="preserve"><value>scrivi</value></data>
+  <data name="Sd_Public" xml:space="preserve"><value>Rispetto al pubblico</value></data>
+  <data name="Sd_PublicCycle" xml:space="preserve"><value>in vigore: AIRAC {0}</value></data>
+  <data name="Sd_NeverPublished" xml:space="preserve"><value>Mai pubblicato</value></data>
+  <data name="Sd_Same" xml:space="preserve"><value>Uguale alla bozza</value></data>
+  <data name="Sd_Changed" xml:space="preserve"><value>{0} sezioni cambiate</value></data>
+  <data name="Sd_ChangedOne" xml:space="preserve"><value>1 sezione cambiata</value></data>
+  <data name="Sd_Scheduled" xml:space="preserve"><value>Prossima programmata</value></data>
+  <data name="Sd_NoScheduled" xml:space="preserve"><value>Nessuna release programmata.</value></data>
+  <data name="Sd_ScheduledCycle" xml:space="preserve"><value>AIRAC {0}, dal {1}</value></data>
+  <data name="Sd_ScheduledAligned" xml:space="preserve"><value>Porta già la bozza</value></data>
+  <data name="Sd_ScheduledBehind" xml:space="preserve"><value>La bozza è andata avanti</value></data>
+  <data name="Sd_ScheduledDerived" xml:space="preserve"><value>Sono cambiati anche i dati derivati che la release congela (piste, minimi…).</value></data>
+  <data name="Sd_ScheduledHow" xml:space="preserve"><value>Per farle portare la bozza di oggi, riprogrammala allo stesso ciclo: prende il posto di quella di prima.</value></data>
+  <data name="Sd_GoVersions" xml:space="preserve"><value>Vai a Versioni</value></data>
+  <data name="Ver_WorkAny" xml:space="preserve"><value>Da fare</value></data>
+  <data name="Ver_WorkAnyTitle" xml:space="preserve"><value>I documenti con qualcosa da fare: da completare, da pubblicare, con la programmata indietro o da rivedere</value></data>
+  <data name="Ver_WorkPublish" xml:space="preserve"><value>Da pubblicare</value></data>
+  <data name="Ver_WorkScheduled" xml:space="preserve"><value>Programmata indietro</value></data>
+  <data name="Ver_WorkReview" xml:space="preserve"><value>Da rivedere</value></data>
+  <data name="Ver_ColCompleteTitle" xml:space="preserve"><value>Da completare: sezioni da scrivere ancora vuote, o frasi da tradurre</value></data>
+  <data name="Ver_ColPublishTitle" xml:space="preserve"><value>Da pubblicare: la bozza è diversa da quello che il pubblico legge oggi</value></data>
+  <data name="Ver_ColScheduledTitle" xml:space="preserve"><value>Programmata indietro: la prossima release programmata non porta la bozza di oggi</value></data>
+  <data name="Ver_ColReviewTitle" xml:space="preserve"><value>Da rivedere: le righe aperte di «Da fare» su questo documento</value></data>
+  <data name="Ver_SlotPublishTitle" xml:space="preserve"><value>Sezioni diverse da quelle in vigore (AIRAC {1}): {0}</value></data>
+  <data name="Ver_SlotScheduledTitle" xml:space="preserve"><value>La programmata AIRAC {0} non porta la bozza di oggi</value></data>
+  <data name="Opt_Nav" xml:space="preserve"><value>Sezioni da scrivere</value></data>
+  <data name="Opt_Title" xml:space="preserve"><value>Sezioni da scrivere</value></data>
+  <data name="Opt_Intro" xml:space="preserve"><value>Le sezioni che lo stato del documento chiede di scrivere, tipo di documento per tipo di documento. Una sezione segnata «facoltativa» vuota non conta più: né nella scheda del documento né nella colonna «Da completare» di Documenti.</value></data>
+  <data name="Opt_Help" xml:space="preserve"><value>Vale per tutti i documenti di quel tipo. Le sezioni che non compaiono qui non si contano mai: contenitori, sezioni che il sito disegna dai dati, sezioni libere.</value></data>
+  <data name="Opt_Counted" xml:space="preserve"><value>{0} da scrivere su {1}</value></data>
+  <data name="Opt_ColSection" xml:space="preserve"><value>Sezione</value></data>
+  <data name="Opt_ColOptional" xml:space="preserve"><value>Facoltativa</value></data>
+  <data name="Opt_ToggleAria" xml:space="preserve"><value>Facoltativa: {0}</value></data>
+  <data name="Opt_ToggleTitle" xml:space="preserve"><value>Facoltativa: se resta vuota non conta fra le sezioni da scrivere, in tutti i documenti di questo tipo</value></data>
+  <data name="Opt_NowOptional" xml:space="preserve"><value>«{0}» è facoltativa in {1}.</value></data>
+  <data name="Opt_NowRequired" xml:space="preserve"><value>«{0}» è di nuovo da scrivere in {1}.</value></data>
+  <data name="Opt_AdminOnly" xml:space="preserve"><value>Solo gli admin decidono quali sezioni sono da scrivere.</value></data>
+  <data name="Opt_Profile_App" xml:space="preserve"><value>vIPI APP</value></data>
+  <data name="Opt_Profile_AccAerovia" xml:space="preserve"><value>vIPI ACC · blocco di aerovia</value></data>
+  <data name="Opt_Profile_AccAppBlock" xml:space="preserve"><value>vIPI ACC · blocco APP</value></data>
+  <data name="Opt_Profile_Vloa" xml:space="preserve"><value>vLOA</value></data>
+  <data name="Opt_Profile_Airport" xml:space="preserve"><value>vIPI d'aeroporto</value></data>
+  <data name="Opt_Profile_AirportMil" xml:space="preserve"><value>vSOP militare</value></data>
+  <data name="Opt_Profile_AppMil" xml:space="preserve"><value>vIPI APP militare</value></data>
+  <data name="Sd_WhichCount" xml:space="preserve"><value>Quali sezioni contano</value></data>
+  <data name="Sd_ArrivesWith" xml:space="preserve"><value>arrivano con la programmata AIRAC {0}</value></data>
 </root>

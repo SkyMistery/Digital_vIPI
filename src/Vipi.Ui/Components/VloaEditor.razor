@@ -114,8 +114,8 @@ else
            il pannello finiva fuori dalla griglia, quindi largo quanto la PAGINA invece che quanto le sezioni.
            L'editor ACC, che la griglia se la costruisce da sé, lo teneva già dentro. *@
         <AfterSections>
-            @* Quante sezioni da scrivere hanno qualcosa (carta 2026-10-18-sezioni-da-scrivere). *@
-            <SezioniDaScriverePanel DocumentId="_shell.DocumentId" InModifica="_shell.IsEditing" />
+            @* Lo stato del documento (S133, carta 2026-10-28-stato-dei-documenti). *@
+            <SchedaDocumento @ref="_scheda" Target="ReleaseTargetType.Vloa" Key="@_shell.DocumentId!.Value.ToString()" InModifica="_shell.IsEditing" />
 
             @* Release AIRAC: stesso componente condiviso di ACC/APP/aeroporto (doc 11 §3f), con gli STESSI parametri
                (doc 13 §3i) — mancavano l'aiuto e, per gli admin, l'annullo di una release. *@
@@ -231,7 +231,11 @@ else
     {
         await LoadAsync();
         if (_avviso is not null) await _avviso.RicaricaAsync();
+        if (_scheda is not null) await _scheda.RicaricaAsync();
     }
+
+    /// <summary>La scheda del documento (S133): dopo una pubblicazione il bersaglio non cambia, e si rilegge a mano.</summary>
+    private SchedaDocumento? _scheda;
 
     /// <summary>Il banner delle cose da fare, per rileggerlo dopo una pubblicazione. Può essere null: vive
     /// dentro un ramo condizionale del markup.</summary>

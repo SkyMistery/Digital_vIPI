@@ -65,8 +65,10 @@ public class AdminNavTests : TestContext
         // vecchio indirizzo del registro ci porta come rotta della stessa pagina — non come voce di barra.
         // ⚠️ 17 dal 29 settembre 2026 (S53): gli enti ATC, accanto agli aeroporti.
         // ⚠️ 18 dal 29 settembre 2026 (S56): le richieste dal campo, accanto a «Da sistemare».
-        Assert.Equal(18, nav.QuerySelectorAll(".an-link").Length);
+        // ⚠️ 19 dal 28 ottobre 2026 (S133): le sezioni da scrivere, quali sono facoltative.
+        Assert.Equal(19, nav.QuerySelectorAll(".an-link").Length);
         Assert.Contains("/services/vsop/requests", cut.Markup);
+        Assert.Contains("/services/vsop/admin/required-sections", cut.Markup);
         Assert.Contains("/services/vsop/admin/units", cut.Markup);
         Assert.Contains("/services/vsop/admin/sector-structure", cut.Markup);
         Assert.Contains("/services/vsop/admin/glossary", cut.Markup);

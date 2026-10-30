@@ -1,0 +1,232 @@
+@inherits ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
+@inject IEditAuthorizationService Authz
+@* La scheda del documento (S133, carta docs/feature/2026-10-28-stato-dei-documenti.md §1 D1): che cosa manca e che
+   cosa è cambiato, in un posto solo e sempre nello stesso ordine — da completare, rispetto al pubblico, la prossima
+   programmata e, nella pagina Documenti, da rivedere. Prende il posto del riquadro «Sezioni da scrivere».
+
+   Nei cinque editor sta sopra le Versioni, dove si decide di pubblicare; «Da rivedere» lì resta il banner in cima
+   (`DocReviewBar`), che ha già le sue azioni. Nella pagina Documenti (Compatto) apre il pannello del documento, e il
+   banner ci sta dentro come quarta voce.
+
+   ⚠️ SCOPE PROPRIO e `InFilaAsync`, come il riquadro che sostituisce: legge mentre l'editor che lo ospita carica il
+   suo, e chi cambia pagina a metà non deve chiudere lo scope sotto la query (`TerzaPortaTests`).
+   Costa due snapshot: si rilegge all'apertura, a «Fine modifica» e col ↻, non a ogni tasto salvato. *@
+
+@if (_scheda is { } s)
+{
+    <div class="@(Compatto ? "sd sd-compact" : "block sd")" id="@(Compatto ? null : "sec-stato")" data-scheda-documento>
+        <div class="sd-head">
+            @if (Compatto)
+            {
+                <b><Icon Name="clipboard" Size="14" /> @L["Sd_Title"]</b>
+            }
+            else
+            {
+                <h3><Icon Name="clipboard" /> @L["Sd_Title"]</h3>
+            }
+            <span class="muted sd-ora" data-utc-title="@VipiTime.Iso(s.CalcolataUtc)">@string.Format(L["Sd_At"].Value, VipiTime.Z(s.CalcolataUtc))</span>
+            <button type="button" class="lnk-mini" disabled="@_leggendo" title="@L["Sd_RefreshTitle"]" aria-label="@L["Sd_RefreshTitle"]" @onclick="RileggiAsync">↻</button>
+        </div>
+        @if (!Compatto)
+        {
+            <p class="help">@L["Sd_Help"]</p>
+        }
+
+        @* ---- 1. Da completare ---- *@
+        <div class="sd-voce" data-voce="completare">
+            <p class="sd-h">
+                <Icon Name="pencil" Size="14" /> <b>@L["Sd_Complete"]</b>
+                @if (!s.DaCompletare)
+                {
+                    <span class="pill green">@L["Sd_CompleteOk"]</span>
+                }
+                @if (s.SezioniVuote > 0)
+                {
+                    <span class="pill amber">@(s.SezioniVuote == 1 ? L["SdS_PillOne"].Value : string.Format(L["SdS_Pill"].Value, s.SezioniVuote))</span>
+                }
+                @if (s.TraduzioniMancanti > 0)
+                {
+                    <span class="pill amber">@string.Format(L["TrEd_Wait_Missing"].Value, s.TraduzioniMancanti)</span>
+                }
+                @* Quali sezioni contano lo decide un admin (S133, D4): a lui il collegamento, agli altri niente. *@
+                @if (Authz.IsAdmin)
+                {
+                    <a class="sd-go" href="/services/vsop/admin/required-sections">@L["Sd_WhichCount"] →</a>
+                }
+            </p>
+            @if (s.Sezioni is { Vuote: > 0 } sz)
+            {
+                @foreach (var parte in sz.Parti.Where(p => p.Vuote.Count > 0))
+                {
+                    @if (parte.Titolo is { } titolo)
+                    {
+                        <p class="sd-part"><b>@titolo</b></p>
+                    }
+                    <ul class="sd-list">
+                        @foreach (var v in parte.Vuote)
+                        {
+                            <li>
+                                <span>@v.Percorso</span>
+                                <a class="sd-go" href="@AncoraSezione(v.SectionId)" @onclick="() => VaiAsync(v.SectionId)"
+                                   @onclick:preventDefault="@(!Compatto)">@L["Sd_Write"] →</a>
+                            </li>
+                        }
+                    </ul>
+                }
+            }
+        </div>
+
+        @* ---- 2. Rispetto a quello che il pubblico legge oggi ---- *@
+        <div class="sd-voce" data-voce="pubblico">
+            <p class="sd-h">
+                <Icon Name="eye" Size="14" /> <b>@L["Sd_Public"]</b>
+                @if (s.CicloInVigore is not { } ciclo)
+                {
+                    <span class="pill grey">@L["Sd_NeverPublished"]</span>
+                }
+                else
+                {
+                    <span class="muted">@string.Format(L["Sd_PublicCycle"].Value, ciclo)</span>
+                    @if (s.RispettoAlPubblico.Count == 0)
+                    {
+                        <span class="pill green">@L["Sd_Same"]</span>
+                    }
+                    else
+                    {
+                        <span class="pill blue">@Sezioni(s.RispettoAlPubblico.Count)</span>
+                        @* Le differenze ci sono, ma il lavoro è fatto: arrivano con la programmata. *@
+                        @if (s.Programmata is { Allineata: true } arriva)
+                        {
+                            <span class="muted">@string.Format(L["Sd_ArrivesWith"].Value, arriva.Ciclo)</span>
+                        }
+                    }
+                }
+            </p>
+            @if (s.DaPubblicare)
+            {
+                <ReleaseDiffTable Diff="@(new ReleaseDiff(true, s.CicloInVigore, s.RispettoAlPubblico))" ShowBaseline="false" />
+            }
+        </div>
+
+        @* ---- 3. La prossima programmata ---- *@
+        <div class="sd-voce" data-voce="programmata">
+            <p class="sd-h">
+                <Icon Name="calendar" Size="14" /> <b>@L["Sd_Scheduled"]</b>
+                @if (s.Programmata is not { } p)
+                {
+                    <span class="muted">@L["Sd_NoScheduled"]</span>
+                }
+                else
+                {
+                    <span class="muted">@string.Format(L["Sd_ScheduledCycle"].Value, p.Ciclo, VipiTime.Day(p.EffettivaUtc))</span>
+                    @if (p.Allineata)
+                    {
+                        <span class="pill green">@L["Sd_ScheduledAligned"]</span>
+                    }
+                    else
+                    {
+                        <span class="pill amber">@L["Sd_ScheduledBehind"]</span>
+                    }
+                }
+            </p>
+            @if (s.Programmata is { Allineata: false } indietro)
+            {
+                @if (indietro.Righe.Count > 0)
+                {
+                    <ReleaseDiffTable Diff="@(new ReleaseDiff(true, indietro.Ciclo, indietro.Righe))" ShowBaseline="false" />
+                }
+                @if (indietro.DerivateCambiate)
+                {
+                    <p class="help sd-note">@L["Sd_ScheduledDerived"]</p>
+                }
+                <p class="help sd-note">
+                    @L["Sd_ScheduledHow"]
+                    @if (!Compatto)
+                    {
+                        @(" ")<a href="#sec-versioni" @onclick='() => VaiAncoraAsync("sec-versioni")' @onclick:preventDefault>@L["Sd_GoVersions"] →</a>
+                    }
+                </p>
+            }
+        </div>
+
+        @* ---- 4. Da rivedere: solo nella pagina Documenti; negli editor è il banner in cima ---- *@
+        @if (ConDaRivedere)
+        {
+            <div class="sd-voce" data-voce="rivedere">
+                <DocReviewBar DocumentId="s.DocumentId" />
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ReleaseTargetType Target { get; set; }
+    [Parameter, EditorRequired] public string Key { get; set; } = "";
+
+    /// <summary>La forma della pagina Documenti: dentro il pannello del documento, senza aiuto e titolo grande.</summary>
+    [Parameter] public bool Compatto { get; set; }
+
+    /// <summary>Mostra anche le righe «Da rivedere» (pagina Documenti).</summary>
+    [Parameter] public bool ConDaRivedere { get; set; }
+
+    /// <summary>L'editor del documento, per i collegamenti alle sezioni quando la scheda non sta nell'editor.</summary>
+    [Parameter] public string? EditorHref { get; set; }
+
+    /// <summary>Vero mentre l'editor è in modifica: al passaggio a falso («Fine modifica») si rilegge.</summary>
+    [Parameter] public bool InModifica { get; set; }
+
+    private SchedaDelDocumento? _scheda;
+    private (ReleaseTargetType, string)? _letto;
+    private bool _eraInModifica;
+    private bool _leggendo;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var chi = (Target, Key);
+        var fineModifica = _eraInModifica && !InModifica;
+        _eraInModifica = InModifica;
+        if (_letto == chi && !fineModifica) return;
+        _letto = chi;
+        await LeggiAsync();
+    }
+
+    /// <summary>Rilegge su richiesta dell'ospite: dopo una pubblicazione o una programmazione il bersaglio non cambia.</summary>
+    public async Task RicaricaAsync()
+    {
+        await LeggiAsync();
+        if (!Chiusa) StateHasChanged();
+    }
+
+    private Task RileggiAsync() => LeggiAsync();
+
+    /// <summary>🔴 Il corpo resta un BLOCCO: come espressione sceglierebbe l'overload di <c>InFilaAsync</c> che rende
+    /// un valore, e sarebbe ricorsione infinita (vedi <c>DocReviewBar.CaricaAsync</c>).</summary>
+    private Task LeggiAsync() => InFilaAsync(async () =>
+    {
+        if (string.IsNullOrWhiteSpace(Key)) { _scheda = null; return; }
+        _leggendo = true;
+        try
+        {
+            var scheda = await ScopedServices.GetRequiredService<IStatoDelDocumentoService>().SchedaAsync(Target, Key);
+            if (!Chiusa) _scheda = scheda;
+        }
+        finally { _leggendo = false; }
+    });
+
+    private string Sezioni(int n) => n == 1 ? L["Sd_ChangedOne"].Value : string.Format(L["Sd_Changed"].Value, n);
+
+    private string AncoraSezione(int id) => Compatto && EditorHref is { } e ? $"{e}#s-{id}" : $"#s-{id}";
+
+    private Task VaiAsync(int sezione) => Compatto ? Task.CompletedTask : VaiAncoraAsync($"s-{sezione}");
+
+    // Lo scorrimento dell'editor lascia spazio alla barra appiccicata (vipi-editor.js).
+    private async Task VaiAncoraAsync(string id)
+    {
+        try { await JS.InvokeVoidAsync("vipiScrollTo", id); }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }   // prerender: niente JS
+    }
+}

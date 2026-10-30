@@ -229,6 +229,8 @@ public class VipiDbContext : DbContext
     public DbSet<EventKitItem> EventKitItems => Set<EventKitItem>();
     public DbSet<EditResourceLock> EditResourceLocks => Set<EditResourceLock>();
     public DbSet<DocumentImpact> DocumentImpacts => Set<DocumentImpact>();
+    public DbSet<DocumentComparison> DocumentComparisons => Set<DocumentComparison>();
+    public DbSet<OptionalSection> OptionalSections => Set<OptionalSection>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
     public DbSet<AtcSession> AtcSessions => Set<AtcSession>();
     public DbSet<AtcSessionTraffic> AtcSessionTraffic => Set<AtcSessionTraffic>();
@@ -886,6 +888,24 @@ public class VipiDbContext : DbContext
             // «mod:» + un istante a secondi: 18 caratteri. Il margine è per una seconda natura di causa.
             e.Property(x => x.CauseKey).HasMaxLength(64);
             e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Il riassunto dei confronti per la pagina Documenti (S133): una riga per documento. ---
+        b.Entity<DocumentComparison>(e =>
+        {
+            e.HasKey(x => x.DocumentId);
+            e.Property(x => x.DocumentId).ValueGeneratedNever();
+            e.Property(x => x.EffectiveCycle).HasMaxLength(8);
+            e.Property(x => x.ScheduledCycle).HasMaxLength(8);
+            e.HasOne(x => x.Document).WithOne().HasForeignKey<DocumentComparison>(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Le sezioni dichiarate facoltative, per profilo (S133). Una riga per (profilo, chiave). ---
+        b.Entity<OptionalSection>(e =>
+        {
+            e.HasIndex(x => new { x.Profile, x.SectionKey }).IsUnique();
+            e.Property(x => x.Profile).HasMaxLength(32);
+            e.Property(x => x.SectionKey).HasMaxLength(96);
         });
 
         // --- Nominativi dismessi: lo storico, non l'identità (vedi CallsignAlias). ---

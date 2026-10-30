@@ -4,7 +4,15 @@
 > Master sul clone (`main`), Sito in `vipi-sito` su `sito/lavori`, Lab in `vipi-lab` su `lab/f3`; la storia di ogni
 > filone sta in `docs/filoni/<filone>.md`, e questo file lo scrive solo il Master. Conteggi: `tests/conteggi/`.
 >
-> ## ▶ Il punto — 26 ottobre 2026
+> ## ▶ Il punto — 28 ottobre 2026
+>
+> **✅ Online: 1.76.0** (health Healthy, CSS `7f7eb20c`; **in `main` non resta codice fuori pacchetto**) (§A170, timbro
+> `1.76.0 · cae2b84`, 17 file, zip `2ff9002e…`, MINOR con due migrazioni ADDITIVE, misurata dalla 1.75.0): Sito S133,
+> lo stato dei documenti (confronto sul testo, scheda del documento, cruscotto Documenti, sezioni facoltative). Da
+> guardare col login: `Schema 0` e la pagina Documenti sui dati veri. `lab/f3` non fuso (scelta del committente).
+> ⚠️ Aperto: SDK 10.0.402.
+>
+> ## Il punto — 26 ottobre 2026
 >
 > **✅ Online: 1.75.0** (health Healthy; **in `main` non resta codice fuori pacchetto**) (§A169, timbro
 > `1.75.0 · 1aa329c`, 7 file, zip `edf4fae7…`, MINOR senza migrazioni, misurata dalla 1.74.0): Sito S132, l'API

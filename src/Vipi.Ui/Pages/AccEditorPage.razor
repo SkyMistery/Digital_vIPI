@@ -183,8 +183,8 @@ else
                 </div>
             }
 
-            @* Quante sezioni da scrivere hanno qualcosa, blocco per blocco (carta 2026-10-18-sezioni-da-scrivere). *@
-            <SezioniDaScriverePanel DocumentId="_shell.DocumentId" InModifica="_shell.IsEditing" />
+            @* Lo stato del documento, sezioni da scrivere blocco per blocco (S133, carta 2026-10-28-stato-dei-documenti). *@
+            <SchedaDocumento @ref="_scheda" Target="ReleaseTargetType.AccVipi" Key="@($"{Acc.Trim().ToUpperInvariant()}|{_root}")" InModifica="_shell.IsEditing" />
 
             @* Published: dopo «Pubblica ora» la bozza è promossa a versione pubblicata — ricarichiamo, o la pill
                «Bozza vN» del rail resta quella letta all'apertura. Stessi parametri degli altri editor (doc 13
@@ -423,7 +423,11 @@ else
     {
         await LoadAsync();
         if (_avviso is not null) await _avviso.RicaricaAsync();
+        if (_scheda is not null) await _scheda.RicaricaAsync();
     }
+
+    /// <summary>La scheda del documento (S133): dopo una pubblicazione il bersaglio non cambia, e si rilegge a mano.</summary>
+    private SchedaDocumento? _scheda;
 
     /// <summary>Il banner delle cose da fare, per rileggerlo dopo una pubblicazione. Può essere null: vive
     /// dentro un ramo condizionale del markup.</summary>

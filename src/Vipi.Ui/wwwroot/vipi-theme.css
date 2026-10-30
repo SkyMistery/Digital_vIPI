@@ -571,6 +571,37 @@
    andava a capo mentre accanto restava spazio vuoto. */
 :where(.vipi-root) .struct .ver-sec-h>b{flex:none;white-space:nowrap}
 :where(.vipi-root) .struct .ver-diff{margin:2px 0 8px 24px}
+/* S133 — il testo cambiato di una sezione: «−» e «+» in colonna, tinte dei callout. Fuori da `.struct`: la tabella
+   delle differenze sta anche in «Da fare» e nella scheda del documento. */
+:where(.vipi-root) .diff-righe{list-style:none;margin:4px 0 0;padding:0;font-size:12.5px;line-height:1.45}
+:where(.vipi-root) .diff-righe li{display:flex;gap:8px;padding:2px 8px;border-radius:6px;margin-bottom:2px;overflow-wrap:anywhere}
+:where(.vipi-root) .diff-righe li.del{background:var(--tint-orange);color:var(--danger-ink)}
+:where(.vipi-root) .diff-righe li.add{background:var(--tint-green);color:var(--ok-ink)}
+:where(.vipi-root) .diff-righe .seg{flex:none;width:10px;font-family:var(--font-mono);font-weight:700}
+:where(.vipi-root) .cfg-table tr.diff-tr td{padding-top:0;border-top:0}
+:where(.vipi-root) .diff-det>summary{cursor:pointer;font-size:12px;color:var(--brand-ink)}
+/* S133 — la scheda del documento: quattro voci sempre nello stesso ordine, divise da un filo. Nell'editor è un
+   `.block` come i pannelli vicini; nella pagina Documenti apre il pannello del documento, senza cornice. */
+:where(.vipi-root) .sd .sd-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+:where(.vipi-root) .sd .sd-head h3{margin:0}
+:where(.vipi-root) .sd .sd-ora{font-size:12px;margin-left:auto}
+:where(.vipi-root) .sd .sd-head+.help{margin:6px 0 0}
+:where(.vipi-root) .sd .sd-voce{padding:8px 0 6px;border-top:1px solid var(--line);margin-top:8px}
+:where(.vipi-root) .sd .sd-h{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 4px}
+:where(.vipi-root) .sd .sd-part{margin:6px 0 2px}
+:where(.vipi-root) .sd .sd-list{margin:2px 0 0;padding-left:20px}
+:where(.vipi-root) .sd .sd-go{margin-left:8px;font-size:12px;white-space:nowrap}
+:where(.vipi-root) .sd .sd-note{margin:4px 0 0}
+:where(.vipi-root) .sd .sd-voce .callout{margin:0}
+:where(.vipi-root) .sd-compact{margin:0 0 12px}
+:where(.vipi-root) .sd-compact .sd-voce{margin-top:6px;padding-top:6px}
+/* S133 — le quattro colonne del lavoro in fondo a ogni riga della pagina Documenti, e la loro intestazione appiccicata
+   in cima all'elenco. Larghezza fissa: è quella che fa di quattro pastiglie una colonna. */
+:where(.vipi-root) .ver-lav{display:grid;grid-template-columns:repeat(4,34px);gap:2px;flex:none;margin-left:auto}
+:where(.vipi-root) .ver-lav .vl-slot{display:flex;justify-content:center;align-items:center;min-height:20px}
+:where(.vipi-root) .ver-lav .pill{padding:1px 7px;font-size:11.5px}
+:where(.vipi-root) .struct .ver-lav-head{position:sticky;top:0;z-index:1;display:flex;padding:4px 10px 4px 0;
+  background:var(--surface);border-bottom:1px solid var(--line);color:var(--ink-mid)}
 :where(.vipi-root) .struct .ver-pub{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
 :where(.vipi-root) .struct .ver-cycle{min-width:270px;max-width:340px}
 :where(.vipi-root) .struct .ver-note{max-width:240px}
