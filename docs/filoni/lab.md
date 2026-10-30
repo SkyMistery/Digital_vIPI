@@ -54,7 +54,8 @@ contro AD 2.12 in metri e i nomi delle taxiway dei `.txi` contro AD 2.8, in sola
 carta degli aeroporti. Prove A79-A81. Poi, nella stessa scheda, **le note dei parcheggi**: le pagine di testo delle carte
 dei parcheggi lette al clic, riga per riga, e la ricerca per stand (18 scali sul 2611). Misurando è venuto fuori che
 LIPE, LIEE, LIPY e LIRP stampano sul disegno le coordinate dei punti d'arresto degli stand: la mattina avevo scritto
-«nessuno», e la carta è corretta. Prove A83-A84.
+«nessuno», e la carta è corretta. Prove A83-A84. Lì, dove le coordinate ci sono, **gli stand dei `.gts` contro l'AIP in
+metri**: a LIPE 211-214 fra 13 e 24 m e D3 a 55 m, a LIEE 121-124 fino a 36 m, a LIPY 42 a 25 m. Prova A85.
 
 **L'emendamento si ferma prima con file non registrati.** Era una domanda aperta dal 27 ottobre: con file non registrati
 nell'AIP espanso la lettura del ciclo nuovo non cambia ramo e si rifiuta (A40), ma lo si scopriva solo alla fine dei circa

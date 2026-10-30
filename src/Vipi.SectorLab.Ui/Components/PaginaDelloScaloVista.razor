@@ -521,6 +521,39 @@
             }
             else
             {
+                @if (Lab.StandDelGround(s.Icao) is { } stand)
+                {
+                    @* Controllo 3, dove la carta stampa le coordinate degli stand (LIPE, LIEE, LIPY, LIRP sul 2611): i .gts in metri. *@
+                    <div data-ground-stand>
+                        <p class="lab-nota">Le note stampano le coordinate degli stand: i <code>.gts</code> contro l'AIP, il punto più vicino dello stesso stand.
+                            Oltre @StandDelloScalo.SogliaDelloStandM m lo stand è diverso. Il nome del punto viene dal disegno: in dubbio, il PDF.</p>
+                        @if (stand.Stand.Count == 0)
+                        {
+                            <p class="lab-nota">Nessun .gts ha stand per @s.Icao.</p>
+                        }
+                        else
+                        {
+                            <table class="lab-tabella-da-dove">
+                                <thead><tr><th>Stand</th><th>File</th><th>Punto dell'AIP</th><th>Scarto</th></tr></thead>
+                                <tbody>
+                                    @foreach (var x in stand.Stand.OrderByDescending(x => x.Diverso).ThenBy(x => x.Punto is null))
+                                    {
+                                        <tr data-stand-ground="@x.Stand" class="@(x.Diverso ? "lab-stato-parziale" : null)">
+                                            <td>@x.Stand</td>
+                                            <td>@NomeDelFile(x.File)</td>
+                                            <td>@(x.Punto?.Nome ?? "—")</td>
+                                            <td>@(x.Metri is { } m ? m.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " m" : "l'AIP non lo stampa")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        @if (stand.MancanoNelSector.Count > 0)
+                        {
+                            <p class="lab-nota lab-stato-parziale" data-stand-mancano>Nessun .gts ha: @string.Join(" ", stand.MancanoNelSector)</p>
+                        }
+                    </div>
+                }
                 <label class="lab-campo-in-colonna lab-nota">
                     Stand
                     <input class="lab-campo" value="@_stand" data-campo="stand" placeholder="401" @oninput="e => _stand = e.Value?.ToString() ?? string.Empty" />

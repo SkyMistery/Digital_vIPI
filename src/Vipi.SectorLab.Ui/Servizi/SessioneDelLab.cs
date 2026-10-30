@@ -5502,6 +5502,15 @@ public sealed partial class SessioneDelLab
     public IReadOnlyList<Core.PdfAip.PaginaDiNote>? NoteDeiParcheggi(string icao) =>
         StratoDellAip is { } strato && _noteDeiParcheggi.TryGetValue((strato.Ciclo, icao), out var note) ? note : null;
 
+    /// <summary>
+    /// Gli stand dei <c>.gts</c> contro i punti che le note dei parcheggi stampano (§2 D, controllo 3), in metri. Null senza
+    /// un sector, con le note non lette o senza punti nelle note.
+    /// </summary>
+    public Core.PdfAip.ConfrontoDegliStand? StandDelGround(string icao) =>
+        Sessione is { } sessione && NoteDeiParcheggi(icao) is { } note && Core.PdfAip.StandDelloScalo.Punti(note) is { Count: > 0 } punti
+            ? Core.PdfAip.StandDelloScalo.Confronta(punti, icao, sessione)
+            : null;
+
     /// <summary>Sta leggendo le note dei parcheggi.</summary>
     public bool StaLeggendoLeNote { get; private set; }
 

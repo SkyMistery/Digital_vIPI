@@ -236,6 +236,23 @@ Misura sul 2611: **18 scali** hanno note — LIBD, LIBF, LIBG, LIBR, LIEE, LIMC,
 (sei pagine), LIRF, LIRI, LIRN, LIRP; gli altri hanno solo il disegno. Provato a schermo sul banco: LIRF «401» trova la
 riga del VDGS e «Stands 401, 402, 403, 404, 405 entrance only via TWY NZ»; LIPE «110» i due punti d'arresto.
 
+**Gli stand in metri, 30 ottobre** (controllo 3, la parte che si confronta). Dove le note portano le coordinate degli
+stand, sopra le righe la scheda mostra i `.gts` dello scalo contro l'AIP (`StandDelloScalo`, Core): per ogni riga del
+sector il punto dell'AIP dello stesso stand più vicino (uno stand può avere più punti d'arresto, «110-stop1», «110-stop2»)
+e a quanti metri; oltre 10 m in arancio, in testa. Sotto, gli stand dell'AIP che nessun `.gts` ha.
+- **I punti.** Un nome seguito da latitudine e longitudine, nelle forme del 2611: «112-stop2 44° 31' 45.07" 011° 17'
+  47.97"», «102-stop 1 …», «10 43°41'41.60" - 010°23'47.71"» (LIRP), «L7 …», «11A …» (LIPY), «21 40°37'25'',99 …» (LIRI),
+  più punti sulla stessa riga. Una coordinata senza un nome davanti si salta: sul disegno il nome può stare su un'altra riga,
+  e indovinarlo vorrebbe dire sbagliare stand. Per lo stesso motivo il nome letto può essere quello di un'etichetta vicina:
+  la tabella dice il nome del punto, e in dubbio si guarda il PDF.
+- **I nomi.** Senza zeri davanti («07» è «7»). Il sector di LIRP scrive i punti d'arresto «29S1», «29S2» dove l'AIP stampa
+  lo stand «29»: senza un punto con lo stesso nome, si prova lo stand. Lì l'AIP ha un punto solo, e il secondo punto
+  d'arresto del sector può stare a una decina di metri senza essere sbagliato.
+Misura sul 2611 col sector del banco: **LIPE** 55 stand, quasi tutti a 0 m (il sector è copiato dall'AIP), 211-214 fra 13 e
+24 m e D3 a 55 m; **LIEE** 16, 121-124 fra 11 e 36 m; **LIPY** 42 a 25 m e 44 a 19 m; **LIRI** 26 e 27 a 12-15 m (l'AIP stampa
+solo 21-27); **LIRP** tutti sotto i 10 m salvo 29S1 (16 m), e gli stand «L7»-«L23» e 71-85 che nessun `.gts` ha. Provato a
+schermo sul banco: LIPE.
+
 ## §5 — Deciso e da decidere
 
 - **D1** (committente, 27 ottobre): si scrive questa carta col disegno, e si parte dalla pagina dello scalo (S1).
