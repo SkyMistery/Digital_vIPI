@@ -87,7 +87,8 @@ trasparente quanto si vuole. Le regole speciali, controlli che il Lab fa da sé 
 1. **Le soglie del sector contro AD 2.12**, in metri, pista per pista.
 2. **I nomi delle taxiway** del sector contro quelli di AD 2.8.
 3. **Gli stand**: dove AD 2 stampa le coordinate come testo, il sector contro l'AIP in metri; dove no, a occhio sulla
-   carta posata. Da misurare: quali scali le stampano. LIRF no: la sua «PARKING DOCKING CHART DESCRIPTION TABLES»
+   carta posata. Misurato il 30 ottobre sul 2611: nessuno scalo stampa come testo le coordinate degli stand, né nelle
+   sottosezioni né nelle pagine delle carte dei parcheggi (sono disegni o note): il controllo 3 è a occhio dappertutto. LIRF no: la sua «PARKING DOCKING CHART DESCRIPTION TABLES»
    (AD 2 LIRF 2-9) è testo, ma sono note — gli stand col VDGS, quelli fuori dalla vista della torre, gli ingressi solo da
    una taxiway («Stands 401-405 entrance only via TWY NZ»). Anche queste sono regole che il Lab può leggere e mostrare.
 4. Le regole di uno scalo che il PDF non dice (una taxiway che il sector disegna diversa per scelta) si scrivono come
@@ -197,6 +198,23 @@ d'aerodromo, i parcheggi):
   lascia la mappa. Un altro ciclo sulla mappa chiude la posa.
 Provato sul banco a 1100 px sul 2611: LIRN ILS Z RWY 24 posata con ESCOB, BENTO e URRUC scritti per nome; i fix dell'AIP
 cadono sui simboli della carta (anche DIEZO, OLEVA, ISKIA e il mancato, che non erano punti della posa), e la scala torna.
+
+**I controlli 1 e 2 del ground fatti il 30 ottobre** (parte di S5, prima della carta d'aerodromo sotto il ground: leggono
+solo il testo). Nella pagina dello scalo una scheda **Ground**, in sola lettura sul sector aperto (`GroundDelloScalo`, Core):
+- **Le soglie.** Ogni testata di ogni `.rw` dello scalo, file per file (le FIR possono essere diverse da `itrw.rw`), coi
+  metri dalla soglia di AD 2.12; oltre 10 m è diversa, la stessa soglia del confronto di AD 2, dove c'è «Sostituisci». Una
+  testata che AD 2.12 ha senza coordinate (LIAQ, LICP) lo dice, e non sta fra le piste «che nessun `.rw` ha».
+- **Le taxiway.** AD 2.8 non ha un campo nel modello: i nomi si leggono dalla sottosezione com'è stampata (la voce 2),
+  senza toccare il lettore comune. Sul 2611 arriva in due forme: una voce numerata con una taxiway per riga
+  (`A 15.0 M ASPH …`; `TWY 16.0 M` è una senza nome, `ALL` le dice tutte insieme), o una tabella con le colonne unite in
+  una cella, dove negli scali grandi la colonna porta note, larghezze, rimandi e nomi composti (LIRF `AD-AE` e
+  `(tra TWY BG`, LIMC `EM-DE-GE- GW-F-…`, LIME `HOLDING POSITION B5`, LIRP `H (4)`): i composti si spezzano, il resto si
+  toglie. Contro le etichette dei `.txi` dello scalo: in tutti e due, mancano nel sector, solo nel sector; le etichette
+  che non hanno la forma di una taxiway («APRON NORD», «MIL4», «100», «RAMP1») stanno a parte.
+Misura sul 2611 col sector del banco: soglie oltre 10 m a LIDP (02 a 249 m, 20 a 62 m), LIPB (01 a 291 m, 19 a 89 m),
+LIRI (05 a 367 m), LIBR (31 a 220 m), LICA (10 a 103 m), LICR (11 a 46 m), LILN (17 e 35 a 17 e 24 m); taxiway che
+il sector non ha a LIMC (GS), LIRF (CM), LIRA (BF), LIPE (TK, TY), LIRL (L, W: la L è chiusa nelle note), e tutte quelle
+degli scali senza `.txi` (LIRJ, LIRG, LIQL, LIPN…). Provato a schermo sul banco: LIRN e LIDP.
 
 ## §5 — Deciso e da decidere
 

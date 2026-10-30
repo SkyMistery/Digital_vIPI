@@ -72,7 +72,7 @@ public static partial class ConfrontoDiAd2
     /// <summary>Mezzo secondo d'arco (con un margine per il decimo stampato): l'arrotondamento al secondo di ENR 4.1.</summary>
     private const double MezzoSecondo = 0.51;
 
-    private sealed record Voce<T>(string Relativo, string File, int Record, T Dato);
+    internal sealed record Voce<T>(string Relativo, string File, int Record, T Dato);
 
     /// <summary>La parte chiesta, dal modello dell'AIP espanso.</summary>
     public static IReadOnlyList<DifferenzaDiAd2> Di(ParteDiAd2 parte, AipDocument aip, SessioneAperta sessione)
@@ -418,7 +418,7 @@ public static partial class ConfrontoDiAd2
 
     // --- in comune ---------------------------------------------------------------------------------------------------
 
-    private static List<Voce<T>> Voci<T>(SessioneAperta sessione, string estensione)
+    internal static List<Voce<T>> Voci<T>(SessioneAperta sessione, string estensione)
     {
         var voci = new List<Voce<T>>();
         foreach (var (relativo, aperto) in sessione.File.OrderBy(f => f.Key, StringComparer.OrdinalIgnoreCase))

@@ -557,7 +557,7 @@ public sealed class AipNellaBarraTests : IDisposable
             Assert.Contains("14 FT", pagina.Find("[data-testata-scalo]").TextContent, StringComparison.Ordinal);
             Assert.Contains("lab-scelto", pagina.Find("[data-scalo=LIXX]").ClassList);
         }, TimeSpan.FromSeconds(10));
-        Assert.Equal(["Piste 1", "Procedure 1", "Carte · IAP 1/2", "Frequenze", "Testo AD 2"], pagina.FindAll("[data-scheda-scalo]").Select(b => b.TextContent.Trim()));
+        Assert.Equal(["Piste 1", "Procedure 1", "Carte · IAP 1/2", "Frequenze", "Ground", "Testo AD 2"], pagina.FindAll("[data-scheda-scalo]").Select(b => b.TextContent.Trim()));
         Assert.Equal("16L/Avvicinamenti", pagina.Find("[data-gruppo-scalo]").GetAttribute("data-gruppo-scalo"));
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Piste]").Click());
         Assert.Equal("16L/34R", pagina.Find("[data-pista]").GetAttribute("data-pista"));
@@ -567,6 +567,10 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Equal(["solo immagine", "in parte · 1 parte, 1 tratto · 1 parte con un punto solo"], pagina.FindAll("[data-carta] td:nth-child(4)").Select(td => td.TextContent.Trim()));
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Frequenze]").Click());
         Assert.Contains("118.700 · Prova Torre", pagina.Find("[data-frequenze-scalo]").TextContent, StringComparison.Ordinal);
+        // §2 D: nessun .rw ha LIXX, e lo scalo non ha AD 2.8.
+        await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Ground]").Click());
+        Assert.Contains("Nessun .rw ha 16L, 34R", pagina.Find("[data-ground-senza-rw]").TextContent, StringComparison.Ordinal);
+        Assert.Contains("AD 2.8 non dice i nomi", pagina.Find("[data-ground-taxiway]").TextContent, StringComparison.Ordinal);
         await pagina.InvokeAsync(() => pagina.Find("[data-scheda-scalo=Testo]").Click());
         Assert.NotNull(pagina.Find("[data-testo-scalo] [data-scheda-aip]"));
 

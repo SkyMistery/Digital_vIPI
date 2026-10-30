@@ -5471,6 +5471,14 @@ public sealed partial class SessioneDelLab
         }
     }
 
+    /// <summary>
+    /// I controlli del ground dello scalo (carta «Gli aeroporti nel Lab», §2 D, 1 e 2): le soglie dei <c>.rw</c> contro AD 2.12
+    /// e le taxiway dei <c>.txi</c> contro AD 2.8, sul sector aperto. Null senza un sector. Si rifanno a ogni chiamata: leggono
+    /// solo i <c>.rw</c> e i <c>.txi</c>, e così seguono le modifiche al sector.
+    /// </summary>
+    public Core.PdfAip.ControlliDelGround? ControlliDelGround(Aip.Aerodrome scalo) =>
+        Sessione is { } sessione ? Core.PdfAip.GroundDelloScalo.Di(scalo, sessione) : null;
+
     private (object Modello, IReadOnlyDictionary<string, (int Lette, int Tutte)> Coperture)? _copertureIap;
 
     /// <summary>Per ogni scalo, le carte IAP che danno procedure su quelle di AD 2.24 (la riga dello scalo nell'Indice).</summary>

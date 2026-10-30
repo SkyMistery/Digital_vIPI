@@ -8,6 +8,7 @@
     AD 2.24 con quel che il Lab ne legge, frequenze e radioassistenze, il testo di AD 2.1-2.25.
     S2: gli avvicinamenti per carta («ILS (Cat.II) or LOC X RWY 16L»), con lo stato; una carta si apre al posto delle schede,
     con le sue parti (le voci di prima, una per segmento stampato) e «Apri il PDF».
+    §2 D, controlli 1 e 2: la scheda Ground, le soglie dei .rw contro AD 2.12 in metri e le taxiway dei .txi contro AD 2.8.
 *@
 @if (Pagina is { } p)
 {
@@ -306,6 +307,104 @@
                 }
                 break;
 
+            case Scheda.Ground:
+                @* §2 D, controlli 1 e 2: dal testo, in sola lettura, sul sector aperto. *@
+                @if (Lab.ControlliDelGround(s) is not { } g)
+                {
+                    <p class="lab-nota" data-ground-senza-sector>Apri un sector: i controlli del ground confrontano AD 2 con il sector aperto.</p>
+                }
+                else
+                {
+                    <section class="lab-pista" data-ground-soglie>
+                        <h3 class="lab-pista-nome">Soglie <span class="lab-nota">AD 2.12 contro i .rw</span></h3>
+                        @if (g.Soglie.Count == 0)
+                        {
+                            <p class="lab-nota">Nessun .rw ha piste per @s.Icao.</p>
+                        }
+                        else
+                        {
+                            <p class="lab-nota">Oltre @ConfrontoDiAd2.SogliaDellaSogliaM m la soglia è diversa. Si corregge con «Sostituisci» nel confronto di AD 2 (Piste).</p>
+                            <table class="lab-tabella-da-dove">
+                                <thead><tr><th>Pista</th><th>Testata</th><th>File</th><th>Scarto</th></tr></thead>
+                                <tbody>
+                                    @foreach (var x in g.Soglie)
+                                    {
+                                        <tr data-soglia-ground="@x.Testata" class="@(x.Diversa || !x.NellAip ? "lab-stato-parziale" : null)">
+                                            <td>@x.Pista</td>
+                                            <td>@x.Testata</td>
+                                            <td>@NomeDelFile(x.File)</td>
+                                            <td>@(x.Metri is { } m ? m.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " m" : x.NellAip ? "AD 2.12 senza coordinate" : "non in AD 2.12")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        @if (g.PisteSenzaSector.Count > 0)
+                        {
+                            <p class="lab-nota lab-stato-parziale" data-ground-senza-rw>Nessun .rw ha @string.Join(", ", g.PisteSenzaSector).</p>
+                        }
+                    </section>
+                    var t = g.Taxiway;
+                    <section class="lab-pista" data-ground-taxiway>
+                        <h3 class="lab-pista-nome">Taxiway <span class="lab-nota">AD 2.8 contro i .txi</span></h3>
+                        @if (t.Aip is not { } aip)
+                        {
+                            <p class="lab-nota">AD 2.8 non dice i nomi delle taxiway, o il Lab non li legge.</p>
+                        }
+                        else
+                        {
+                            @if (aip.Nomi.Count == 0 && !aip.SenzaNome && !aip.Tutte)
+                            {
+                                <p class="lab-nota">AD 2.8: NIL, nessuna taxiway.</p>
+                            }
+                            @if (aip.SenzaNome)
+                            {
+                                <p class="lab-nota">AD 2.8 ha una taxiway senza nome.</p>
+                            }
+                            @if (aip.Tutte)
+                            {
+                                <p class="lab-nota">AD 2.8 le dice tutte insieme («ALL»), senza nomi.</p>
+                            }
+                        }
+                        <dl class="lab-campi-aip">
+                            @if (t.Uguali.Count > 0)
+                            {
+                                <dt>In tutti e due</dt>
+                                <dd data-taxiway-uguali>@string.Join(" ", t.Uguali)</dd>
+                            }
+                            @if (t.MancanoNelSector.Count > 0)
+                            {
+                                <dt>Mancano nel sector</dt>
+                                <dd class="lab-stato-parziale" data-taxiway-mancano>@string.Join(" ", t.MancanoNelSector)</dd>
+                            }
+                            @if (t.SoloNelSector.Count > 0)
+                            {
+                                <dt>Solo nel sector</dt>
+                                <dd data-taxiway-solo-sector>@string.Join(" ", t.SoloNelSector)</dd>
+                            }
+                            @if (t.AltreEtichette.Count > 0)
+                            {
+                                <dt>Altre etichette</dt>
+                                <dd data-taxiway-altre title="Etichette dei .txi che non hanno la forma di una taxiway: AD 2.8 non le dice">@string.Join(" · ", t.AltreEtichette)</dd>
+                            }
+                            <dt>.txi</dt>
+                            <dd>@(t.File.Count > 0 ? string.Join(", ", t.File.Select(NomeDelFile)) : $"nessuna etichetta per {s.Icao}")</dd>
+                        </dl>
+                        @if (t.Aip is { } stampata)
+                        {
+                            <details class="lab-indice-gruppo">
+                                <summary><span class="lab-nota">@stampata.Sezione com'è letta</span></summary>
+                                <p class="lab-nota" data-taxiway-testo>@stampata.Testo</p>
+                                @if (stampata.Pagina is { } paginaDiAd28 && Ciclo is { } cicloDiAd28)
+                                {
+                                    <button type="button" class="lab-voce" title="Apre il PDF a questa pagina" @onclick="() => Apri(cicloDiAd28, paginaDiAd28.Reference)">@paginaDiAd28.Reference</button>
+                                }
+                            </details>
+                        }
+                    </section>
+                }
+                break;
+
             default:
                 @* La scheda di prima dello scalo: AD 2.1-2.25 e «Correggi», che resta da qui. *@
                 <div data-testo-scalo>@SchedaDelloScalo</div>
@@ -320,7 +419,7 @@
 }
 
 @code {
-    private enum Scheda { Piste, Procedure, Carte, Frequenze, Testo }
+    private enum Scheda { Piste, Procedure, Carte, Frequenze, Ground, Testo }
 
     /// <summary>La pagina dello scalo: col parametro, così si ridisegna quando cambia (un componente senza parametri no).</summary>
     [Parameter] public PaginaDelloScalo? Pagina { get; set; }
@@ -382,6 +481,7 @@
         yield return (Scheda.Procedure, $"Procedure {p.Procedure.SelectMany(g => g.Procedure).Select(x => x.Indice).Concat(p.Avvicinamenti.SelectMany(c => c.Parti).Select(x => x.Procedura.Indice)).Distinct().Count()}");
         yield return (Scheda.Carte, tutte > 0 ? $"Carte · IAP {lette}/{tutte}" : $"Carte {p.Carte.Count}");
         yield return (Scheda.Frequenze, "Frequenze");
+        yield return (Scheda.Ground, "Ground");
         yield return (Scheda.Testo, "Testo AD 2");
     }
 
@@ -390,6 +490,9 @@
         if (Lab.StratoDellAip is { } strato)
             Lab.Scegli(strato.File, indice);
     }
+
+    /// <summary>Il nome del file del sector senza la cartella: <c>itrw.rw</c>.</summary>
+    private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOfAny(['/', '\\']) + 1)..];
 
     private void Apri(string ciclo, string pagina) => _rifiuto = Lab.ApriLaPaginaDellAip(ciclo, pagina) ? null : Lab.Rifiuto;
 
