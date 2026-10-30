@@ -32,7 +32,7 @@
         <nav class="lab-schede-scalo" data-schede-scalo>
             @foreach (var (scheda, nome) in Schede(p))
             {
-                <button type="button" class="lab-chip @(cartaAperta is null && SchedaAperta == scheda ? "lab-scelto" : null)" data-scheda-scalo="@scheda" @onclick="() => SchedaAperta = scheda">@nome</button>
+                <button type="button" class="lab-chip @(cartaAperta is null && FoglioAperto is null && SchedaAperta == scheda ? "lab-scelto" : null)" data-scheda-scalo="@scheda" @onclick="() => SchedaAperta = scheda">@nome</button>
             }
         </nav>
         @if (cartaAperta is { } carta)
@@ -68,7 +68,7 @@
                 @if (carta.Parti.Count == 0)
                 {
                     <p class="lab-nota" data-carta-solo-immagine>Solo immagine: la carta è un disegno e le sue pagine non hanno tabelle che il Lab legga.
-                        Si guarda nel PDF; posata sulla mappa verrà con la parte C della carta «Gli aeroporti nel Lab».</p>
+                        Si guarda nel PDF, o posata sulla mappa (qui sotto).</p>
                 }
                 else
                 {
@@ -88,6 +88,30 @@
                         </p>
                     }
                 }
+                <PosaDellaCartaVista Icao="@s.Icao" Carta="carta.Carta" />
+            </section>
+        }
+        else if (FoglioAperto is { } foglioAperto)
+        {
+            @* S3: una carta che non è di avvicinamento (la carta d'aerodromo, i parcheggi…), aperta dalla scheda Carte per posarla. *@
+            <section class="lab-carta-iap" data-foglio="@foglioAperto.Page">
+                <button type="button" class="lab-voce lab-torna-allo-scalo" data-chiudi-carta @onclick="ChiudiLaCarta">‹ @s.Icao · Carte</button>
+                <h3 class="lab-pista-nome">@foglioAperto.Title</h3>
+                <dl class="lab-campi-aip">
+                    <dt>Carta</dt>
+                    <dd>
+                        @if (Ciclo is { } cicloDelFoglio)
+                        {
+                            <button type="button" class="lab-voce" data-apri-foglio="@foglioAperto.Page" title="Apre il PDF a questa pagina" @onclick="() => Apri(cicloDelFoglio, foglioAperto.Page)">@foglioAperto.Page</button>
+                        }
+                        else
+                        {
+                            @foglioAperto.Page
+                        }
+                        @(foglioAperto.Effective is { } data ? " · " + data.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) : "")
+                    </dd>
+                </dl>
+                <PosaDellaCartaVista Icao="@s.Icao" Carta="foglioAperto" />
             </section>
         }
         else
@@ -217,10 +241,11 @@
                 <p class="lab-nota">Le carte di AD 2.24. Le carte di avvicinamento sono disegni: il Lab ne legge le tabelle (DESCRIPTION TABLES, FIX/POINT).
                     Di @tutte carte di avvicinamento, @lette danno delle parti (con le loro DESCRIPTION TABLES).</p>
                 <table class="lab-tabella-da-dove lab-carte-scalo">
-                    <thead><tr><th>Carta</th><th>Pagina</th><th>Data</th><th>Il Lab</th></tr></thead>
+                    <thead><tr><th>Carta</th><th>Pagina</th><th>Data</th><th>Il Lab</th><th>Sulla mappa</th></tr></thead>
                     <tbody>
                         @foreach (var c in p.Carte)
                         {
+                            var posata = Lab.PoseDi(s.Icao).Any(x => x.Pagina == c.Carta.Page);
                             <tr data-carta="@c.Carta.Page" data-carta-avvicinamento="@(c.Avvicinamento ? "si" : "no")">
                                 <td>@c.Carta.Title</td>
                                 <td>
@@ -241,6 +266,17 @@
                                     else if (c.Procedure > 0)
                                     {
                                         @($"letta · {c.Procedure} {(c.Procedure == 1 ? "procedura" : "procedure")}")
+                                    }
+                                </td>
+                                <td>
+                                    @* S3: si posa la carta (la prima pagina); le DESCRIPTION TABLES no, sono tabelle della loro carta. *@
+                                    @if (c.Iap is { } suaCarta && ReferenceEquals(suaCarta.Carta, c.Carta))
+                                    {
+                                        <button type="button" class="lab-voce" data-posa-dalla-tabella="@c.Carta.Page" @onclick="() => ApriLaCarta(suaCarta)">@(posata ? "posata" : "posa…")</button>
+                                    }
+                                    else if (c.Iap is null)
+                                    {
+                                        <button type="button" class="lab-voce" data-posa-dalla-tabella="@c.Carta.Page" @onclick="() => ApriIlFoglio(c.Carta)">@(posata ? "posata" : "posa…")</button>
                                     }
                                 </td>
                             </tr>
@@ -313,6 +349,14 @@
             : null;
 
     private void ApriLaCarta(CartaDiAvvicinamento carta) => Lab.SchedaDellaPaginaDelloScalo = (Pagina!.Scalo.Icao, SchedaAperta.ToString(), carta.Carta.Page);
+
+    /// <summary>S3: una carta che non è di avvicinamento, aperta dalla scheda Carte per posarla; null se nessuna.</summary>
+    private Aip.AerodromeChart? FoglioAperto =>
+        CartaAperta is null && Lab.SchedaDellaPaginaDelloScalo is { Carta: { } pagina } v && Pagina is { } p && v.Icao == p.Scalo.Icao
+            ? p.Carte.FirstOrDefault(c => c.Iap is null && c.Carta.Page == pagina)?.Carta
+            : null;
+
+    private void ApriIlFoglio(Aip.AerodromeChart foglio) => Lab.SchedaDellaPaginaDelloScalo = (Pagina!.Scalo.Icao, Scheda.Carte.ToString(), foglio.Page);
 
     private void ChiudiLaCarta() => Lab.SchedaDellaPaginaDelloScalo = (Pagina!.Scalo.Icao, SchedaAperta.ToString(), null);
 

@@ -2,6 +2,16 @@
   "version": 1,
   "dependencies": {
     "net10.0": {
+      "bblanchon.PDFium.Linux": {
+        "type": "Transitive",
+        "resolved": "158.0.8125",
+        "contentHash": "TigtzDC0RLA0GVZpvOP3qOPs7hFa5K6TSovjnfGrAxNNzD89PcVampFaCebCtUypPMBCOq3XsnJ1snAgpqBO2A=="
+      },
+      "bblanchon.PDFium.Win32": {
+        "type": "Transitive",
+        "resolved": "158.0.8125",
+        "contentHash": "Nms+gFAZlPKpVb0oLVivumrvdLqC9i+J6uSKbPyqE2CsibcW/LQCQdUeGD36/BUBgJZuwy+ZVSskmwJJTizDjw=="
+      },
       "PdfPig": {
         "type": "Transitive",
         "resolved": "0.1.16",
@@ -51,11 +61,35 @@
           "Aip.Aurora": "[1.0.0, )",
           "Aip.Pdf.Italia": "[1.0.0, )",
           "Vipi.Application": "[1.0.0, )",
-          "Vipi.Sectorfile": "[1.0.0, )"
+          "Vipi.Sectorfile": "[1.0.0, )",
+          "bblanchon.PDFium.Linux": "[158.0.8125, )",
+          "bblanchon.PDFium.Win32": "[158.0.8125, )"
         }
       }
     },
-    "net10.0/linux-x64": {},
-    "net10.0/win-x64": {}
+    "net10.0/linux-x64": {
+      "bblanchon.PDFium.Linux": {
+        "type": "Transitive",
+        "resolved": "158.0.8125",
+        "contentHash": "TigtzDC0RLA0GVZpvOP3qOPs7hFa5K6TSovjnfGrAxNNzD89PcVampFaCebCtUypPMBCOq3XsnJ1snAgpqBO2A=="
+      },
+      "bblanchon.PDFium.Win32": {
+        "type": "Transitive",
+        "resolved": "158.0.8125",
+        "contentHash": "Nms+gFAZlPKpVb0oLVivumrvdLqC9i+J6uSKbPyqE2CsibcW/LQCQdUeGD36/BUBgJZuwy+ZVSskmwJJTizDjw=="
+      }
+    },
+    "net10.0/win-x64": {
+      "bblanchon.PDFium.Linux": {
+        "type": "Transitive",
+        "resolved": "158.0.8125",
+        "contentHash": "TigtzDC0RLA0GVZpvOP3qOPs7hFa5K6TSovjnfGrAxNNzD89PcVampFaCebCtUypPMBCOq3XsnJ1snAgpqBO2A=="
+      },
+      "bblanchon.PDFium.Win32": {
+        "type": "Transitive",
+        "resolved": "158.0.8125",
+        "contentHash": "Nms+gFAZlPKpVb0oLVivumrvdLqC9i+J6uSKbPyqE2CsibcW/LQCQdUeGD36/BUBgJZuwy+ZVSskmwJJTizDjw=="
+      }
+    }
   }
 }

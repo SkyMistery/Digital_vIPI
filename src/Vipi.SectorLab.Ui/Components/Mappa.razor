@@ -172,7 +172,34 @@
             await Js.InvokeAsync<int>("sectorlab.mappa.coppia", sector?.File, sector?.Record ?? 0, aip?.File, aip?.Record ?? 0, nuova, Elemento);
         }
         _evidenziataRifatta = false;
+
+        // S3 (carta «Gli aeroporti nel Lab»): la carta posata e il punto della posa da prendere, solo sulla mappa dell'AIP.
+        if (Spazio is SpazioDiLavoro.Aip)
+        {
+            if (_versioneDellaCarta != Lab.VersioneDellaCarta || _inquadratureDellaCarta != Lab.InquadratureDellaCarta)
+            {
+                bool inquadra = _inquadratureDellaCarta != Lab.InquadratureDellaCarta;
+                _versioneDellaCarta = Lab.VersioneDellaCarta;
+                _inquadratureDellaCarta = Lab.InquadratureDellaCarta;
+                var carta = Lab.CartaSullaMappa;
+                double[][]? angoli = carta is null ? null : [.. carta.Angoli.Select(a => new[] { a.LatitudeDeg, a.LongitudeDeg })];
+                await Js.InvokeVoidAsync("sectorlab.mappa.carta", carta?.Indirizzo, angoli, carta?.Opacita ?? 1, inquadra && carta is not null, Elemento);
+            }
+            if (_prende != Lab.PrendeUnPuntoDallaMappa)
+            {
+                _prende = Lab.PrendeUnPuntoDallaMappa;
+                await Js.InvokeVoidAsync("sectorlab.mappa.prendi", _prende, Elemento);
+            }
+        }
     }
+
+    private int _versioneDellaCarta;
+    private int _inquadratureDellaCarta;
+    private bool _prende;
+
+    /// <summary>S3: il posto del punto della posa in attesa, dal clic sulla mappa (o su un punto dell'AIP, col suo nome).</summary>
+    [JSInvokable]
+    public void PuntoDallaMappa(double lat, double lon, string? nome) => Lab.PuntoDallaMappa(lat, lon, nome);
 
     private int _versioneDellaCoppia;
 

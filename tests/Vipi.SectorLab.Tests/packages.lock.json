@@ -68,6 +68,16 @@
           "AngleSharp.Css": "1.0.0-beta.144"
         }
       },
+      "bblanchon.PDFium.Linux": {
+        "type": "Transitive",
+        "resolved": "158.0.8125",
+        "contentHash": "TigtzDC0RLA0GVZpvOP3qOPs7hFa5K6TSovjnfGrAxNNzD89PcVampFaCebCtUypPMBCOq3XsnJ1snAgpqBO2A=="
+      },
+      "bblanchon.PDFium.Win32": {
+        "type": "Transitive",
+        "resolved": "158.0.8125",
+        "contentHash": "Nms+gFAZlPKpVb0oLVivumrvdLqC9i+J6uSKbPyqE2CsibcW/LQCQdUeGD36/BUBgJZuwy+ZVSskmwJJTizDjw=="
+      },
       "bunit.core": {
         "type": "Transitive",
         "resolved": "1.40.0",
@@ -211,7 +221,9 @@
           "Aip.Aurora": "[1.0.0, )",
           "Aip.Pdf.Italia": "[1.0.0, )",
           "Vipi.Application": "[1.0.0, )",
-          "Vipi.Sectorfile": "[1.0.0, )"
+          "Vipi.Sectorfile": "[1.0.0, )",
+          "bblanchon.PDFium.Linux": "[158.0.8125, )",
+          "bblanchon.PDFium.Win32": "[158.0.8125, )"
         }
       },
       "vipi.sectorlab.ui": {

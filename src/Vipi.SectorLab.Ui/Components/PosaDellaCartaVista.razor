@@ -1,0 +1,226 @@
+@inject SessioneDelLab Lab
+@using System.Globalization
+@using Vipi.SectorLab.Core.PdfAip
+
+@*
+    La carta posata sulla mappa (carta «Gli aeroporti nel Lab», S3): l'immagine della pagina, fatta da PDFium, sotto le forme
+    della mappa dell'AIP espanso. Si posa con due punti o più: un clic sulla carta, poi il suo posto — un clic sulla mappa (su
+    un fix dell'AIP si aggancia alle sue coordinate) o il nome («BENTO», «RWY 24», «ARP»). Con due punti la carta si mette in
+    scala e si gira; dal terzo la posa corregge anche la deformazione, dal quarto il Lab dice lo scarto. «Salva la posa» la
+    scrive nel repo dell'AIP espanso, posa\<ICAO>.json (D4).
+    Le coordinate del clic sulla carta vengono dall'evento (offsetX/Y) sull'immagine, che ha una larghezza nota in pixel:
+    niente JavaScript. I segni dei punti non prendono i clic (pointer-events: none), così l'offset è sempre dell'immagine.
+*@
+@if (Carta is { } carta && Icao is { } icao)
+{
+    var posa = Lab.Posa is { } p && p.Icao == icao && p.Carta.Page == carta.Page ? p : null;
+    <section class="lab-posa-carta" data-posa-carta="@carta.Page" data-posa-aperta="@(posa is null ? "no" : "si")">
+        <h4 class="lab-etichetta">Sulla mappa</h4>
+        @if (posa is null)
+        {
+            var salvata = Lab.PoseDi(icao).FirstOrDefault(x => x.Pagina == carta.Page);
+            <p class="lab-nota" data-stato-posa>
+                @if (salvata is null)
+                {
+                    @("Non è posata: la carta va sulla mappa con due punti che sai riconoscere.")
+                }
+                else
+                {
+                    @($"Posata con {salvata.Punti.Count} punti")
+                    @(salvata.Data != carta.Effective ? $" sulla pagina del {Data(salvata.Data)}: la carta è cambiata, guarda che torni." : ".")
+                }
+            </p>
+            <p class="lab-gesti-record">
+                <button type="button" class="lab-tasto" data-tasto="posa-carta" @onclick="() => Apri(icao, carta)">Posa sulla mappa</button>
+            </p>
+        }
+        else
+        {
+            var sulla = posa.Posa;
+            double larghezza = Base * _zoom, altezza = larghezza * posa.Immagine.AltezzaInPunti / posa.Immagine.LarghezzaInPunti;
+            <p class="lab-nota @(sulla is null ? "lab-stato-parziale" : null)" data-stato-posa>@Stato(posa, sulla)</p>
+            @if (posa.DiUnAltraData)
+            {
+                <p class="lab-nota lab-stato-parziale" data-posa-altra-data>La posa è stata fatta sulla pagina del @Data(posa.DataPosata); questa è del @Data(posa.Carta.Effective). Guarda che i punti tornino, poi salva.</p>
+            }
+            <p class="lab-nota" data-istruzioni-posa>
+                @if (posa.InAttesa is { } attesa)
+                {
+                    @($"Il punto {posa.Punti.Count + 1} è segnato sulla carta: ora il suo posto. Clicca il punto sulla mappa (un fix dell'AIP si aggancia alle sue coordinate), o scrivine il nome.")
+                }
+                else
+                {
+                    @("Clicca sulla carta un punto che sai riconoscere — un fix, la soglia di una pista, una radioassistenza —, poi il suo posto sulla mappa.")
+                }
+            </p>
+            @if (posa.InAttesa is not null)
+            {
+                <p class="lab-gesti-record lab-posa-nome">
+                    <input type="text" class="lab-campo" placeholder="BENTO, RWY 24, ARP…" aria-label="Il nome del punto" data-campo="nome-del-punto"
+                           @bind="_nome" @onkeydown="Invio" />
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="trova-il-punto" @onclick="Trova">Trova</button>
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="lascia-il-punto" @onclick="Lab.LasciaIlPunto">Lascia stare</button>
+                </p>
+            }
+            <p class="lab-gesti-record lab-posa-vista">
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="zoom-meno" disabled="@(_zoom <= 1)" title="Rimpicciolisce la carta" @onclick="() => _zoom = Math.Max(1, _zoom - 1)">−</button>
+                <span class="lab-nota">@($"{_zoom}×")</span>
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="zoom-piu" disabled="@(_zoom >= ZoomMassimo)" title="Ingrandisce la carta" @onclick="() => _zoom = Math.Min(ZoomMassimo, _zoom + 1)">+</button>
+                <label class="lab-nota lab-posa-opacita">Sulla mappa
+                    <input type="range" min="10" max="100" step="10" value="@((int)Math.Round(Lab.OpacitaDellaCarta * 100))" data-campo="opacita-della-carta"
+                           title="Quanto si vede la carta sulla mappa" @onchange="Opacita" />
+                </label>
+            </p>
+            <div class="lab-posa-riquadro">
+                <div class="lab-posa-immagine" style="@($"width:{Px(larghezza)}px;height:{Px(altezza)}px")">
+                    <img src="@Lab.IndirizzoDellaCarta" alt="@carta.Title" draggable="false" data-immagine-carta
+                         style="@($"width:{Px(larghezza)}px;height:{Px(altezza)}px")" @onclick="e => Clic(e, posa, larghezza)" />
+                    @for (int i = 0; i < posa.Punti.Count; i++)
+                    {
+                        var punto = posa.Punti[i];
+                        <span class="lab-posa-segno" data-segno-posa="@(i + 1)" style="@Posto(punto.X, punto.Y, posa)">@(i + 1)</span>
+                    }
+                    @if (posa.InAttesa is var (ax, ay))
+                    {
+                        <span class="lab-posa-segno lab-posa-in-attesa" data-segno-posa="attesa" style="@Posto(ax, ay, posa)">@(posa.Punti.Count + 1)</span>
+                    }
+                </div>
+            </div>
+            @if (posa.Punti.Count > 0)
+            {
+                <ol class="lab-posa-punti" data-punti-posa>
+                    @for (int i = 0; i < posa.Punti.Count; i++)
+                    {
+                        var indice = i;
+                        var punto = posa.Punti[i];
+                        <li data-punto-posa="@(i + 1)">
+                            <span>@(punto.Nome ?? "dalla mappa") · @PoseDelleCarte.InGradi(punto.Lat, punto.Lon)</span>
+                            <button type="button" class="lab-voce" data-togli-punto="@(i + 1)" title="Toglie questo punto dalla posa" @onclick="() => Lab.TogliIlPuntoDellaPosa(indice)">togli</button>
+                        </li>
+                    }
+                </ol>
+            }
+            <p class="lab-gesti-record">
+                <button type="button" class="lab-tasto" data-tasto="salva-la-posa" disabled="@(sulla is null || !posa.Modificata)"
+                        title="@(sulla is null ? "Servono almeno due punti" : !posa.Modificata ? "Niente da salvare" : $"Scrive la posa in posa\\{icao}.json, nel repo dell'AIP espanso")"
+                        @onclick="Salva">Salva la posa</button>
+                @if (posa.Salvata)
+                {
+                    <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="togli-la-posa" title="La carta non è più posata: la toglie da posa\@(icao).json"
+                            @onclick="Togli">Togli la posa</button>
+                }
+                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="chiudi-la-posa"
+                        title="@(posa.Modificata ? "Toglie la carta dalla mappa: i cambi non salvati si perdono" : "Toglie la carta dalla mappa")"
+                        @onclick="Lab.ChiudiLaPosa">Togli dalla mappa</button>
+            </p>
+            @if (posa.Modificata)
+            {
+                <p class="lab-nota" data-posa-da-salvare>Ci sono cambi da salvare.</p>
+            }
+            else if (posa.Salvata && _salvata)
+            {
+                <p class="lab-nota" data-posa-salvata>Salvata in posa\@(icao).json: si manda con «Registra l'AIP», in Lettura e consegna.</p>
+            }
+        }
+        @if (_errore is { } errore)
+        {
+            <p class="lab-errore" data-errore-posa>@errore</p>
+        }
+    </section>
+}
+
+@code {
+    /// <summary>Lo scalo della carta.</summary>
+    [Parameter] public string? Icao { get; set; }
+
+    /// <summary>La carta di AD 2.24 (la prima pagina, per una carta di avvicinamento).</summary>
+    [Parameter] public Aip.AerodromeChart? Carta { get; set; }
+
+    /// <summary>La larghezza della carta a 1×, in pixel: il pannello è stretto, e da lì si ingrandisce.</summary>
+    private const double Base = 400;
+
+    private const int ZoomMassimo = 4;
+
+    private int _zoom = 1;
+    private string? _nome;
+    private string? _errore;
+    private bool _salvata;
+
+    private void Apri(string icao, Aip.AerodromeChart carta)
+    {
+        _zoom = 1;
+        _salvata = false;
+        _errore = Lab.ApriLaPosa(icao, carta) ? null : Lab.Rifiuto;
+    }
+
+    private void Clic(MouseEventArgs e, PosaInCorso posa, double larghezza)
+    {
+        var scala = posa.Immagine.LarghezzaInPunti / larghezza;
+        _errore = null;
+        Lab.PuntoSullaCarta(e.OffsetX * scala, e.OffsetY * scala);
+    }
+
+    private void Trova()
+    {
+        if (string.IsNullOrWhiteSpace(_nome))
+            return;
+        if (Lab.PuntoDellaPosaPerNome(_nome))
+        {
+            _nome = null;
+            _errore = null;
+        }
+        else
+        {
+            _errore = Lab.Rifiuto;
+        }
+    }
+
+    private void Invio(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            Trova();
+    }
+
+    private void Opacita(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var valore))
+            Lab.CambiaLOpacitaDellaCarta(valore / 100);
+    }
+
+    private void Salva()
+    {
+        _salvata = Lab.SalvaLaPosa();
+        _errore = _salvata ? null : Lab.Rifiuto;
+    }
+
+    private void Togli()
+    {
+        _salvata = false;
+        _errore = Lab.TogliLaPosa() ? null : Lab.Rifiuto;
+    }
+
+    /// <summary>«3 punti · scarto massimo 0,12 NM · 1 cm = 1,9 NM», o quanti ne mancano.</summary>
+    private static string Stato(PosaInCorso posa, PosaSullaMappa? sulla)
+    {
+        if (sulla is null)
+            return posa.Punti.Count switch
+            {
+                0 => "Nessun punto: la carta va sulla mappa dal secondo.",
+                1 => "1 punto: ne serve un altro, lontano dal primo.",
+                _ => $"{posa.Punti.Count} punti, ma non posano la carta: due nello stesso posto, o tre in fila.",
+            };
+        var scala = sulla.MigliaPerCentimetro(posa.Immagine.LarghezzaInPunti, posa.Immagine.AltezzaInPunti);
+        return $"{posa.Punti.Count} punti"
+               + (sulla.ScartoMassimoNm is { } scarto ? $" · scarto massimo {scarto.ToString("0.00", Italiano)} NM" : posa.Punti.Count == 2 ? " · in scala e girata" : " · in scala, girata e raddrizzata")
+               + $" · 1 cm della carta = {scala.ToString("0.0", Italiano)} NM";
+    }
+
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    private static string Posto(double x, double y, PosaInCorso posa) =>
+        $"left:{Px(100 * x / posa.Immagine.LarghezzaInPunti)}%;top:{Px(100 * y / posa.Immagine.AltezzaInPunti)}%";
+
+    private static string Px(double valore) => valore.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private static string Data(DateOnly? data) => data?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "senza data";
+}

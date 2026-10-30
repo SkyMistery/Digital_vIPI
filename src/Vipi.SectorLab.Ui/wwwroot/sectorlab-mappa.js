@@ -227,6 +227,38 @@
         stato.riferimento.invokeMethodAsync('SceltaDallaMappa', forma.p, forma.r);
     }
 
+    /// Carta «Gli aeroporti nel Lab», S3: il posto del punto della posa in attesa. Un clic su un punto (un fix dell'AIP) ne
+    /// prende le coordinate e il nome; altrove, dove si è cliccato.
+    function presa(stato, lat, lon, nome) {
+        if (!stato || stato.chiusa || !stato.riferimento) return;
+        stato.riferimento.invokeMethodAsync('PuntoDallaMappa', lat, lon, nome || null);
+    }
+
+    /// La carta posata sopra la mappa: l'immagine intera, portata con una matrice CSS sui tre angoli. Sul piano di Mercatore
+    /// la posa è affine (PosaSullaMappa), e i punti di livello di Leaflet sono quel piano in scala: la matrice è esatta. Si
+    /// rifà a ogni zoom; durante l'animazione dello zoom l'immagine si nasconde (leaflet-zoom-hide), come i livelli di Leaflet.
+    function posizionaLaCarta(stato) {
+        var c = stato && stato.carta;
+        if (!c || !c.img.naturalWidth) return;
+        var m = stato.mappa, w = c.img.naturalWidth, h = c.img.naturalHeight;
+        var p0 = m.latLngToLayerPoint(c.angoli[0]), p1 = m.latLngToLayerPoint(c.angoli[1]), p2 = m.latLngToLayerPoint(c.angoli[2]);
+        c.img.style.width = w + 'px';
+        c.img.style.height = h + 'px';
+        c.img.style.transform = 'matrix(' + [(p1.x - p0.x) / w, (p1.y - p0.y) / w, (p2.x - p0.x) / h, (p2.y - p0.y) / h, p0.x, p0.y].join(',') + ')';
+        if (c.inquadra) {
+            c.inquadra = false;
+            var p3 = [c.angoli[1][0] + c.angoli[2][0] - c.angoli[0][0], c.angoli[1][1] + c.angoli[2][1] - c.angoli[0][1]];
+            m.fitBounds(L.latLngBounds([c.angoli[0], c.angoli[1], c.angoli[2], p3]));
+        }
+    }
+
+    function togliLaCarta(stato) {
+        if (!stato.carta) return;
+        stato.mappa.off('zoomend viewreset', stato.carta.metti);
+        L.DomUtil.remove(stato.carta.img);
+        stato.carta = null;
+    }
+
     window.sectorlab = window.sectorlab || {};
     window.sectorlab.mappa = {
         /// Crea la mappa nell'elemento dato e tiene il riferimento al componente, per le scelte col clic.
@@ -296,7 +328,18 @@
                         disegnata.sectorlab = forma;
                         disegnata.sectorlabStrato = id;
                         disegnata.sectorlabMappa = stato;
-                        disegnata.on('click', (function (f) { return function (e) { L.DomEvent.stop(e); scelta(stato, f); }; })(forma));
+                        disegnata.on('click', (function (f) {
+                            return function (e) {
+                                L.DomEvent.stop(e);
+                                // S3: mentre la posa aspetta un punto, il clic dà il posto, non sceglie la voce.
+                                if (stato.prende) {
+                                    if (f.t === 'p' && f.c.length && f.c[0].length >= 2) presa(stato, f.c[0][0], f.c[0][1], f.e);
+                                    else presa(stato, e.latlng.lat, e.latlng.lng, null);
+                                    return;
+                                }
+                                scelta(stato, f);
+                            };
+                        })(forma));
                         disegnata.bindTooltip(suggerimento(forma), { sticky: true });
                         gruppo.addLayer(disegnata);
                         stato.forme[forma.p + '#' + forma.r] = disegnata;
@@ -480,6 +523,49 @@
             gruppo.addTo(stato.mappa);
             stato.gruppoDellaVista = gruppo;
             return gruppo.getLayers().length;
+        },
+
+        /// S3: la carta posata ('/carta/immagine?v=…'), i tre angoli [[lat,lon] in alto a sinistra, in alto a destra, in
+        /// basso a sinistra] e l'opacità; `inquadra` porta la mappa sulla carta (all'apertura di una posa salvata). Senza
+        /// indirizzo si toglie. Sta sotto le forme (un riquadro suo, sotto overlayPane) e non prende i clic.
+        carta: function (indirizzo, angoli, opacita, inquadra, elemento) {
+            var stato = prendi(elemento);
+            if (!stato) return;
+            if (!indirizzo || !angoli || angoli.length < 3) { togliLaCarta(stato); return; }
+            var mappa = stato.mappa;
+            if (!mappa.getPane('sectorlabCarta')) {
+                var riquadro = mappa.createPane('sectorlabCarta');
+                riquadro.style.zIndex = 350;
+                riquadro.style.pointerEvents = 'none';
+            }
+            if (!stato.carta || stato.carta.indirizzo !== indirizzo) {
+                togliLaCarta(stato);
+                var img = L.DomUtil.create('img', 'leaflet-image-layer leaflet-zoom-hide lab-carta-posata', mappa.getPane('sectorlabCarta'));
+                img.alt = '';
+                img.draggable = false;
+                var c = stato.carta = { img: img, indirizzo: indirizzo, angoli: angoli };
+                c.metti = function () { posizionaLaCarta(stato); };
+                img.onload = function () { if (stato.carta === c) c.metti(); };
+                mappa.on('zoomend viewreset', c.metti);
+                img.src = indirizzo;
+            }
+            stato.carta.angoli = angoli;
+            stato.carta.inquadra = stato.carta.inquadra || !!inquadra;
+            stato.carta.img.style.opacity = opacita;
+            posizionaLaCarta(stato);
+        },
+
+        /// S3: la mappa aspetta il posto di un punto della posa. Il clic su un punto dell'AIP ne prende le coordinate (vedi
+        /// sopra, nel clic delle forme); altrove, dove si è cliccato.
+        prendi: function (acceso, elemento) {
+            var stato = prendi(elemento);
+            if (!stato) return;
+            stato.prende = !!acceso;
+            stato.mappa.getContainer().classList.toggle('lab-mappa-prende', stato.prende);
+            if (!stato.suPresa) {
+                stato.suPresa = function (e) { if (stato.prende) presa(stato, e.latlng.lat, e.latlng.lng, null); };
+                stato.mappa.on('click', stato.suPresa);
+            }
         },
 
         /// I colori della mappa: di Aurora (col fondo dello schermo radar) o del Lab. Le forme hanno già tutti e due.

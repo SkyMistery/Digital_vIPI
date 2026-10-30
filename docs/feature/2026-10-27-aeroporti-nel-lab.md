@@ -165,12 +165,47 @@ Misurato sul 2611: 302 carte di avvicinamento, **141 con parti**; 131 DESCRIPTIO
 LIMC 10/15, LICC 4/13. Provato sul banco a 1400 px: LIRN, la carta ILS Z RWY 24 con le sue cinque parti, andata e ritorno
 da una parte; LIRF, le tabelle 5-9 che aprono la carta 5-7.
 
+**S3 fatta il 30 ottobre.** La carta posata, per una carta di avvicinamento e per una qualsiasi di AD 2.24 (la carta
+d'aerodromo, i parcheggi):
+- **L'immagine.** `Pdfium` (Core) disegna una pagina su fondo bianco, con le annotazioni, a 200 dpi (un A4 è 1 653 × 2 339
+  pixel; il lato più lungo al massimo 6 000). I binari sono quelli di `bblanchon.PDFium` (D3), il collegamento è nostro: una
+  quindicina di funzioni, il PDF aperto dalla memoria (PDFium apre i percorsi con `fopen`, e un percorso accentato su
+  Windows non si aprirebbe), un lucchetto solo perché PDFium non regge due fili. `Png` scrive l'immagine (zlib, filtro Sub
+  per riga): il Lab non ha una libreria di immagini e non gliene serve una. L'immagine sta nella cache del Lab,
+  `<dati>\cache\carte\<ciclo>\<file>-<posizione>-200.png`; la carta ILS Z RWY 24 di LIRN si fa in circa due secondi la prima
+  volta, poi si legge dalla cache.
+- **La posa.** Un punto è un clic sulla carta (in punti PDF dall'angolo in alto a sinistra) e il suo posto sulla Terra: un clic
+  sulla mappa — su un punto dell'AIP la mappa manda le sue coordinate e il nome, così il punto si aggancia al fix —, oppure il
+  nome scritto: un punto, una radioassistenza o uno scalo dell'AIP espanso, «RWY 24» (la soglia), «ARP», una radioassistenza
+  di AD 2.19, e se no il punto del sector. `PosaSullaMappa` fa i conti sul piano di Mercatore, quello della mappa: con due
+  punti una similitudine (scala, rotazione, spostamento; la pagina ha la y in giù), con tre una affine, dal quarto ai minimi
+  quadrati con lo scarto più grande in miglia. Una carta d'avvicinamento è conforme, e su qualche decina di miglia differisce
+  da Mercatore di poco: tre punti la mettono giù. Il pannello dice anche «1 cm della carta = 2,7 NM», che è la scala
+  1:500 000 stampata: un colpo d'occhio sui punti sbagliati.
+- **Sulla mappa.** L'immagine intera in un riquadro di Leaflet sotto le forme (z 350, sotto overlayPane), portata con una
+  matrice CSS sui tre angoli della pagina: sul piano di Mercatore la posa è affine e i punti di livello di Leaflet sono quel
+  piano in scala, quindi la matrice è esatta. Si rifà a ogni zoom e si nasconde durante l'animazione (`leaflet-zoom-hide`).
+  L'opacità si sceglie (60% di base). Mentre un punto aspetta il suo posto il puntatore della mappa è una croce e il clic su
+  una forma dà il posto invece di sceglierla.
+- **Il file** (D4): `posa\<ICAO>.json` nel repo dell'AIP espanso, una posa per pagina («AD 2 LIRN 5-3»), col titolo e la data
+  della pagina, i punti a sei decimali e in ordine di pagina: cambia solo dove cambia la posa. Si registra con «Registra
+  l'AIP» come una correzione. Se la pagina ha poi un'altra data, il pannello lo dice: la carta è cambiata e i punti vanno
+  guardati.
+- **Dove.** Nella carta di avvicinamento aperta, sotto le parti, il riquadro «Sulla mappa»; nella scheda Carte una colonna
+  «Sulla mappa» con «posa…» o «posata» per ogni carta (le DESCRIPTION TABLES no: sono tabelle della loro carta), che apre la
+  carta di avvicinamento o, per le altre, la carta da sola col suo riquadro. Una posa aperta alla volta; chiusa, la carta
+  lascia la mappa. Un altro ciclo sulla mappa chiude la posa.
+Provato sul banco a 1100 px sul 2611: LIRN ILS Z RWY 24 posata con ESCOB, BENTO e URRUC scritti per nome; i fix dell'AIP
+cadono sui simboli della carta (anche DIEZO, OLEVA, ISKIA e il mancato, che non erano punti della posa), e la scala torna.
+
 ## §5 — Deciso e da decidere
 
 - **D1** (committente, 27 ottobre): si scrive questa carta col disegno, e si parte dalla pagina dello scalo (S1).
 - **D2** (proposta, fatta in S2): le voci di oggi per segmento restano e diventano parti della carta: la A30 cambia così.
   Sulla mappa e nell'Indice le voci sono quelle di prima; la carta le raccoglie nella pagina dello scalo.
-- 🟡 **Da decidere** (S3): PDFium in un pacchetto .NET (l'immagine si fa nel Lab, funziona anche senza rete), oppure
-  pdf.js nella pagina (niente di nativo, ma un pezzo di JavaScript grande). Proposta: PDFium.
-- 🟡 **Da decidere** (S3): i punti della posa nel repo dell'AIP espanso (proposta: sì, sono dati e servono a tutti),
-  le immagini mai.
+- **D3** (committente, 30 ottobre): l'immagine della pagina la fa **PDFium** nel Lab, non pdf.js nella pagina. Si usano
+  i binari di `bblanchon.PDFium.Win32` e `bblanchon.PDFium.Linux` (PDFium d'oggi, aggiornati a ogni versione di Chrome;
+  Linux per la CI) con un collegamento nostro di poche funzioni, non un involucro .NET: quelli che ci sono (Docnet) sono
+  fermi al 2023 e portano un PDFium vecchio.
+- **D4** (committente, 30 ottobre): i punti della posa stanno nel repo dell'AIP espanso, `posa\<ICAO>.json`, accanto a
+  `correzioni\`; le immagini mai (si rifanno dal PDF, nella cache del Lab).

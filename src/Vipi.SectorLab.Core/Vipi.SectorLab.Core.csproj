@@ -39,4 +39,11 @@
     <ProjectReference Include="..\Aip.Aurora\Aip.Aurora.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Carta «Gli aeroporti nel Lab», S3 (D3): l'immagine di una pagina dell'AIP la fa PDFium. Solo i binari nativi (quelli
+         di Chrome, costruiti da bblanchon): il collegamento è nostro, poche funzioni (PdfAip/Pdfium.cs). Linux per la CI. -->
+    <PackageReference Include="bblanchon.PDFium.Win32" Version="158.0.8125" />
+    <PackageReference Include="bblanchon.PDFium.Linux" Version="158.0.8125" />
+  </ItemGroup>
+
 </Project>

@@ -38,6 +38,11 @@ public static class MappaDelLab
                 punti = s.Punti,
             })));
 
+        // Carta «Gli aeroporti nel Lab», S3: l'immagine della carta che si sta posando, dalla cache del Lab. Solo quella: dalla
+        // pagina non arriva nessun percorso (il «v» dell'indirizzo cambia con la carta, perché il browser non la confonda).
+        rotte.MapGet("/carta/immagine", (SessioneDelLab lab) =>
+            lab.Posa?.Immagine.File is { } file && File.Exists(file) ? Results.File(file, "image/png") : Results.NotFound());
+
         rotte.MapGet("/mappa/strato/{id}", (string id, SessioneDelLab lab, HttpResponse risposta) =>
         {
             // L'AIP espanso (F6): uno strato fuori dal sector, coi colori dei suoi generi; dalla R5 (D16) anche quelli di

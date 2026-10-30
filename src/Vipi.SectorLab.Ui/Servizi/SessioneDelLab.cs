@@ -61,7 +61,7 @@ public enum PaginaDelLab
 /// lavoro che un gesto ha fatto partire (la validazione, il controllo delle modifiche: slice 10), mai un timer.
 /// ⚠️ Quindi può arrivare da un filo che non è quello del circuito: i componenti ridisegnano con InvokeAsync.</para>
 /// </summary>
-public sealed class SessioneDelLab
+public sealed partial class SessioneDelLab
 {
     private readonly string _cartellaDeiDati;
 
@@ -565,6 +565,8 @@ public sealed class SessioneDelLab
         Strati = [];
         StratoDellAip = null;
         SceltaDellAip = null;
+        Posa = null;
+        VersioneDellaCarta++;
         Cataloghi = new Dictionary<string, CatalogoDeiPunti>();
         _chiLoUsa = null;
         ScordaGliUsi();
@@ -5549,6 +5551,13 @@ public sealed class SessioneDelLab
             RiportaLeVociDellAip(prima, StratoDellAip);
             _modelloSullaMappa = modello;
             _correzioniSullaMappa = LeCorrezioniOppureNiente(espanso, modello.State);
+            // S3: un altro ciclo (o il ramo dell'AIP cambiato): le pose si rileggono, e quella aperta era della carta di prima.
+            _pose.Clear();
+            if (Posa is not null)
+            {
+                Posa = null;
+                VersioneDellaCarta++;
+            }
             SceltaDellAip = null;
             _versioniDegliStrati[id] = ++VersioneDellaGeometria;
             _mappe[SpazioDiLavoro.Aip].Accesi.Add(id);

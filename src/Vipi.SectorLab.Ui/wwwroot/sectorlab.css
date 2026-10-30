@@ -2620,3 +2620,98 @@ body.lab-trascina * {
 .lab-elenco-segnalazioni { list-style: none; margin: .3rem 0; padding: 0; }
 .lab-elenco-segnalazioni li { display: grid; grid-template-columns: minmax(10rem, 16rem) 1fr; gap: .6rem; padding: .25rem 0; border-top: 1px solid var(--lab-linea); }
 .lab-elenco-segnalazioni .lab-voce { margin: 0; text-align: left; }
+
+/* S3 (carta «Gli aeroporti nel Lab»): la carta posata. Nel pannello l'immagine della pagina, larga quanto lo zoom dice, in
+   un riquadro che scorre; i segni dei punti sopra, che non prendono i clic (l'offset del clic è sempre dell'immagine). */
+.lab-posa-carta {
+    margin-top: .8rem;
+    border-top: 1px solid var(--lab-linea);
+    padding-top: .4rem;
+}
+
+.lab-posa-riquadro {
+    max-height: 32rem;
+    overflow: auto;
+    border: 1px solid var(--lab-linea-forte);
+    background: #fff;
+    margin: .3rem 0;
+}
+
+.lab-posa-immagine {
+    position: relative;
+}
+
+.lab-posa-immagine > img {
+    display: block;
+    max-width: none;
+    cursor: crosshair;
+    user-select: none;
+}
+
+.lab-posa-segno {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    min-width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    background: var(--lab-evidenza);
+    color: #fff;
+    font-size: .7rem;
+    line-height: 1.1rem;
+    text-align: center;
+    pointer-events: none;
+    box-shadow: 0 0 0 2px #fff;
+}
+
+.lab-posa-in-attesa {
+    background: var(--lab-accento);
+    animation: lab-posa-pulsa 1.2s ease-in-out infinite;
+}
+
+@keyframes lab-posa-pulsa {
+    50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--lab-accento) 35%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lab-posa-in-attesa { animation: none; }
+}
+
+.lab-posa-vista {
+    align-items: center;
+}
+
+.lab-posa-opacita {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    margin-left: auto;
+}
+
+.lab-posa-nome > .lab-campo {
+    flex: 1 1 8rem;
+    min-width: 0;
+}
+
+.lab-posa-punti {
+    margin: .2rem 0;
+    padding-left: 1.4rem;
+    font-size: .8rem;
+}
+
+.lab-posa-punti > li > span {
+    margin-right: .4rem;
+}
+
+/* Sulla mappa: l'immagine sotto le forme; mentre la posa aspetta un punto, il puntatore lo dice. */
+.lab-carta-posata {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    image-rendering: auto;
+}
+
+.lab-mappa-prende,
+.lab-mappa-prende .leaflet-interactive {
+    cursor: crosshair !important;
+}

@@ -39,6 +39,16 @@ ciclo nuovo), il file in mano, quanti su quanti, la barra e quanto manca; poi la
 Il grosso del tempo è la fase 2, gli 851 PDF del ciclo prima letti per sapere dove sta ogni pagina: sul banco circa tre
 PDF al secondo.
 
+**30 ottobre, S3 fatta: la carta posata.** Il committente ha deciso le due 🟡 come proposte: l'immagine con **PDFium** nel
+Lab (D3) e i punti della posa nel repo dell'AIP espanso, `posa\<ICAO>.json`, le immagini mai (D4). Una carta di AD 2.24
+(di avvicinamento, o qualsiasi dalla scheda Carte) va sulla mappa dell'AIP espanso sotto le forme: un clic sulla carta, poi
+il suo posto (un clic sulla mappa, che su un fix dell'AIP si aggancia alle sue coordinate, o il nome: «BENTO», «RWY 24»,
+«ARP»). Due punti la mettono in scala e la girano, tre la raddrizzano, dal quarto il Lab dice lo scarto in miglia; il
+pannello dice anche quante miglia fa un centimetro della carta, che deve tornare con la scala stampata. Sul banco LIRN ILS Z
+RWY 24 con ESCOB, BENTO, URRUC: i fix dell'AIP cadono sui simboli della carta, anche quelli che non erano punti della posa.
+Pacchetti nuovi: `bblanchon.PDFium.Win32` e `.Linux` 158.0.8125, solo i binari; il collegamento sta in
+`Core/PdfAip/Pdfium.cs`. Il disegno sta nella carta. Prove A75-A78.
+
 ## 26 ottobre 2026, notte: la lettura si ricorda, «Vai alla voce» mostra la voce sola
 
 Il committente ha chiesto tre cose.
