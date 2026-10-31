@@ -284,6 +284,48 @@ public sealed class ConfrontoDiEnr4Tests : IDisposable
     }
 
     [Fact]
+    public async Task I_due_mondi_si_parlano_dal_record_alla_voce_e_ritorno()
+    {
+        // D11 della carta del riordino (seconda parte della Scheda per gruppi): il legame lo fa il confronto fatto.
+        await ApriAsync();
+        using var contesto = new Bunit.TestContext();
+        contesto.JSInterop.Mode = JSRuntimeMode.Loose;
+        contesto.JSInterop.Setup<bool>("sectorlab.mappa.crea", _ => true).SetResult(true);
+        contesto.Services.AddSingleton(_lab);
+        var pagina = contesto.RenderComponent<Vipi.SectorLab.Ui.Components.Pages.Home>();
+        Assert.Empty(_lab.LegamiDelRecord("SectorFiles/Include/IT/NAVAIDS/itfix.fix", 0));   // nessun confronto fatto, nessun legame
+
+        Assert.True(await _lab.ConfrontaLaSezioneAsync(SezioneDelConfronto.Punti), _lab.Rifiuto);
+        var righe = _lab.Confronti[SezioneDelConfronto.Punti].Righe;
+        var abadi = righe.Single(r => r.Aip == "ABADI" && r.File is not null);
+        var legame = Assert.Single(_lab.LegamiDelRecord(abadi.File!, abadi.Record!.Value));
+        Assert.Equal(SezioneDelConfronto.Punti, legame.Sezione);
+        Assert.Equal("ABADI", _lab.StratoDellAip!.Voci[legame.Voce!.Value].Titolo);
+        Assert.Contains(_lab.LegamiDellaVoce(legame.Voce.Value), l => l.DelConfronto.File == abadi.File && l.DelConfronto.Record == abadi.Record);
+
+        // Nella Scheda del record, fra i Collegamenti: «Vai alla voce» porta all'Indice dell'AIP con la voce scelta.
+        _lab.ScegliLaPagina(PaginaDelLab.Sector);
+        await pagina.InvokeAsync(() => _lab.Scegli(abadi.File!, abadi.Record!.Value));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-gruppo=collegamenti] [data-legami-aip]")));
+        Assert.Contains("Punti significativi", pagina.Find("[data-legame]").TextContent, StringComparison.Ordinal);
+        await pagina.InvokeAsync(() => pagina.Find("[data-vai-alla-voce]").Click());
+        Assert.Equal(PaginaDelLab.AipIndice, _lab.Pagina);
+        Assert.Equal(legame.Voce, _lab.SceltaDellAip);
+
+        // Nella scheda della voce, «Nel sector»: «Vai al record» torna alla Mappa col record scelto.
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-vai-al-record]")));
+        await pagina.InvokeAsync(() => pagina.Find("[data-vai-al-record]").Click());
+        Assert.Equal(PaginaDelLab.Sector, _lab.Pagina);
+        Assert.Equal((abadi.File!, abadi.Record!.Value), _lab.Scelta);
+
+        // «nel Confronto»: la riga coi due lati.
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-vai-al-confronto]")));
+        await pagina.InvokeAsync(() => pagina.Find("[data-vai-al-confronto]").Click());
+        Assert.Equal(PaginaDelLab.Confronti, _lab.Pagina);
+        Assert.Equal(legame.Riga, _lab.RigaDelConfrontoScelta);
+    }
+
+    [Fact]
     public async Task NelConfronti_IGestiDellaRiga_ELaSezioneSiRifaPrimaDeiGesti()
     {
         // Riordino R7: i gesti stanno nel Confronti; dopo un gesto le righe sono quelle di adesso.

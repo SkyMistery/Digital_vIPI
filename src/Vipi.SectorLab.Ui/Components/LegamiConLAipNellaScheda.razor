@@ -1,0 +1,72 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+@using Vipi.SectorLab.Core.PdfAip
+
+@*
+    I due mondi si parlano (D11 della carta del riordino, la seconda parte della Scheda per gruppi D5): nei Collegamenti di un
+    record del sector «Nell'AIP espanso», la voce che i confronti fatti gli legano, con l'esito; «Vai alla voce» apre l'Indice
+    dell'AIP su di lei, «nel Confronto» la riga coi due lati insieme. Con Voce invece di File e Record, il verso opposto: nella
+    scheda di una voce dell'AIP, «Nel sector» coi record e «Vai al record».
+    Il legame lo fa un confronto: senza confronti fatti non c'è, e il Lab non indovina dal nome.
+*@
+@{
+    var legami = Voce is { } v ? Lab.LegamiDellaVoce(v) : File is { } f ? Lab.LegamiDelRecord(f, Record) : [];
+    bool dalSector = Voce is null;
+}
+@* Un record senza legami non ha la sezione: il gruppo Collegamenti di un record senza niente non si vede. *@
+@if (legami.Count > 0)
+{
+    <Sezione Chiave="@(dalSector ? "scheda-nell-aip" : "scheda-nel-sector")" data-legami-aip="@legami.Count">
+    <Titolo>@(dalSector ? "Nell'AIP espanso" : "Nel sector") <span class="lab-nota">dai confronti fatti</span></Titolo>
+    <ChildContent>
+        <ul class="lab-elenco-legami">
+            @foreach (var legame in legami)
+            {
+                var questo = legame;
+                <li data-legame="@ConfrontiDelleSezioni.Nome(questo.Sezione)">
+                    <span>@(dalSector ? questo.DelConfronto.Aip ?? "—" : $"{NomeDelFile(questo.DelConfronto.File)} · {questo.DelConfronto.Sector}")</span>
+                    <span class="lab-nota">@ConfrontiDelleSezioni.Nome(questo.Sezione) · @Esito(questo.DelConfronto.Esito)</span>
+                    @if (dalSector && questo.Voce is { } voce)
+                    {
+                        <button type="button" class="lab-voce" data-vai-alla-voce="@voce" title="L'Indice dell'AIP espanso con questa voce scelta"
+                                @onclick="() => Lab.VaiAllaVoceDellAip(voce)">Vai alla voce</button>
+                    }
+                    else if (!dalSector && questo.DelConfronto is { File: { } file, Record: { } record })
+                    {
+                        <button type="button" class="lab-voce" data-vai-al-record="@($"{file}#{record}")" title="La Mappa del sector con questo record scelto"
+                                @onclick="() => Lab.VaiAlRecord(file, record)">Vai al record</button>
+                    }
+                    <button type="button" class="lab-voce" data-vai-al-confronto="@questo.Riga" title="La riga del Confronto: i due lati sulla stessa mappa"
+                            @onclick="() => Lab.VaiAlConfronto(questo)">nel Confronto</button>
+                </li>
+            }
+        </ul>
+    </ChildContent>
+    </Sezione>
+}
+
+@code {
+    /// <summary>Il file del record del sector (verso «Nell'AIP espanso»).</summary>
+    [Parameter] public string? File { get; set; }
+
+    [Parameter] public int Record { get; set; }
+
+    /// <summary>La voce dell'AIP espanso (verso «Nel sector»); al posto di File e Record.</summary>
+    [Parameter] public int? Voce { get; set; }
+
+    private static string Esito(EsitoDelConfronto esito) => esito switch
+    {
+        EsitoDelConfronto.Uguale => "uguale",
+        EsitoDelConfronto.FormaDiversa => "diversa",
+        EsitoDelConfronto.MancaNelSector => "manca nel sector",
+        _ => "solo nel sector",
+    };
+
+    private static string NomeDelFile(string? relativo) => relativo is null ? "" : System.IO.Path.GetFileName(relativo);
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

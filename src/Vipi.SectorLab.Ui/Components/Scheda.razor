@@ -53,7 +53,7 @@
         </header>
 
         @* D5: il rifiuto di un gesto del record, sotto i suoi tasti (prima stava a metà della Scheda). *@
-        @if (Lab.Rifiuto is { } rifiuto)
+        @if (Lab.Rifiuto is { } rifiuto && RifiutoNellElenco(scheda) is null)
         {
             <p class="lab-errore" data-rifiuto="1">@rifiuto</p>
         }
@@ -217,20 +217,43 @@
         {
             string chiave = elenco.Chiave;
             var vertici = Lab.VerticiDi(scheda.File, scheda.Indice, chiave);
+            // D5: la linea di un .geo con lo stesso editor. Le linee lunghe (le coste di itgeo.geo, migliaia di punti) si
+            // vedono intorno al segmento scelto: il resto si raggiunge scegliendo un altro segmento.
+            var linea = chiave == SessioneDelLab.ChiaveDellaLinea ? Lab.LineaDi(scheda.File, scheda.Indice) : null;
+            int qui = linea is null ? -1 : linea.Record.ToList().IndexOf(scheda.Indice);
+            int da = linea is null ? 0 : Math.Max(0, qui - IntornoDellaLinea);
+            int finoA = linea is null ? vertici.Count - 1 : Math.Min(vertici.Count - 1, qui + 1 + IntornoDellaLinea);
+            var continuaPrima = Lab.ContinuaPrima(scheda.File, scheda.Indice, chiave);
             // Slice 5b: dove la linea si interrompe, e come lo scrive il file.
             var interrompe = Lab.FormaDellInterruzioneDi(scheda.File, scheda.Indice, chiave);
             var dentro = Lab.InterruzioniDentro(scheda.File, scheda.Indice, chiave);
             var continua = Lab.ContinuaDopo(scheda.File, scheda.Indice, chiave);
             @* Un tratto per sezione: si chiudono uno per uno, e il nome del tratto è la chiave (Vertices, Tratto 3…). *@
             <Sezione Chiave="@($"vertici:{elenco.Nome}")" data-elenco="@chiave">
-            <Titolo>@elenco.Nome <span class="lab-nota">@vertici.Count</span></Titolo>
+            <Titolo>@elenco.Nome <span class="lab-nota">@(linea is null ? vertici.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) : $"{vertici.Count} punti · {linea.Record.Count} segmenti")</span></Titolo>
             <ChildContent>
+            @if (linea is not null)
+            {
+                <p class="lab-nota">I segmenti di fila, attaccati e dello stesso tipo: spostare un punto sposta la fine di un segmento e l'inizio del prossimo; «+» e «−» aggiungono e tolgono un segmento.</p>
+            }
+            @if (continuaPrima is not null)
+            {
+                <div class="lab-interruzione" data-continua="prima">
+                    <span>interruzione · riga vuota — prima c'è @continuaPrima.Testo</span>
+                    <button class="lab-tasto lab-tasto-tenue" data-unisci="prima"
+                            @onclick="() => SpezzaOUnisci(scheda, chiave, -1, spezza: false)">Unisci</button>
+                </div>
+            }
+            @if (da > 0)
+            {
+                <p class="lab-nota" data-punti-prima="@da">… @da punti prima</p>
+            }
 
             <div class="lab-vertici" data-vertici="@vertici.Count">
-                @for (int i = 0; i < vertici.Count; i++)
+                @for (int i = da; i <= finoA; i++)
                 {
                     int posizione = i;
-                    <div class="lab-vertice">
+                    <div class="lab-vertice @(linea is not null && (posizione == qui || posizione == qui + 1) ? "lab-vertice-scelto" : null)">
                         <span class="lab-numero">@(posizione + 1)</span>
                         @if (elenco.AmmetteNomi)
                         {
@@ -250,10 +273,16 @@
                         <button class="lab-annulla" title="togli questo vertice"
                                 @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Togli, posizione)"
                                 data-togli="@posizione">−</button>
-                        @if (interrompe is not null && posizione + 1 < vertici.Count && !dentro.Contains(posizione))
+                        @if (linea is not null && posizione > 0 && posizione < vertici.Count - 1)
+                        {
+                            <button class="lab-annulla" title="Spezza qui: una riga vuota, la linea diventa due (questo punto resta in tutte e due)"
+                                    @onclick="() => SpezzaOUnisci(scheda, chiave, posizione, spezza: true)"
+                                    data-spezza="@posizione">✂</button>
+                        }
+                        else if (linea is null && interrompe is not null && posizione + 1 < vertici.Count && !dentro.Contains(posizione))
                         {
                             <button class="lab-annulla" title="@($"Spezza qui: la linea si interrompe fra questo punto e il prossimo ({ComeSiScrive(interrompe.Value)})")"
-                                    @onclick="() => Lab.SpezzaOUnisci(scheda.File, scheda.Indice, chiave, posizione, spezza: true)"
+                                    @onclick="() => SpezzaOUnisci(scheda, chiave, posizione, spezza: true)"
                                     data-spezza="@posizione">✂</button>
                         }
                     </div>
@@ -262,16 +291,20 @@
                         <div class="lab-interruzione" data-interruzione="@posizione">
                             <span>interruzione · @ComeSiScrive(interrompe!.Value)</span>
                             <button class="lab-tasto lab-tasto-tenue" data-unisci="@posizione"
-                                    @onclick="() => Lab.SpezzaOUnisci(scheda.File, scheda.Indice, chiave, posizione, spezza: false)">Unisci</button>
+                                    @onclick="() => SpezzaOUnisci(scheda, chiave, posizione, spezza: false)">Unisci</button>
                         </div>
                     }
+                }
+                @if (finoA < vertici.Count - 1)
+                {
+                    <p class="lab-nota" data-punti-dopo="@(vertici.Count - 1 - finoA)">… altri @(vertici.Count - 1 - finoA) punti</p>
                 }
                 @if (continua is not null && interrompe is not null)
                 {
                     <div class="lab-interruzione" data-continua="@continua.Campo">
                         <span>interruzione · @ComeSiScrive(interrompe.Value) — continua in @continua.Testo</span>
                         <button class="lab-tasto lab-tasto-tenue" data-unisci="@(vertici.Count - 1)"
-                                @onclick="() => Lab.SpezzaOUnisci(scheda.File, scheda.Indice, chiave, vertici.Count - 1, spezza: false)">Unisci</button>
+                                @onclick="() => SpezzaOUnisci(scheda, chiave, vertici.Count - 1, spezza: false)">Unisci</button>
                     </div>
                 }
             </div>
@@ -284,6 +317,11 @@
                         title="La sequenza dall'ultimo punto al primo: le interruzioni restano fra gli stessi due punti"
                         @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Inverti, 0)">⇅ Inverti</button>
             </p>
+            @* D5: il rifiuto di un gesto di questo elenco accanto a lui, non in testa alla Scheda (che può essere lontana). *@
+            @if (RifiutoNellElenco(scheda) == chiave)
+            {
+                <p class="lab-errore" data-rifiuto-elenco="@chiave">@Lab.Rifiuto</p>
+            }
 
             <details class="lab-incolla">
                 <summary data-incolla="@chiave">Incolla da testo</summary>
@@ -328,8 +366,6 @@
         @* Slice 12c (I3): a che posto si disegna un riempimento, e cosa ha sopra. *@
         <OrdineDiDisegnoNellaScheda File="@scheda.File" Record="scheda.Indice" />
 
-        @* Slice 5d: un segmento .geo si vede nella sua linea (G1). *@
-        <LineaDelGeoVista File="@scheda.File" Record="scheda.Indice" />
         </section>
 
         <section class="lab-gruppo-scheda" data-gruppo="procedura">
@@ -495,6 +531,9 @@
 
         @* Slice 10c (L1, U1): l'attesa in rotta del fix, VOR o NDB, e la sua definizione. *@
         <AttesaNellaScheda File="@scheda.File" Record="scheda.Indice" />
+
+        @* D11 (seconda parte di D5): la voce dell'AIP espanso che i confronti fatti legano al record. *@
+        <LegamiConLAipNellaScheda File="@scheda.File" Record="scheda.Indice" />
         </section>
 
         <section class="lab-gruppo-scheda" data-gruppo="righe">
@@ -637,14 +676,47 @@ else
         _ => "riga T;BREAK",
     };
 
-    private IEnumerable<ElencoDiVertici> ElenchiDaMostrare(SchedaDelRecord scheda)
+    /// <summary>
+    /// Gli elenchi di vertici del record; per un segmento di un <c>.geo</c> la sua linea (D5: lo stesso editor, la chiave
+    /// <see cref="SessioneDelLab.ChiaveDellaLinea"/>).
+    /// </summary>
+    private IEnumerable<(string Chiave, string Nome, bool AmmetteNomi)> ElenchiDaMostrare(SchedaDelRecord scheda)
     {
+        if (Lab.LineaDi(scheda.File, scheda.Indice) is not null)
+            return [(SessioneDelLab.ChiaveDellaLinea, "Linea", false)];
         var tutti = Lab.ElenchiDiVerticiDi(scheda.File, scheda.Indice);
-        return tutti.Any(e => e.Quanti > 0) ? tutti.Where(e => e.Quanti > 0) : tutti;
+        return (tutti.Any(e => e.Quanti > 0) ? tutti.Where(e => e.Quanti > 0) : tutti).Select(e => (e.Chiave, e.Nome, e.AmmetteNomi));
     }
 
+    /// <summary>Quanti punti di una linea di un <c>.geo</c> si vedono prima e dopo il segmento scelto.</summary>
+    private const int IntornoDellaLinea = 20;
+
     private void Gesto(SchedaDelRecord scheda, string campo, GestoDeiVertici gesto, int posizione, string? testo = null)
-        => Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, gesto, posizione, testo);
+    {
+        Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, gesto, posizione, testo);
+        RicordaIlGesto(scheda, campo);
+    }
+
+    private void SpezzaOUnisci(SchedaDelRecord scheda, string campo, int dopo, bool spezza)
+    {
+        Lab.SpezzaOUnisci(scheda.File, scheda.Indice, campo, dopo, spezza);
+        RicordaIlGesto(scheda, campo);
+    }
+
+    /// <summary>L'ultimo gesto fatto dentro un elenco della Geometria, col rifiuto che ha avuto (D5: il rifiuto accanto al tasto).</summary>
+    private (string File, int Record, string Campo, string Rifiuto)? _gestoNellElenco;
+
+    private void RicordaIlGesto(SchedaDelRecord scheda, string campo)
+        => _gestoNellElenco = Lab.Rifiuto is { } rifiuto ? (scheda.File, scheda.Indice, campo, rifiuto) : null;
+
+    /// <summary>
+    /// L'elenco che ha avuto il rifiuto di adesso, o null: il rifiuto è ancora quello (lo stesso oggetto, non un altro gesto
+    /// con lo stesso testo) e il record è lo stesso.
+    /// </summary>
+    private string? RifiutoNellElenco(SchedaDelRecord scheda)
+        => _gestoNellElenco is { } g && g.File == scheda.File && g.Record == scheda.Indice && ReferenceEquals(g.Rifiuto, Lab.Rifiuto)
+            ? g.Campo
+            : null;
 
     /// <summary>I gradi fra due punti d'arco scritti dall'AOD, per QUEL record; null = la stima del Lab.</summary>
     private double? _gradi;
@@ -669,6 +741,7 @@ else
         if (Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, GestoDeiVertici.Incolla, testo: _daIncollare,
                                 puntiPerGrado: puntiPerGrado, chiudi: Chiudi(scheda, campo)))
             _daIncollare = null;
+        RicordaIlGesto(scheda, campo);
     }
 
     /// <summary>Un tasto nel testo da incollare: l'anteprima si rifà (scheda e mappa).</summary>

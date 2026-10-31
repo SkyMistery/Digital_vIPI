@@ -114,7 +114,9 @@ public sealed class VerticiAschermoTests : IDisposable
 
         pagina.WaitForAssertion(() =>
         {
-            Assert.NotNull(pagina.Find("[data-rifiuto]"));
+            // D5, seconda parte: il rifiuto sta sotto i tasti dell'elenco, non in testa alla Scheda.
+            Assert.NotNull(pagina.Find("[data-rifiuto-elenco]"));
+            Assert.Empty(pagina.FindAll("[data-rifiuto]"));
             Assert.False(_lab.Modifiche.CEQualcosa);
             Assert.Equal(prima, pagina.FindAll("[data-vertice]").Count);
         });
@@ -175,5 +177,39 @@ public sealed class VerticiAschermoTests : IDisposable
             Assert.NotEmpty(pagina.FindAll("[data-campo-record]"));
             Assert.Empty(pagina.FindAll("[data-vertice]"));
         });
+    }
+
+    [Fact]
+    public async Task La_linea_di_un_geo_ha_lo_stesso_editor_e_il_rifiuto_accanto()
+    {
+        // D5 della carta del riordino, seconda parte: la «Linea» di un segmento .geo è un elenco come gli altri.
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        const string liap = "SectorFiles/Include/IT/GEO/liap.geo";
+        await pagina.InvokeAsync(() => _lab.Scegli(liap, 0));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find($"[data-elenco='{SessioneDelLab.ChiaveDellaLinea}']")));
+        int punti = _lab.LineaDi(liap, 0)!.Punti.Count;
+        Assert.Equal(punti, pagina.FindAll("[data-vertice]").Count);
+        // ✂ solo nei punti in mezzo; il primo e l'ultimo no.
+        Assert.Equal(punti - 2, pagina.FindAll("[data-spezza]").Count);
+
+        // «+»: una copia del punto, un segmento in più; «−» lo toglie.
+        await pagina.InvokeAsync(() => pagina.Find("[data-aggiungi='2']").Click());
+        Assert.Equal(punti + 1, _lab.LineaDi(liap, 0)!.Punti.Count);
+        pagina.WaitForAssertion(() => Assert.Equal(punti + 1, pagina.FindAll("[data-vertice]").Count));
+        await pagina.InvokeAsync(() => pagina.Find("[data-togli='2']").Click());
+        Assert.Equal(punti, _lab.LineaDi(liap, 0)!.Punti.Count);
+
+        // Un punto che non si legge: il rifiuto sotto i tasti della Linea, non in testa alla Scheda.
+        await pagina.InvokeAsync(() => pagina.Find("[data-vertice='1']").Change("PIPPO"));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find($"[data-rifiuto-elenco='{SessioneDelLab.ChiaveDellaLinea}']")));
+        Assert.Empty(pagina.FindAll("[data-rifiuto]"));
+
+        // ✂ spezza al punto: la linea diventa due, e «Unisci» la riunisce.
+        await pagina.InvokeAsync(() => pagina.Find("[data-spezza='2']").Click());
+        Assert.Equal(3, _lab.LineaDi(liap, 0)!.Punti.Count);
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-continua]")));
+        await pagina.InvokeAsync(() => pagina.Find("[data-unisci]").Click());
+        Assert.Equal(punti, _lab.LineaDi(liap, 0)!.Punti.Count);
     }
 }

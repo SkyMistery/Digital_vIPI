@@ -51,6 +51,11 @@
         {
             <pre class="lab-righe-aip" data-righe-aip>@string.Join("\n", voce.Righe)</pre>
         }
+        @* D11: il record del sector che i confronti fatti legano alla voce scelta. *@
+        @if (Lab.SceltaDellAip is { } sceltaVoce)
+        {
+            <LegamiConLAipNellaScheda Voce="sceltaVoce" />
+        }
         @if (correggibile)
         {
             @if (_cosa is null)

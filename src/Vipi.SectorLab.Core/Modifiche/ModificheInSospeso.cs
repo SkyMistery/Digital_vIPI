@@ -1467,6 +1467,52 @@ public sealed class ModificheInSospeso
             return new ModificaRifiutata("Questo record non è un segmento di un .geo.");
         if (forma.Anello.Count < 3)
             return new ModificaRifiutata("La forma di partenza ha meno di 3 vertici.");
+        return RiscriviISegmenti(file, conRecord, linea, segmenti => Copie.PortaLaForma.RigheDellaLinea(forma, linea, segmenti), gesto);
+    }
+
+    /// <summary>
+    /// Un gesto dell'editor dei vertici sulla linea di un <c>.geo</c> (D5 della carta del riordino): «+» (una copia del punto),
+    /// «−», «Inverti», o i punti di «Incolla da testo» (<paramref name="incollati"/>, al posto di tutti). I segmenti si
+    /// riscrivono fra un punto e il prossimo; quelli che restano uguali restano le loro righe. Una voce nel testo del file.
+    /// </summary>
+    public object GestoSullaLinea(FileAperto file, int indice, GestoSullaLinea gesto, int posizione = 0,
+                                  IReadOnlyList<Coordinate>? incollati = null, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord || LineaDi(file, indice) is not { } linea)
+            return new ModificaRifiutata("Questo record non è un segmento di un .geo.");
+        string? perche = null;
+        IReadOnlyList<Coordinate>? punti = gesto switch
+        {
+            Modifiche.GestoSullaLinea.Aggiungi => LineeDelGeo.ConUnPuntoInPiu(linea, posizione, out perche),
+            Modifiche.GestoSullaLinea.Togli => LineeDelGeo.ConUnPuntoInMeno(linea, posizione, out perche),
+            Modifiche.GestoSullaLinea.Inverti => [.. linea.Punti.Reverse()],
+            _ => incollati,
+        };
+        if (punti is null)
+            return new ModificaRifiutata(perche ?? "Niente da incollare.");
+        if (punti.Count < 2)
+            return new ModificaRifiutata("Una linea ha almeno due punti.");
+        if (punti.SequenceEqual(linea.Punti))
+            return new ModificaRifiutata("La linea è già questa.");
+        string cosa = gesto switch
+        {
+            Modifiche.GestoSullaLinea.Aggiungi => $"punto aggiunto alla linea ({posizione + 1})",
+            Modifiche.GestoSullaLinea.Togli => $"punto {posizione + 1} tolto dalla linea",
+            Modifiche.GestoSullaLinea.Inverti => "linea invertita",
+            _ => "punti incollati nella linea",
+        };
+        return RiscriviISegmenti(file, conRecord, linea, segmenti => Copie.PortaLaForma.RigheDeiPunti(punti, linea, segmenti),
+                                 $"{(etichetta.Length > 0 ? etichetta + ": " : "")}{cosa}");
+    }
+
+    /// <summary>
+    /// Riscrive i segmenti della linea con le righe che <paramref name="nuoveRighe"/> fa da quelle di adesso (una per segmento):
+    /// le righe nuove al posto del primo segmento, quelle degli altri tolte. Riletto, il file ha i segmenti che deve avere.
+    /// </summary>
+    private object RiscriviISegmenti(FileAperto file, IFileConRecord conRecord, LineaDelGeo linea,
+                                     Func<IReadOnlyList<string>, IReadOnlyList<string>> nuoveRighe, string gesto)
+    {
         var sporchi = SporchiDi(file.Relativo);
         var righe = conRecord.RigheDelFile(sporchi);
         var posti = conRecord.PostiDeiRecord(sporchi);
@@ -1474,7 +1520,7 @@ public sealed class ModificheInSospeso
         if (linea.Record.Any(r => posti[r].Quante != 1))
             return new ModificaRifiutata("Un segmento di questa linea non sta su una riga sola: si cambia a mano, dalle righe del file.");
 
-        var nuove = Copie.PortaLaForma.RigheDellaLinea(forma, linea, [.. linea.Record.Select(r => righe[posti[r].Da])]);
+        var nuove = nuoveRighe([.. linea.Record.Select(r => righe[posti[r].Da])]);
         var sostituzioni = new Dictionary<int, IReadOnlyList<string>> { [posti[linea.Record[0]].Da + 1] = nuove };
         foreach (int r in linea.Record.Skip(1))
             sostituzioni[posti[r].Da + 1] = [];

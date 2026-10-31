@@ -667,6 +667,32 @@ La pagina Testo è finita (T1-T3).
   righe»), Righe; un'aerovia → Dati, Geometria, Procedura, Righe, e «Aerovie del file» nella colonna; una procedura di
   `lirf.str` → Dati, Geometria, Procedura, Righe; un segmento di `itgeo.geo` → Dati, Geometria, Righe.
 
+**La Scheda per gruppi (D5), seconda parte fatta** (31 ottobre, «Sì, vai»). Le tre cose rimaste della prima parte:
+- **Un solo editor dei vertici, anche per i `.geo`.** La «Linea» di un segmento `.geo` (i segmenti di fila, attaccati e dello
+  stesso tipo) è ora un elenco della Geometria come gli altri, con la chiave `SessioneDelLab.ChiaveDellaLinea`: la Scheda la
+  disegna con lo stesso codice, e i gesti con quella chiave vanno alla linea. Ha i gesti dell'editor: spostare un punto (i due
+  segmenti che lo toccano, come prima), **+** (una copia del punto: un segmento in più, da spostare), **−** (i due segmenti
+  che lo toccavano diventano uno; una linea tiene almeno due punti), **+ in fondo**, **⇅ Inverti**, **Incolla da testo** con
+  l'anteprima e «Chiudi la forma», **✂** in un punto in mezzo (una riga vuota: il punto resta in tutte e due le linee) e
+  **Unisci** con la linea prima o dopo. I segmenti si riscrivono fra un punto e il prossimo
+  (`ModificheInSospeso.GestoSullaLinea`, `PortaLaForma.RigheDeiPunti`): quelli che restano uguali restano le loro righe,
+  quelli nuovi si scrivono come la prima riga della linea; un segmento su più righe (un commento attaccato) si rifiuta, come
+  per «porta la forma». Le linee lunghe (le coste di `itgeo.geo`) si vedono intorno al segmento scelto, venti punti per
+  parte, come prima. `LineaDelGeoVista` non c'è più.
+- **La voce dell'AIP nei Collegamenti** (D11). «Nell'AIP espanso» nel gruppo Collegamenti di un record: la voce che i
+  confronti fatti gli legano, con la sezione e l'esito, «Vai alla voce» (l'Indice dell'AIP con la voce scelta) e «nel
+  Confronto» (la riga coi due lati). Il verso opposto nella scheda di una voce dell'AIP: «Nel sector», «Vai al record»
+  (la Mappa col record scelto). Il legame lo fa il confronto della sezione: senza confronti fatti non c'è, e il Lab non lo
+  indovina dal nome (`SessioneDelLab.LegamiDelRecord`, `LegamiDellaVoce`).
+- **Il rifiuto accanto al tasto anche dentro i gruppi.** Il rifiuto di un gesto su un elenco della Geometria sta sotto i
+  tasti di quell'elenco, non in testa alla Scheda (che in una zona lunga è lontana); gli altri restano in testa.
+- Test: `LineeDelGeoTests` (+2: + e −, inverti e incolla), `VerticiAschermoTests` (+1: la Linea nella Scheda, il rifiuto
+  accanto, ✂ e Unisci), `ConfrontoDiEnr4Tests` (+1: dal record alla voce e ritorno, nel Confronto).
+- Sul banco: `itgeo.geo` record 5, una costa di 129 punti: a schermo i 27 attorno al segmento, «+» e «−» (la scelta resta sul
+  record 5), un punto illeggibile col rifiuto sotto la Linea; confrontati i Punti, il fix PY414 di `APT.fix` ha «Nell'AIP
+  espanso: PY414 · Punti significativi · diversa», «Vai alla voce» apre l'Indice su PY414 e la sua scheda dice «Nel sector:
+  APT.fix · PY414» con «Vai al record».
+
 **I verbi (D6) fatti** (21 ottobre, «Vai, i verbi»). Prima il censimento dei tasti del Lab (tutti i `<button>` dei
 componenti), poi i nomi, contro il problema di §2 punto 7:
 - **Lascia stare** per scartare: «Lascia com'era» (riga a mano), «No, lasciale» (rinomina degli omonimi), «No, lascialo»

@@ -1453,6 +1453,8 @@ public sealed partial class SessioneDelLab
     {
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return [];
+        if (campo == ChiaveDellaLinea)
+            return Modifiche.LineaDi(file, record) is { } linea ? [.. linea.Punti.Select(LineeDelGeo.Scrivi)] : [];
 
         return ElenchiDiVertici.Uno(file, record, campo) is { } elenco
             ? [.. Enumerable.Range(0, elenco.Quanti).Select(elenco.Scrivi)]
@@ -1504,6 +1506,9 @@ public sealed partial class SessioneDelLab
     public bool GestoSuiVertici(string fileRelativo, int record, string campo, GestoDeiVertici gesto,
                                 int posizione = 0, string? testo = null, double? puntiPerGrado = null, bool? chiudi = null)
     {
+        // D5: la linea di un .geo ha lo stesso editor; i suoi gesti riscrivono i segmenti.
+        if (campo == ChiaveDellaLinea)
+            return GestoSullaLinea(fileRelativo, record, gesto, posizione, testo, puntiPerGrado, chiudi);
         // La densità si fissa ADESSO: rigiocato più tardi, il gesto deve dare gli stessi punti anche se la stima è cambiata.
         double? densita = gesto == GestoDeiVertici.Incolla ? puntiPerGrado ?? DensitaDiBase : null;
         // Anche la chiusura si fissa adesso: rigiocato dopo altri gesti, l'elenco di partenza potrebbe essere un altro.
@@ -2759,25 +2764,125 @@ public sealed partial class SessioneDelLab
         => NellaStoria($"linea di {EtichettaDi(fileRelativo, record)} riunita",
             () => GestoSulTesto(fileRelativo, "unisci linea", file => Modifiche.UnisciLaLinea(file, record, dopo, EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "")));
 
+    /// <summary>
+    /// La chiave dell'elenco «Linea» di un segmento <c>.geo</c> nella Scheda (D5 della carta del riordino): la linea si vede e
+    /// si cambia con lo stesso editor dei vertici delle altre forme, e i gesti con questa chiave vanno alla linea.
+    /// </summary>
+    public const string ChiaveDellaLinea = "§linea";
+
+    /// <summary>
+    /// Un gesto dell'editor dei vertici sulla linea di un <c>.geo</c>: «Cambia» sposta il punto nei due segmenti che lo toccano,
+    /// gli altri riscrivono i segmenti (<see cref="ModificheInSospeso.GestoSullaLinea"/>). Le copie della stessa forma si
+    /// fissano adesso, come per i vertici.
+    /// </summary>
+    private bool GestoSullaLinea(string fileRelativo, int record, GestoDeiVertici gesto, int posizione, string? testo,
+                                 double? puntiPerGrado, bool? chiudi)
+    {
+        if (gesto == GestoDeiVertici.Cambia)
+            return CambiaPuntoDellaLinea(fileRelativo, record, posizione, testo);
+        double densita = puntiPerGrado ?? DensitaDiBase;
+        chiudi ??= ElencoChiuso(fileRelativo, record, ChiaveDellaLinea);
+        string cosa = gesto switch
+        {
+            GestoDeiVertici.Aggiungi => "punto aggiunto alla linea",
+            GestoDeiVertici.Togli => $"punto {posizione + 1} tolto dalla linea",
+            GestoDeiVertici.Inverti => "linea invertita",
+            _ => "punti incollati nella linea",
+        };
+        var copie = CopieDellaLinea(fileRelativo, record);
+        bool fatto = NellaStoria($"{cosa} di {EtichettaDi(fileRelativo, record)}",
+            () => GestoSullaLineaAdesso(fileRelativo, record, gesto, posizione, testo, densita, chiudi.Value, copie));
+        if (fatto && gesto == GestoDeiVertici.Incolla)
+            TogliLAnteprima();
+        return fatto;
+    }
+
+    private bool GestoSullaLineaAdesso(string fileRelativo, int record, GestoDeiVertici gesto, int posizione, string? testo,
+                                       double densita, bool chiudi, IReadOnlyList<ParteDiForma> copie)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return false;
+
+        FormaPortata = null;
+        var prima = Modifiche.LineaDi(file, record);
+        var uguali = prima is not null ? AncoraUguali(PortaLaForma.Da(prima), copie) : [];
+        string etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "";
+        object esito;
+        if (gesto == GestoDeiVertici.Incolla)
+        {
+            // La stessa lettura dell'anteprima: quel che la scheda mostrava è quel che si incolla.
+            var letto = TestoDaIncollare.Leggi(testo, densita, chiudi);
+            esito = letto.Rifiuto is { } rifiuto
+                ? new ModificaRifiutata(rifiuto)
+                : Modifiche.GestoSullaLinea(file, record, Core.Modifiche.GestoSullaLinea.Incolla,
+                    incollati: [.. letto.Punti.Select(p => new Coordinate(p.Lat, p.Lon))], etichetta: etichetta);
+        }
+        else
+        {
+            var suLinea = gesto switch
+            {
+                GestoDeiVertici.Aggiungi => Core.Modifiche.GestoSullaLinea.Aggiungi,
+                GestoDeiVertici.Togli => Core.Modifiche.GestoSullaLinea.Togli,
+                _ => Core.Modifiche.GestoSullaLinea.Inverti,
+            };
+            esito = Modifiche.GestoSullaLinea(file, record, suLinea, posizione, etichetta: etichetta);
+        }
+        Registro.Scrivi("linea", $"{fileRelativo}#{record} {gesto} {posizione}: {Descrivi(esito)}");
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        if (esito is not ModificaRifiutata)
+        {
+            RifaiLaGeometria(fileRelativo);
+            // I segmenti possono essere cambiati di numero: la scelta resta dov'è se è ancora un segmento della stessa linea,
+            // se no va sul primo, che non cambia posto.
+            if (prima is not null && Scelta is { } scelta && scelta.File == fileRelativo && prima.Record.Contains(scelta.Record)
+                && Modifiche.LineaDi(file, scelta.Record)?.Record[0] != prima.Record[0])
+                Scelta = (fileRelativo, prima.Record[0]);
+            if (uguali.Count > 0 && prima is not null && Modifiche.LineaDi(file, prima.Record[0]) is { } dopo)
+                FormaPortata = PortaSulleCopie(PortaLaForma.Da(dopo), $"{NomeDelFile(fileRelativo)} {etichetta}", uguali);
+        }
+        RicontrollaLeModifiche();
+        Avvisa();
+        return esito is not ModificaRifiutata;
+    }
+
     // --- spezza e unisci (lotto «Subito» slice 5b) ---------------------------------------------------------------
 
     /// <summary>Come si interrompe quell'elenco (riga vuota, &lt;br&gt;, DUMMY, BREAK), o null se lì non si spezza.</summary>
     public FormaDellInterruzione? FormaDellInterruzioneDi(string fileRelativo, int record, string campo)
-        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? Interruzioni.Forma(file, record, campo) : null;
+        => campo == ChiaveDellaLinea
+            ? LineaDi(fileRelativo, record) is null ? null : FormaDellInterruzione.RigaVuota
+            : Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? Interruzioni.Forma(file, record, campo) : null;
 
-    /// <summary>Le posizioni dopo le quali, dentro l'elenco, la linea è interrotta.</summary>
+    /// <summary>
+    /// Le posizioni dopo le quali, dentro l'elenco, la linea è interrotta. Una linea di un <c>.geo</c> non ne ha: spezzata
+    /// è due linee, e l'altra si vede come «continua» (<see cref="ContinuaDopo"/>, <see cref="ContinuaPrima"/>).
+    /// </summary>
     public IReadOnlyList<int> InterruzioniDentro(string fileRelativo, int record, string campo)
-        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file && ElenchiDiVertici.Uno(file, record, campo) is { } elenco
+        => campo != ChiaveDellaLinea && Sessione?.File.GetValueOrDefault(fileRelativo) is { } file && ElenchiDiVertici.Uno(file, record, campo) is { } elenco
             ? Interruzioni.Dentro(elenco)
             : [];
 
     /// <summary>Dove continua la linea dopo l'ultimo punto dell'elenco, oltre un'interruzione.</summary>
     public Continuazione? ContinuaDopo(string fileRelativo, int record, string campo)
-        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? Interruzioni.Dopo(file, record, campo) : null;
+        => campo == ChiaveDellaLinea
+            ? LineaDi(fileRelativo, record)?.Dopo is { } dopo ? new Continuazione(dopo, ChiaveDellaLinea, $"la linea dopo (record {dopo + 1})") : null
+            : Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? Interruzioni.Dopo(file, record, campo) : null;
 
-    /// <summary>Spezza (o riunisce) la linea dopo il punto <paramref name="dopo"/>: una voce nel testo del file.</summary>
+    /// <summary>D5: la linea di un <c>.geo</c> che finisce dove questa comincia, staccata da righe vuote; null per gli altri elenchi.</summary>
+    public Continuazione? ContinuaPrima(string fileRelativo, int record, string campo)
+        => campo == ChiaveDellaLinea && LineaDi(fileRelativo, record)?.Prima is { } prima
+            ? new Continuazione(prima, ChiaveDellaLinea, $"la linea prima (record {prima + 1})")
+            : null;
+
+    /// <summary>
+    /// Spezza (o riunisce) la linea dopo il punto <paramref name="dopo"/>: una voce nel testo del file. Per la linea di un
+    /// <c>.geo</c> (D5) «spezza» è in quel punto (le due linee lo hanno tutte e due: una riga vuota prima del segmento che
+    /// comincia lì); «unisci» riunisce la linea dopo (<paramref name="dopo"/> all'ultimo punto) o quella prima (-1).
+    /// </summary>
     public bool SpezzaOUnisci(string fileRelativo, int record, string campo, int dopo, bool spezza)
-        => NellaStoria($"{EtichettaDi(fileRelativo, record)} {(spezza ? "spezzata" : "riunita")} dopo il punto {dopo + 1}",
+        => campo == ChiaveDellaLinea
+            ? spezza ? SpezzaLaLinea(fileRelativo, record, dopo) : UnisciLaLinea(fileRelativo, record, dopo: dopo >= 0)
+            : NellaStoria($"{EtichettaDi(fileRelativo, record)} {(spezza ? "spezzata" : "riunita")} dopo il punto {dopo + 1}",
             () => SpezzaOUnisciAdesso(fileRelativo, record, campo, dopo, spezza));
 
     private bool SpezzaOUnisciAdesso(string fileRelativo, int record, string campo, int dopo, bool spezza)
@@ -3261,8 +3366,10 @@ public sealed partial class SessioneDelLab
 
     /// <summary>Se l'elenco di vertici di oggi è chiuso (l'ultimo punto ripete il primo): la casella «Chiudi la forma» parte da qui.</summary>
     public bool ElencoChiuso(string fileRelativo, int record, string campo)
-        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file && ElenchiDiVertici.Uno(file, record, campo) is { } elenco
-           && ModificheInSospeso.ElencoChiuso(elenco);
+        => campo == ChiaveDellaLinea
+            ? LineaDi(fileRelativo, record) is { Punti: { Count: >= 4 } p } && p[0] == p[^1]
+            : Sessione?.File.GetValueOrDefault(fileRelativo) is { } file && ElenchiDiVertici.Uno(file, record, campo) is { } elenco
+              && ModificheInSospeso.ElencoChiuso(elenco);
 
     public void TogliLAnteprima()
     {

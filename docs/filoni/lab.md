@@ -4,6 +4,12 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+**31 ottobre: la Scheda per gruppi, seconda parte** (D5 della carta del riordino, ferma «al via» dal 21 ottobre; il
+committente non poteva ancora fare le prove A75-A91 e ha detto «Sì, vai»). La Linea di un `.geo` ha lo stesso editor dei
+vertici delle altre forme (+, −, in fondo, Inverti, Incolla da testo, ✂ e Unisci); nei Collegamenti di un record la voce
+dell'AIP espanso che i confronti fatti gli legano, e nella scheda della voce il record del sector (D11); il rifiuto di un
+gesto della Geometria accanto all'elenco. Nessun codice comune. Prove A92-A94.
+
 ## Dove siamo — 27 ottobre 2026: gli aeroporti, la carta e la pagina dello scalo
 
 Il committente, dopo le prove A63-A67: ENR 2-5 vanno bene; gli aeroporti no — «parziale e incompleto o a pezzi»,

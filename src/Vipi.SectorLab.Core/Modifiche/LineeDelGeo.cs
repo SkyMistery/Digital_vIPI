@@ -15,6 +15,15 @@ namespace Vipi.SectorLab.Core.Modifiche;
 /// <param name="Dopo">Il record della linea che comincia dove questa finisce, staccata solo da righe vuote.</param>
 public sealed record LineaDelGeo(IReadOnlyList<int> Record, IReadOnlyList<Coordinate> Punti, int? Prima, int? Dopo);
 
+/// <summary>I gesti dell'editor dei vertici che cambiano quanti punti ha la linea di un <c>.geo</c> (D5); lo spostamento di un punto è a parte.</summary>
+public enum GestoSullaLinea
+{
+    Aggiungi,
+    Togli,
+    Inverti,
+    Incolla,
+}
+
 /// <summary>
 /// La vista a linea dei <c>.geo</c> (G1): cambiare un punto riscrive i due segmenti che lo toccano, così la catena non si
 /// rompe; «spezza» e «unisci» mettono e tolgono la riga vuota fra due segmenti (R-3), sul testo come nella slice 5b.
@@ -94,6 +103,42 @@ public static class LineeDelGeo
         int primo = dopo ? linea.Record[^1] : r;
         int da = posti[primo].Da + posti[primo].Quante, a = posti[primo + 1].Da;
         return Enumerable.Range(da, a - da).ToDictionary(i => i + 1, _ => (IReadOnlyList<string>)[]);
+    }
+
+    /// <summary>
+    /// I punti dopo «+» (D5, l'editor dei vertici anche per i <c>.geo</c>): come per un elenco di vertici, una copia del punto
+    /// <paramref name="posizione"/> al suo posto (in fondo, dell'ultimo), da spostare poi. Null col perché se lì non si può.
+    /// </summary>
+    public static IReadOnlyList<Coordinate>? ConUnPuntoInPiu(LineaDelGeo linea, int posizione, out string? perche)
+    {
+        ArgumentNullException.ThrowIfNull(linea);
+        perche = null;
+        if (posizione < 0 || posizione > linea.Punti.Count)
+        {
+            perche = "Lì non si può aggiungere un punto.";
+            return null;
+        }
+        var punti = linea.Punti.ToList();
+        punti.Insert(posizione, punti[Math.Min(posizione, punti.Count - 1)]);
+        return punti;
+    }
+
+    /// <summary>I punti dopo «−»: il punto se ne va, e i due segmenti che lo toccavano diventano uno. Una linea ne tiene almeno due.</summary>
+    public static IReadOnlyList<Coordinate>? ConUnPuntoInMeno(LineaDelGeo linea, int posizione, out string? perche)
+    {
+        ArgumentNullException.ThrowIfNull(linea);
+        perche = null;
+        if (posizione < 0 || posizione >= linea.Punti.Count)
+        {
+            perche = "Quel punto non c'è.";
+            return null;
+        }
+        if (linea.Punti.Count <= 2)
+        {
+            perche = "Un segmento ha due punti: per toglierlo, togli il record.";
+            return null;
+        }
+        return [.. linea.Punti.Where((_, i) => i != posizione)];
     }
 
     /// <summary>Un punto come si scrive nella scheda: le coordinate in DMS puntato.</summary>

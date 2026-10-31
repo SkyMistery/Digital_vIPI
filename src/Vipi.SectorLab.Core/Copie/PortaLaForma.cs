@@ -167,7 +167,16 @@ public static class PortaLaForma
         var giro = Giro(da.Anello, vecchio).ToList();
         if (chiusa)
             giro.Add(giro[0]);
+        return RigheDeiPunti(giro, linea, righe);
+    }
 
+    /// <summary>
+    /// Le righe dei segmenti che vanno da un punto al prossimo di <paramref name="punti"/>: un segmento che c'era già (stessi due
+    /// estremi) resta la sua riga; uno nuovo si scrive come la prima riga della linea (tipo, colore, commento), con le
+    /// coordinate nella sua forma (col punto, o compatte). Per «porta la forma» (8d) e per i gesti sulla linea (D5).
+    /// </summary>
+    internal static IReadOnlyList<string> RigheDeiPunti(IReadOnlyList<Coordinate> giro, LineaDelGeo linea, IReadOnlyList<string> righe)
+    {
         var diPrima = new Dictionary<(long, long), string>();
         for (int i = 0; i < righe.Count && i + 1 < linea.Punti.Count; i++)
             diPrima.TryAdd((FormeUguali.Chiave(linea.Punti[i]), FormeUguali.Chiave(linea.Punti[i + 1])), righe[i]);

@@ -1,6 +1,7 @@
 using Vipi.SectorLab.Core.Modifiche;
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.Models;
+using Vipi.Sectorfile.Shared;
 
 namespace Vipi.SectorLab.Tests.Modifiche;
 
@@ -98,6 +99,54 @@ public sealed class LineeDelGeoTests : IDisposable
 
         Assert.IsType<ModificaRifiutata>(_modifiche.SpezzaLaLinea(file, 0, 0));
         Assert.IsType<ModificaRifiutata>(_modifiche.SpezzaLaLinea(file, 0, linea.Record.Count));
+    }
+
+    [Fact]
+    public void Lo_stesso_editor_dei_vertici_aggiunge_e_toglie_un_segmento()
+    {
+        // D5 della carta del riordino: «+» mette una copia del punto (un segmento in più, da spostare), «−» lo toglie (i due
+        // segmenti che lo toccavano diventano uno), e la catena non si rompe.
+        var file = Liap();
+        var prima = _modifiche.LineaDi(file, 0)!;
+        var righe = Righe(file);
+
+        Assert.IsType<ModificaDelTesto>(_modifiche.GestoSullaLinea(file, 0, GestoSullaLinea.Aggiungi, 2));
+        var dopo = _modifiche.LineaDi(file, 0)!;
+        Assert.Equal(prima.Punti.Count + 1, dopo.Punti.Count);
+        Assert.Equal(prima.Punti[2], dopo.Punti[2]);
+        Assert.Equal(prima.Punti[2], dopo.Punti[3]);
+        // I segmenti che non cambiano restano le loro righe: le due prima del punto sono quelle di prima.
+        Assert.Equal(righe.Take(2), Righe(file).Take(2));
+
+        Assert.IsNotType<ModificaRifiutata>(_modifiche.CambiaPuntoDellaLinea(file, 0, 3, "N042.22.20.000 E013.18.44.000"));
+        Assert.Equal("N042.22.20.000 E013.18.44.000", LineeDelGeo.Scrivi(_modifiche.LineaDi(file, 0)!.Punti[3]));
+
+        Assert.IsType<ModificaDelTesto>(_modifiche.GestoSullaLinea(file, 0, GestoSullaLinea.Togli, 3));
+        Assert.Equal(prima.Punti, _modifiche.LineaDi(file, 0)!.Punti);
+        Assert.Equal(prima.Record, _modifiche.LineaDi(file, 0)!.Record);
+        Assert.Equal(righe.Count, Righe(file).Count);
+    }
+
+    [Fact]
+    public void Inverti_e_incolla_riscrivono_la_linea_e_una_linea_tiene_due_punti()
+    {
+        var file = Liap();
+        var prima = _modifiche.LineaDi(file, 0)!;
+
+        Assert.IsType<ModificaDelTesto>(_modifiche.GestoSullaLinea(file, 0, GestoSullaLinea.Inverti));
+        Assert.Equal(prima.Punti.Reverse(), _modifiche.LineaDi(file, 0)!.Punti);
+        Assert.Equal(prima.Record.Count, _modifiche.LineaDi(file, 0)!.Record.Count);
+
+        Coordinate a = new(42.37, 13.31), b = new(42.38, 13.32), c = new(42.39, 13.31);
+        Assert.IsType<ModificaDelTesto>(_modifiche.GestoSullaLinea(file, 0, GestoSullaLinea.Incolla, incollati: [a, b, c]));
+        var incollata = _modifiche.LineaDi(file, 0)!;
+        Assert.Equal(2, incollata.Record.Count);
+        Assert.Equal(new[] { a, b, c }.Select(LineeDelGeo.Scrivi), incollata.Punti.Select(LineeDelGeo.Scrivi));
+
+        Assert.IsType<ModificaDelTesto>(_modifiche.GestoSullaLinea(file, 0, GestoSullaLinea.Togli, 1));
+        var rifiuto = Assert.IsType<ModificaRifiutata>(_modifiche.GestoSullaLinea(file, 0, GestoSullaLinea.Togli, 0));
+        Assert.Contains("due punti", rifiuto.Motivo, StringComparison.Ordinal);
+        Assert.IsType<ModificaRifiutata>(_modifiche.GestoSullaLinea(file, 0, GestoSullaLinea.Incolla, incollati: [a]));
     }
 
     [Fact]
