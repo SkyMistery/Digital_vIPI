@@ -10,6 +10,12 @@ vertici delle altre forme (+, −, in fondo, Inverti, Incolla da testo, ✂ e Un
 dell'AIP espanso che i confronti fatti gli legano, e nella scheda della voce il record del sector (D11); il rifiuto di un
 gesto della Geometria accanto all'elenco. Nessun codice comune. Prove A92-A94.
 
+**31 ottobre, sera: la carta «Le curve delle procedure»** ([`2026-10-31-curve-delle-procedure.md`](../feature/2026-10-31-curve-delle-procedure.md)),
+da approvare. Il committente ha scelto «curva dopo il decollo» fra i lavori aperti. Rimisurata la prosa sul 2611: 970
+lette, 12 non lette (tutte AJO), 287 segnalazioni, come il 26 ottobre; la voce «466 frasi senza tratti» del 22 ottobre è
+superata. Le 25 «SID dalla soglia» sono tutte virate vere dopo il decollo (64°-180°). Proposte R1-R5 (raggio, virate
+arrotondate, virata dopo il decollo dalla fine pista, confronto) e quattro domande al committente. Niente codice.
+
 ## Dove siamo — 27 ottobre 2026: gli aeroporti, la carta e la pagina dello scalo
 
 Il committente, dopo le prove A63-A67: ENR 2-5 vanno bene; gli aeroporti no — «parziale e incompleto o a pezzi»,
