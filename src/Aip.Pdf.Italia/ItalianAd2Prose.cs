@@ -1044,9 +1044,12 @@ public static partial class ItalianAd2Prose
                     // pista, come «RWY heading». Se la rotta si scosta dalla pista c'è una virata dopo il decollo che non si
                     // disegna: si dice. Fino a 30° no (giro del 26 ottobre): «After take-off proceed on track 164°» dalla 15 di
                     // LICR (15°) è la rotta del decollo, il tratto CA che l'ARINC scrive così; non c'è una virata da disegnare.
-                    _linea = Linea.DaUnPunto(pista.Threshold, tr, v, prua: g["prua"].Success, dallaSoglia: true);
                     var scarto = Math.Abs(Sphere.Normalize(tr + v - pista.TrueBearing + 180) - 180);
-                    if (scarto > 30)
+                    if (scarto > 30 && decollo is { FromAerodrome: false } dec)
+                        VirataDalDecollo(dec.End, tr, v, g["prua"].Success, scarto);
+                    else
+                        _linea = Linea.DaUnPunto(pista.Threshold, tr, v, prua: g["prua"].Success, dallaSoglia: true);
+                    if (scarto > 30 && _linea!.Origine == pista.Threshold)
                         _avvisi.Add($"il primo tratto parte dalla soglia della pista su TR {tr:000}°: la virata dopo il decollo ({scarto:0}°) non è disegnata");
                 }
                 else
@@ -1382,6 +1385,8 @@ public static partial class ItalianAd2Prose
                 PathTerminator = primo ? "IF" : conRotta ? "CF" : _tratti.Count > 0 && FinisceNelVuoto(_tratti[^1]) ? "DF" : "TF",
                 Fix = nome,
                 Course = primo || !conRotta ? null : _linea!.Rotta,
+                // Carta «Le curve delle procedure», R2: la rotta vera della linea, perché il disegno sappia intercettarla.
+                TrueCourse = primo || !conRotta ? null : _linea!.Direzione.ToString("0.0", CultureInfo.InvariantCulture),
                 Turn = primo ? null : _virata,
             });
             _virata = null;
@@ -1423,6 +1428,8 @@ public static partial class ItalianAd2Prose
             {
                 PathTerminator = primo ? "IF" : tipo, Computed = definizione, Position = p,
                 Course = primo ? null : rotta, Turn = primo ? null : _virata,
+                // R2: la rotta vera, solo se la rotta del tratto è quella della linea dove si è (non una radiale detta a parte).
+                TrueCourse = !primo && rotta is not null && _linea is { } l && l.Rotta == rotta ? l.Direzione.ToString("0.0", CultureInfo.InvariantCulture) : null,
                 Navaid = primo ? null : fine?.Navaid, Radial = primo ? null : fine?.Radiale, DmeNm = primo ? null : fine?.Dme,
             });
             _virata = null;
@@ -1430,6 +1437,52 @@ public static partial class ItalianAd2Prose
             _qui = p;
             _quiNome = null;
             _puntoAppena = true;
+        }
+
+        /// <summary>
+        /// Carta «Le curve delle procedure», R3 (D3, committente 31 ottobre): una SID che comincia con una rotta lontana dalla
+        /// pista («as soon as possible turn left on TR 237°», LIRQ dalla 05) decolla fino alla fine della pista (<c>CA</c>, o
+        /// <c>VA</c> se è una prua), vira nel verso detto col raggio della sua IAS MAX (o 210 kt) a 25° di inclinazione
+        /// (<c>RF</c> col centro calcolato), e la rotta comincia dove la virata finisce. Prima partiva dalla soglia.
+        /// </summary>
+        private void VirataDalDecollo(Position fine, double tr, double v, bool prua, double scarto)
+        {
+            var verso = Sphere.Normalize(tr + v);
+            var destra = _virata == "R" || (_virata != "L" && Sphere.Normalize(verso - pista!.TrueBearing) < 180);
+            var nodi = RxIasMax().Match(testo) is { Success: true } m ? double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) : VelocitaDelleSid;
+            var raggio = RaggioDiVirata(nodi);
+            var centro = Sphere.Destination(fine, pista!.TrueBearing + (destra ? 90 : -90), raggio);
+            var uscita = Sphere.Destination(centro, verso + (destra ? -90 : 90), raggio);
+            var ampiezza = destra ? Sphere.Normalize(verso - pista.TrueBearing) : Sphere.Normalize(pista.TrueBearing - verso);
+            _tratti.Add(new ProcedureLeg
+            {
+                PathTerminator = prua ? "VA" : "CA", Computed = "fine della pista", Position = fine,
+                Course = $"{Sphere.Normalize(pista.TrueBearing - v):000}°",
+            });
+            Avanza(fine);
+            _qui = fine;
+            _tratti.Add(new ProcedureLeg
+            {
+                PathTerminator = "RF", Computed = $"fine della virata su TR {tr:000}°", Position = uscita, Course = $"{tr:000}°",
+                ArcCenterPosition = centro, ArcRadiusNm = Math.Round(raggio, 2), Turn = destra ? "R" : "L",
+            });
+            Avanza(uscita, raggio * ampiezza * Math.PI / 180);
+            _qui = uscita;
+            _quiNome = null;
+            _virata = null;
+            _puntoAppena = false;
+            _linea = Linea.DaUnPunto(uscita, tr, v, prua, dallaSoglia: true);
+            _avvisi.Add($"la virata dopo il decollo ({scarto:0}°) è disegnata dalla fine della pista a {nodi:0} kt, raggio {raggio:0.0} NM, senza vento");
+            // «Turn must be completely performed within 3 NM PRT DME» (LIRQ): se la virata disegnata ne esce, si dice.
+            if (RxEntroDme().Match(testo) is { Success: true } limite && stazione(limite.Groups["s"].Value) is { } s)
+            {
+                var entro = double.Parse(limite.Groups["d"].Value, CultureInfo.InvariantCulture);
+                var lontano = Enumerable.Range(0, (int)Math.Ceiling(ampiezza / 5) + 1)
+                    .Select(k => Sphere.Destination(centro, pista.TrueBearing + (destra ? -90 : 90) + (destra ? 1 : -1) * Math.Min(ampiezza, k * 5.0), raggio))
+                    .Max(p => Sphere.DistanceNm(s.Position, p));
+                if (lontano > entro + 0.05)
+                    _avvisi.Add($"la virata disegnata arriva a {lontano:0.0} NM {limite.Groups["s"].Value} DME: l'AIP dice entro {limite.Groups["d"].Value} NM");
+            }
         }
 
         private Station? Stazione(string nome)
@@ -1793,6 +1846,25 @@ public static partial class ItalianAd2Prose
 
     [GeneratedRegex(@"\bVOR\s*/\s*NDB\b")]
     private static partial Regex RxVorONdb();
+
+    // Carta «Le curve delle procedure», R3: la prima IAS MAX del testo è la velocità della virata dopo il decollo (scritta,
+    // o già nel segnaposto ⟦V-210⟧ del passo 2).
+    [GeneratedRegex(@"(?:\bIAS\s+MAX\s+|⟦V-)(\d{3})\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex RxIasMax();
+
+    // «Turn must be completely performed within 3 NM PRT DME» (LIRQ dalla 05).
+    [GeneratedRegex(@"\bwithin\s+(?<d>\d+(?:\.\d+)?)\s*NM\s+(?<s>[A-Z]{2,3})\s+DME\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex RxEntroDme();
+
+    /// <summary>R3 (D1): senza la IAS MAX, la velocità di una SID.</summary>
+    private const double VelocitaDelleSid = 210;
+
+    /// <summary>R3 (D1): il raggio di virata in NM a <paramref name="nodi"/>, a 25° di inclinazione, senza vento.</summary>
+    private static double RaggioDiVirata(double nodi)
+    {
+        var v = nodi * 1852.0 / 3600.0;
+        return v * v / (9.80665 * Math.Tan(25 * Math.PI / 180)) / 1852.0;
+    }
 
     // «(IAS MAX 210KT)», «(IAS MAX 200 kt during turn)»: una velocità, non un pezzo del percorso.
     [GeneratedRegex(@"\(\s*IAS\s+MAX\s+(?<v>\d+)\s*KT\b(?<resto>[^)]*)\)", RegexOptions.IgnoreCase)]

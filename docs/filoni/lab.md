@@ -14,7 +14,11 @@ gesto della Geometria accanto all'elenco. Nessun codice comune. Prove A92-A94.
 da approvare. Il committente ha scelto «curva dopo il decollo» fra i lavori aperti. Rimisurata la prosa sul 2611: 970
 lette, 12 non lette (tutte AJO), 287 segnalazioni, come il 26 ottobre; la voce «466 frasi senza tratti» del 22 ottobre è
 superata. Le 25 «SID dalla soglia» sono tutte virate vere dopo il decollo (64°-180°). Proposte R1-R5 (raggio, virate
-arrotondate, virata dopo il decollo dalla fine pista, confronto) e quattro domande al committente. Niente codice.
+arrotondate, virata dopo il decollo dalla fine pista, confronto) e quattro domande al committente. Approvata la sera
+stessa («1) Si, va bene 2) Sorvoliamo 3) Si 4) Solo quelle dalla prosa»): **fatta** (carta §4-bis). Le procedure della
+prosa hanno le virate a curve sulla mappa e nelle righe portate nel sector (i punti col nome si sorvolano, i calcolati si
+raccordano, le radiali si intercettano a 45°); 24 SID su 25 partono dalla fine pista con la virata. Codice comune:
+`Aip.Pdf.Italia` (R3, `TrueCourse`). Test: importer 356, Lab 1 527.
 
 ## Dove siamo — 27 ottobre 2026: gli aeroporti, la carta e la pagina dello scalo
 

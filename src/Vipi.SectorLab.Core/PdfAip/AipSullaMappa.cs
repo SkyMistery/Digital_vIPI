@@ -300,15 +300,25 @@ public static partial class AipSullaMappa
     /// Il percorso di una procedura: i punti dei tratti in fila. Un tratto senza punto (CA: fino a una quota) non ha un posto
     /// sulla mappa e si salta; un punto che non si trova stacca la penna e si dice; un RF si disegna come arco attorno al suo
     /// centro, nel verso del tratto. I punti senza nome della prosa (7b) hanno la loro posizione calcolata; un AF (l'arco DME)
-    /// si disegna attorno alla sua radioassistenza.
+    /// si disegna attorno alla sua radioassistenza. Le procedure lette dalla prosa hanno le virate a curve
+    /// (<see cref="CurveDelleProcedure"/>); le altre i punti come sono.
     /// </summary>
     internal static (IReadOnlyList<IReadOnlyList<Coordinate>> Tratti, IReadOnlyList<string> NonRisolti) Percorso(Procedure procedura, Func<string, Coordinate?> punto)
     {
         var pezzi = new List<IReadOnlyList<Coordinate>>();
         var nonRisolti = new List<string>();
-        var pezzo = new List<Coordinate>();
-        foreach (var t in procedura.Legs)
+        var pezzo = new List<CurveDelleProcedure.Vertice>();
+        var prosa = procedura.LegsFromDescription;
+        void Chiudi()
         {
+            if (pezzo.Count > 1)
+                pezzi.Add(CurveDelleProcedure.Disegna(pezzo).Select(x => new Coordinate(x.Punto.Lat, x.Punto.Lon)).ToList());
+            pezzo = [];
+        }
+        var tratti = procedura.Legs;
+        for (var i = 0; i < tratti.Count; i++)
+        {
+            var t = tratti[i];
             Coordinate qui;
             if (t.Position is { } calcolata)
             {
@@ -325,19 +335,29 @@ public static partial class AipSullaMappa
             else
             {
                 nonRisolti.Add(t.Fix);
-                if (pezzo.Count > 1) pezzi.Add(pezzo);
-                pezzo = [];
+                Chiudi();
                 continue;
             }
             // Il centro col nome, o calcolato (passo 6 delle segnalazioni 2611: il raccordo al localizzatore).
             var centro = t.ArcCenterPosition is { } calcolato ? new Coordinate(calcolato.Lat, calcolato.Lon)
                 : t.ArcCenter is { } c ? punto(c) : null;
+            var conNome = t.Fix is not null;
             if (t.PathTerminator is "RF" or "AF" && pezzo.Count > 0 && centro is { } attorno)
-                pezzo.AddRange(Arco(pezzo[^1], qui, attorno, orario: t.Turn == "R"));
-            else
-                pezzo.Add(qui);
+            {
+                // L'arco dell'AIP comanda: i suoi punti e i suoi due capi non si arrotondano.
+                pezzo[^1] = pezzo[^1] with { Fisso = true };
+                var da = new Coordinate(pezzo[^1].Punto.Lat, pezzo[^1].Punto.Lon);
+                pezzo.AddRange(Arco(da, qui, attorno, orario: t.Turn == "R")
+                    .Select(x => new CurveDelleProcedure.Vertice(new Position(x.LatitudeDeg, x.LongitudeDeg), conNome, true, null, 0)));
+                continue;
+            }
+            // La virata sul punto: il verso del tratto che ne parte, la velocità di quello che arriva o di quello che parte.
+            var dopo = tratti.Skip(i + 1).FirstOrDefault(x => x.Position is not null || x.Fix is not null);
+            var raggio = prosa ? CurveDelleProcedure.Raggio(CurveDelleProcedure.Velocita(procedura.Kind, t, dopo)) : 0;
+            pezzo.Add(new CurveDelleProcedure.Vertice(new Position(qui.LatitudeDeg, qui.LongitudeDeg), conNome, !prosa, dopo?.Turn, raggio,
+                CurveDelleProcedure.RottaVera(dopo)));
         }
-        if (pezzo.Count > 1) pezzi.Add(pezzo);
+        Chiudi();
         return (pezzi, nonRisolti.Distinct().ToList());
     }
 

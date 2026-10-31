@@ -159,20 +159,51 @@ public static partial class ProcedureNelSector
     /// <summary>
     /// I punti in fila, ognuno col suo <c>//@@</c> se ha una quota o una velocità. I punti senza nome della prosa (7b) come
     /// coordinate (<c>N038.52.03.360;E015.58.11.280;</c>, come il sector disegna già le convenzionali); un arco DME (<c>AF</c>)
-    /// un punto ogni 5° attorno alla sua radioassistenza, che <paramref name="posizione"/> trova (senza, solo la fine).
+    /// un punto ogni 5° attorno alla sua radioassistenza, che <paramref name="posizione"/> trova (senza, solo la fine). Le
+    /// procedure lette dalla prosa hanno le virate a curve (<see cref="CurveDelleProcedure"/>: i punti col nome restano, le
+    /// curve sono coordinate), se <paramref name="posizione"/> trova tutti i loro punti.
     /// </summary>
     public static IReadOnlyList<string> Corpo(IReadOnlyList<Procedure> pezzi, string? coda, Func<string, Position?>? posizione = null)
     {
         ArgumentNullException.ThrowIfNull(pezzi);
         var tratti = pezzi.SelectMany(p => p.Legs).ToList();
-        var righe = new List<string>();
-        string? ultimo = null;
-        Position? qui = null;
-        foreach (var t in tratti)
+        // I punti in fila: col nome (una volta sola se due tratti di seguito finiscono lì) o le coordinate.
+        var voci = new List<(string? Nome, Position? Punto, bool Fisso, ProcedureLeg Tratto, Procedure Di)>();
+        foreach (var (t, di) in pezzi.SelectMany(p => p.Legs.Select(l => (l, p))))
         {
             if (t.Fix is { } nome)
             {
-                if (ultimo == nome) continue;
+                if (voci.Count > 0 && voci[^1].Nome == nome) continue;
+                voci.Add((nome, posizione?.Invoke(nome), false, t, di));
+            }
+            else if (t.Position is { } p)
+            {
+                if (t.PathTerminator is "AF" or "RF" && voci.Count > 0 && voci[^1].Punto is { } da
+                    && (t.ArcCenterPosition ?? (t.ArcCenter is { } c ? posizione?.Invoke(c) : null)) is { } centro)
+                {
+                    voci[^1] = voci[^1] with { Fisso = true };
+                    voci.AddRange(Arco(da, p, centro, orario: t.Turn == "R").Select(x => ((string?)null, (Position?)x, true, t, di)));
+                    voci.Add((null, p, true, t, di));
+                    continue;
+                }
+                voci.Add((null, p, false, t, di));
+            }
+        }
+        var tappe = voci.All(v => v.Punto is not null) && voci.Any(v => v.Di.LegsFromDescription)
+            ? CurveDelleProcedure.Disegna(voci.Select((v, i) =>
+            {
+                var dopo = i + 1 < voci.Count ? voci[i + 1].Tratto : null;
+                var prosa = v.Di.LegsFromDescription;
+                return new CurveDelleProcedure.Vertice(v.Punto!.Value, v.Nome is not null, v.Fisso || !prosa, dopo?.Turn,
+                    prosa ? CurveDelleProcedure.Raggio(CurveDelleProcedure.Velocita(v.Di.Kind, v.Tratto, dopo)) : 0, CurveDelleProcedure.RottaVera(dopo));
+            }).ToList())
+            : voci.Select((v, i) => new CurveDelleProcedure.Tappa(v.Punto ?? default, i)).ToList();
+
+        var righe = new List<string>();
+        foreach (var tappa in tappe)
+        {
+            if (tappa.Vertice is { } i && voci[i].Nome is { } nome)
+            {
                 // Quota e velocità del tratto che arriva al punto (il primo con quel punto, nell'ordine dei pezzi).
                 var tratto = tratti.FirstOrDefault(x => x.Fix == nome && (x.Altitude is not null || x.Speed is not null));
                 var chiavi = new List<string>();
@@ -180,16 +211,10 @@ public static partial class ProcedureNelSector
                 if (Velocita(tratto?.Speed) is { } spd) chiavi.Add($"spd={Valore(spd)}");
                 if (chiavi.Count > 0) righe.Add($"//@@\"{nome}\" {string.Join(' ', chiavi)}");
                 righe.Add(righe.Count(r => !r.StartsWith("//", StringComparison.Ordinal)) == 0 && coda is not null ? $"{nome};{nome};{coda};" : $"{nome};{nome};");
-                ultimo = nome;
-                qui = posizione?.Invoke(nome);
             }
-            else if (t.Position is { } p)
+            else
             {
-                if (t.PathTerminator is "AF" or "RF" && qui is { } da && (t.ArcCenterPosition ?? (t.ArcCenter is { } c ? posizione?.Invoke(c) : null)) is { } centro)
-                    righe.AddRange(Arco(da, p, centro, orario: t.Turn == "R").Select(x => AuroraText.Coordinates(x) + ";"));
-                righe.Add(AuroraText.Coordinates(p) + ";");
-                ultimo = null;
-                qui = p;
+                righe.Add(AuroraText.Coordinates(tappa.Punto) + ";");
             }
         }
         return righe;

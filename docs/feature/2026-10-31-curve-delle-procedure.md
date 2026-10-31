@@ -2,7 +2,7 @@
 
 Filone Sector Lab. Segue [«Le segnalazioni del 2611»](2026-10-23-segnalazioni-2611.md) (giro del 26 ottobre: le «SID
 dalla soglia») e il «Da vedere dopo» di [F7, SID e STAR](2026-10-19-f7-sid-e-star.md) (le virate delle convenzionali).
-**Carta da approvare**: le regole del §3 sono proposte; le domande del §4 sono del committente.
+**Approvata** il 31 ottobre sera (§4, D1-D4).
 
 ## §0 — La domanda
 
@@ -105,6 +105,53 @@ confronto misura la distanza dalla curva disegnata invece che dal punto.
 4. **Le SID e le STAR già nel sector**: R2 vale anche per le RNAV portate dal Lab (TF fra punti con nome), o solo per le
    convenzionali lette dalla prosa? La proposta: solo la prosa. Le RNAV hanno i loro `RF` dove serve e il sector le
    disegna a punti.
+
+**Le risposte del committente (31 ottobre, sera)**: «1) Si, va bene 2) Sorvoliamo 3) Si 4) Solo quelle dalla prosa, le
+RNAV lasciamole come sono». Quindi:
+- **D1**: raggio da 25° di inclinazione; IAS MAX della prosa, altrimenti 210 kt (SID) e 220 kt (STAR, avvicinamenti).
+- **D2**: oltre i 120° si sorvola il punto, poi si vira.
+- **D3**: R3 nel lettore comune: i punti calcolati delle 25 SID si spostano (anche per ATCSim).
+- **D4**: le curve solo per le procedure lette dalla prosa (`LegsFromDescription`); le RNAV restano come sono.
+
+## §4-bis — Fatto (31 ottobre, notte)
+
+**Decisioni mie, prese facendo** (si possono cambiare):
+- **Un punto col nome si sorvola sempre**, anche sotto i 120°: la linea ci passa e poi vira. Nel sector la riga del punto
+  (`SUGEP;SUGEP;`) deve restare, perché Aurora ne scrive il nome, le quote `//@@` stanno sopra e il confronto ritrova i punti
+  per nome; e una convenzionale vira sulla stazione. Il raccordo (fly-by) vale per i punti calcolati.
+- **L'intercettazione** (R2) quando il tratto dopo è un `CF` con la sua rotta vera e il punto dopo non sta diritto davanti
+  (oltre 3°): virata nel verso detto fino alla prua a 45° dalla linea, diritti, raccordo di 45° sulla linea. Se la linea si
+  prenderebbe dopo il punto, si va diritti come prima. Per saperlo il lettore ora scrive la rotta vera nei `CF` e nei
+  punti calcolati (`TrueCourse`, campo che il modello aveva già; prima vuoto per la prosa).
+- **Un tratto corto stringe il raggio**: l'arco non comincia prima di metà del tratto più corto.
+
+**Dove sta**
+- `Core/PdfAip/CurveDelleProcedure.cs`: raggio (R1), velocità (colonna, nota «IAS MAX … during turn», 210/220), raccordo,
+  sorvolo, intercettazione; un punto ogni 5°. La usano `AipSullaMappa.Percorso` (mappa) e `ProcedureNelSector.Corpo` (righe
+  del sector); le procedure che non sono della prosa passano com'erano (D4).
+- `Aip.Pdf.Italia/ItalianAd2Prose.cs`, `VirataDalDecollo` (R3): `CA` (o `VA`) alla fine della pista, `RF` col centro
+  calcolato e il raggio della prima IAS MAX del testo, poi la rotta da lì. Se il testo dice «within N NM XXX DME», si
+  controlla che la virata ci stia. **Codice comune** (lo usa ATCSim): due tratti nuovi in testa alle 24 SID, e i loro punti
+  calcolati spostati; `TrueCourse` nei `CF`.
+
+**Misurato sul 2611** (sonda, `prosa-c2.json` contro `prosa-c1.json`)
+- Procedure lette dalla prosa 970 → **971** (la salita iniziale di LIRQ RWY 05 ora ha i suoi tratti); non lette 12 (AJO);
+  segnalazioni 287 (le 24 note «non è disegnata» diventano «è disegnata dalla fine della pista a … kt»).
+- **24 SID su 25** partono dalla fine pista con la virata: LICR 33/29 (3), LIEA 20, LIMF 36, LIML 17 (2), LIPH 07 (5),
+  LIPO 32 (5), LIRQ 05 (6), LIRS 03L. Cinque prima avevano un punto solo (LIMF SIRLO 8A, LIPO LICFE 6B e UVNIB 1X, LIRS
+  GIKIN 5Z, LIPO CIBFU 6A dall'incrocio): ora hanno il percorso.
+- Resta **LICR PAZZE 2A RWY 29**: per questa SID il lettore non ha la fine della pista (il perché non l'ho ancora
+  guardato), quindi parte dalla soglia come prima, con la sua nota.
+- **LIRQ dalla 05**: la IAS MAX 140 kt e «within 3 NM PRT DME» stanno nelle REMARKS della salita, fuori dal testo del
+  percorso: la virata è disegnata a 210 kt (1,4 NM). Da guardare con il committente.
+
+**Test**: importer 354 → **356** (la SID che vira dopo il decollo, con e senza IAS MAX); Lab 1 515 → **1 527** (le curve:
+raggio, velocità, raccordo, sorvolo, oltre 120°, verso della prosa, tratto corto, punto dentro il cerchio,
+intercettazione, rotta diritta; la STAR portata con la curva che torna «uguale» al confronto). Aip 54, Aip.Aurora 38
+invariati.
+
+**A schermo sul banco**: LICA SUGEP 3G (lo screenshot della T4): la virata di ritorno sul punto RDL 115/16 NM LMT è un
+arco, non uno spigolo. Il banco ha l'AIP espanso letto prima di R3: le 24 SID nuove si vedono dopo «Rileggi».
 
 ## §5 — Finita quando
 

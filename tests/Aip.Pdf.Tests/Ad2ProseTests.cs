@@ -280,6 +280,37 @@ public sealed class Ad2ProseTests
         else Assert.Contains(avvisoAtteso, Assert.Single(avvisi), StringComparison.Ordinal);
     }
 
+    // Carta «Le curve delle procedure», R3 (D3, committente 31 ottobre): con la fine della pista, la SID decolla fino lì, vira
+    // nel verso detto col raggio della sua IAS MAX (o 210 kt) e la rotta comincia dove la virata finisce; l'incrocio con la
+    // radiale si calcola da lì, non dalla soglia.
+    [Theory]
+    [InlineData("Turn right on TR 247° until joining RDL 278 OST VOR bound to NENIG.", 210.0)]
+    [InlineData("Turn right (IAS MAX 160 KT) on TR 247° until joining RDL 278 OST VOR bound to NENIG.", 160.0)]
+    public void UnaSidCheViraDopoIlDecollo_PartedallaFineDellaPista(string prosa, double nodi)
+    {
+        // A nord-est di OST: la rotta 250° dopo la virata taglia la radiale 278 a ovest della stazione.
+        var soglia = new Position(41.90, 12.40);
+        var fine = Sphere.Destination(soglia, 200, 1.6);
+        var p = P(ProcedureKind.Sid, "NENIG 6Z", prosa, "20");
+
+        var (tratti, problema, avvisi) = ItalianAd2Prose.DecodeWithWarnings(p, n => Punti.TryGetValue(n, out var x) ? x : null,
+            n => Stazioni.GetValueOrDefault(n), new ItalianAd2Prose.Runway(soglia, 200), departure: new ItalianAd2Prose.Departure(fine, 30, 200, "", false));
+
+        Assert.Null(problema);
+        Assert.Equal(["CA fine della pista", "RF fine della virata su TR 247°", "CR INT TR 247°/RDL 278 OST", "DF NENIG"],
+            tratti.Select(t => $"{t.PathTerminator} {t.Fix ?? t.Computed}"));
+        Assert.Equal(fine, tratti[0].Position);
+        var raggio = Math.Pow(nodi * 1852 / 3600.0, 2) / (9.80665 * Math.Tan(25 * Math.PI / 180)) / 1852;
+        var virata = tratti[1];
+        Assert.Equal(("R", Math.Round(raggio, 2)), (virata.Turn, virata.ArcRadiusNm));
+        Assert.Equal(raggio, Distanza(virata.ArcCenterPosition!.Value, fine), 2);
+        Assert.Equal(raggio, Distanza(virata.ArcCenterPosition!.Value, virata.Position!.Value), 2);
+        // Dalla fine della virata l'incrocio sta sulla rotta vera 250° (247° magnetica, 3° E).
+        Assert.Equal(250, Rotta(virata.Position!.Value, tratti[2].Position!.Value), 0);
+        Assert.Null(tratti[2].Turn);
+        Assert.Contains($"dalla fine della pista a {nodi:0} kt", Assert.Single(avvisi), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void DueRadialiCheSiIncrociano()
     {

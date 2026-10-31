@@ -321,6 +321,30 @@ public sealed class ConfrontoDelleProcedureTests : IDisposable
         Assert.Equal(EsitoDelConfronto.Uguale, _lab.UltimoConfrontoDelleProcedure!.Value.Esiti.Single(e => e.Nome == "GILIO 6P").Esito);
     }
 
+    // Carta «Le curve delle procedure» (R2, R5): una STAR dalla prosa che vira davvero sul punto calcolato si porta con la
+    // curva (righe di coordinate al posto dello spigolo, i punti col nome restano), e il confronto la ritrova uguale.
+    [Fact]
+    public async Task UnaStarDallaProsaConUnaVirata_SiPortaConLaCurva_ETornaUguale()
+    {
+        var spigolo = new Position(42.0, 11.4);   // da GILIO verso sud-est, poi a sinistra verso TAQ: circa 80°
+        var esiti = await ConfrontaAsync("", "",
+            P(ProcedureKind.Star, "GILIO 7P", ["16L", "16R"],
+                T("IF", "GILIO"), new ProcedureLeg { PathTerminator = "CF", Computed = "RDL 210/14 NM TAQ", Position = spigolo }, T("CF", "TAQ"))
+                with { LegsFromDescription = true });
+
+        Assert.True(_lab.PortaLaProcedura(esiti.Single(e => e.Nome == "GILIO 7P")), _lab.Rifiuto);
+        var righe = Coda("lirf.str", 40);
+        var da = Array.IndexOf(righe, "GILIO;GILIO;7P;");
+        var a = Array.IndexOf(righe, "TAQ;TAQ;");
+        Assert.True(da >= 0 && a > da, string.Join(" | ", righe));
+        var curva = righe[(da + 1)..a];
+        Assert.InRange(curva.Length, 15, 20);
+        Assert.All(curva, r => Assert.StartsWith("N042.", r, StringComparison.Ordinal));
+        Assert.DoesNotContain(AuroraText.Coordinates(spigolo) + ";", curva);
+        var dopo = _lab.UltimoConfrontoDelleProcedure!.Value.Esiti.Single(e => e.Nome == "GILIO 7P");
+        Assert.True(dopo.Esito == EsitoDelConfronto.Uguale, string.Join(" | ", dopo.Dettagli));
+    }
+
     // Prima della 7b il nome di una STAR con le coordinate non si vedeva: «Porta» ne avrebbe scritta una seconda.
     [Fact]
     public async Task UnaVoceConLeCoordinate_ConLoStessoNome_NonSiScriveDueVolte()
