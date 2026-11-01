@@ -2174,6 +2174,54 @@ body.lab-trascina * {
     display: none;
 }
 
+/* Carta «L'Indice rifatto», R1: nell'Indice gli Strati sono un pannello sopra la mappa, nell'angolo in alto a destra
+   (Leaflet lì non ha niente), e la mappa prende la loro colonna. */
+.lab-con-la-mappa.lab-strati-sopra {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 16rem;
+    position: relative;
+}
+
+.lab-tasto-strati {
+    position: absolute;
+    top: .5rem;
+    right: .5rem;
+    z-index: 1001;
+    background: var(--lab-superficie);
+    box-shadow: 0 1px 4px rgb(0 0 0 / .25);
+}
+
+.lab-strati-sopra > .lab-strati {
+    position: absolute;
+    top: 2.6rem;
+    right: .5rem;
+    z-index: 1000;
+    width: var(--lab-l-strati, 17rem);
+    max-width: calc(100% - 1rem);
+    max-height: calc(100% - 3.1rem);
+    border: 1px solid var(--lab-linea);
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgb(0 0 0 / .3);
+}
+
+.lab-strati-sopra > .lab-strati.lab-strati-chiusi {
+    display: none;
+}
+
+.lab-strati-gruppo {
+    margin-top: .4rem;
+    padding-top: .3rem;
+    border-top: 1px solid var(--lab-linea);
+}
+
+.lab-strati-gruppo-titolo {
+    margin: 0 0 .2rem;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--lab-tenue);
+}
+
 /* R4 (D15): una mappa per spazio di lavoro; quella degli altri spazi resta, nascosta (Leaflet si rimisura da sé). */
 .lab-mappa-dello-spazio {
     display: contents;
@@ -2244,6 +2292,106 @@ body.lab-trascina * {
     width: var(--lab-l-p-indice, 34%);
 }
 
+/* Carta «L'Indice rifatto», R2: senza una voce l'Indice è largo (la scheda non c'è); con una voce è una striscia. */
+.lab-colonna-indice-larga {
+    width: var(--lab-l-indice-largo, 40rem);
+}
+
+.lab-colonna.lab-colonna-indice-stretta {
+    width: 3rem;
+    min-width: 3rem;
+    padding: .4rem .15rem;
+}
+
+.lab-indice-striscia {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .2rem;
+}
+
+.lab-indice-striscia > .lab-voce {
+    padding: .3rem 0;
+    text-align: center;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.lab-striscia-riapri {
+    margin-bottom: .4rem;
+    line-height: 1.1;
+}
+
+.lab-striscia-riapri > span {
+    display: block;
+    font-size: .65rem;
+    font-weight: 400;
+}
+
+.lab-colonna-scheda-aip {
+    width: var(--lab-l-scheda-aip, 40rem);
+}
+
+/* R3: la testata in una riga; va a capo solo se la colonna è stretta. */
+.lab-indice-testata {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .2rem .5rem;
+    margin-bottom: .4rem;
+}
+
+.lab-indice-testata > .lab-riquadro-titolo {
+    margin: 0;
+}
+
+.lab-indice-testata > label {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+}
+
+.lab-indice-aggiungi {
+    width: auto;
+}
+
+.lab-indice-stringi {
+    margin-left: auto;
+    font-weight: 600;
+}
+
+/* R4: le parti come schede in riga, col loro numero. */
+.lab-indice-schede {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    margin: .4rem 0 .3rem;
+}
+
+.lab-scheda-parte {
+    padding: .2rem .55rem;
+    border: 1px solid var(--lab-linea);
+    border-radius: 6px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.lab-scheda-parte:hover {
+    background: var(--lab-sopra);
+}
+
+.lab-scheda-parte.lab-scelto {
+    border-color: var(--lab-accento);
+    background: var(--lab-scelto);
+}
+
+.lab-indice-parte-nome {
+    margin: 0 0 .2rem;
+}
+
 .lab-indice-aip details > summary {
     cursor: pointer;
     padding: .2rem 0;
@@ -2253,16 +2401,12 @@ body.lab-trascina * {
     margin-left: .4rem;
 }
 
-.lab-indice-parte {
-    margin-top: .5rem;
-}
-
-.lab-indice-parte > summary {
-    font-size: .95rem;
-}
-
 .lab-indice-gruppo {
     margin-left: .9rem;
+}
+
+.lab-indice-parte > .lab-indice-gruppo {
+    margin-left: 0;
 }
 
 .lab-indice-codice {
@@ -2293,10 +2437,6 @@ body.lab-trascina * {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.lab-colonna-scalo {
-    width: var(--lab-l-ispettore-scalo, 30rem);
 }
 
 .lab-schede-scalo {

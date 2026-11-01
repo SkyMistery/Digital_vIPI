@@ -1,7 +1,8 @@
 # L'Indice dell'AIP espanso, rifatto (1 novembre 2026)
 
 Filone Sector Lab. Segue le carte [«Lettura e consegna»](2026-10-22-lettura-e-consegna.md) (la prima pagina rifatta) e
-[«Gli aeroporti nel Lab»](2026-10-27-aeroporti-nel-lab.md) (la pagina dello scalo). **Proposta, da approvare.**
+[«Gli aeroporti nel Lab»](2026-10-27-aeroporti-nel-lab.md) (la pagina dello scalo). **Approvata il 1 novembre, tutte e
+quattro le regole come proposte (§4); fatta lo stesso giorno (§6).**
 
 ## §0 — La domanda
 
@@ -94,8 +95,36 @@ Proposta, senza una voce aperta (l'Indice largo, la mappa sempre ~700 px):
 3. **R4** Le parti come schede in riga al posto del primo livello dell'albero?
 4. Altro che ti dà fastidio nell'Indice e che qui non c'è?
 
+**Risposte del committente (1 novembre)**: R1 sopra la mappa; R2 si stringe; R4 sì, schede in riga; R3 come scritta,
+nient'altro da aggiungere.
+
 ## §5 — Il lavoro (dopo il sì)
 
 Una fetta per regola, nell'ordine R1, R3, R2, R4; ognuna provata a schermo sul banco a 1400 px e coi test bUnit della
 pagina (le colonne, il tasto Strati, l'Indice stretto e «‹ Indice»). Le prove a mano nuove in `SectorLab-prova\PROVE.md`.
 Tocca solo il Lab (`Vipi.SectorLab.Ui`: la pagina e il suo CSS).
+
+## §6 — Fatto (1 novembre)
+
+- **R1** (`Home.razor`): nella pagina Indice la colonna degli Strati diventa un pannello sopra la mappa, in alto a destra
+  (Leaflet lì non ha controlli), aperto dal tasto «Strati ▾» e chiuso da un clic sulla mappa. Senza divisore: la sua
+  larghezza resta quella della colonna (`--lab-l-strati`). Nelle altre pagine con la mappa (Sector, Confronti) gli Strati
+  restano una colonna: la carta parla dell'Indice. Gli strati del ground (S5) stanno sotto il titolo «Ground del sector»,
+  e lo strato dei `.rw` si chiama «Piste (.rw)», per non confondersi col genere «Piste» dei `.geo`.
+- **R3** (`IndiceDellAipVista`): la testata è una riga che va a capo solo se la colonna è stretta. La frase sullo strato
+  («ciclo 2611, 13 524 forme (…): i tipi si accendono negli Strati») è il titolo della casella «sulla mappa». «Aggiungi» è
+  un menu solo («Aggiungi ▾»): scelto il tipo, si apre il suo modulo (prima un menu e un tasto).
+- **R2** (`PannelliDellaPagina`): senza una voce l'Indice è largo (`--lab-l-indice-largo`, 40rem) e la scheda non c'è; con
+  una voce o uno scalo è una striscia di 3rem — «‹ Indice» e le parti (E2 … A3, quella della voce in evidenza) — e la
+  scheda prende il suo posto (`--lab-l-scheda-aip`, 40rem, la stessa per una voce e per uno scalo: prima lo scalo aveva
+  una larghezza che il divisore non toccava). Riaperto accanto alla scheda, «‹» in testata lo stringe di nuovo; una voce
+  nuova, dall'Indice o dalla mappa, lo stringe da sé. Nella finestra dei pannelli (due schermi) la scheda resta sempre.
+  L'Indice intero resta nella pagina, nascosto: riaprendolo rami aperti e ricerca sono quelli di prima.
+- **R4**: le parti sono schede in riga col loro numero («AD 2 97 scali»); cercando ci sono solo le parti che trovano
+  qualcosa, ognuna col suo numero, e si apre la scelta se c'è ancora, se no la prima. Scegliendo una voce (anche dalla
+  mappa) la scheda aperta diventa la sua parte. Le parti non scelte restano nella pagina con `hidden`: cambiare scheda non
+  ridisegna migliaia di righe.
+
+Test: `AipNellaBarraTests` (l'Indice largo, le schede, la striscia, «‹ Indice», «‹», la voce dalla mappa; cercando le
+schede contano), `TreMappeTests` (gli Strati sopra la mappa, il clic che li chiude, il gruppo del ground). Prove a mano
+A103-A106.

@@ -503,15 +503,78 @@ public sealed class AipNellaBarraTests : IDisposable
         pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-parte='ENR 4']")), TimeSpan.FromSeconds(10));
         Assert.Contains("ciclo 2611", pagina.Find("[data-indice-aip] h2").TextContent, StringComparison.Ordinal);
         Assert.Equal(["ENR 2", "ENR 4"], pagina.FindAll("[data-parte]").Select(e => e.GetAttribute("data-parte")));
-        Assert.NotEmpty(pagina.FindAll("[data-scheda-aip-vuota]"));
+        // Carta «L'Indice rifatto», R2 e R4: senza una voce l'Indice è largo e la scheda non c'è; le parti sono schede, e
+        // si vede la prima.
+        Assert.Equal("largo", pagina.Find("[data-indice]").GetAttribute("data-indice"));
+        Assert.Empty(pagina.FindAll("[data-colonna-scheda-aip]"));
+        Assert.Equal(["ENR 2", "ENR 4"], pagina.FindAll("[data-scheda-parte]").Select(e => e.GetAttribute("data-scheda-parte")));
+        Assert.False(pagina.Find("[data-parte='ENR 2']").HasAttribute("hidden"));
+        Assert.True(pagina.Find("[data-parte='ENR 4']").HasAttribute("hidden"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-scheda-parte='ENR 4']").Click());
+        Assert.True(pagina.Find("[data-parte='ENR 2']").HasAttribute("hidden"));
+        Assert.False(pagina.Find("[data-parte='ENR 4']").HasAttribute("hidden"));
 
         // Trovare e cliccare nello stesso giro del renderer: la validazione può ridisegnare la pagina fra i due
         // (CI 21-ott, UnknownEventHandlerIdException).
         await pagina.InvokeAsync(() => pagina.FindAll("[data-voce-aip]").Single(e => e.TextContent.Trim() == "ABRUS").Click());
 
-        pagina.WaitForAssertion(() => Assert.Empty(pagina.FindAll("[data-scheda-aip-vuota]")));
+        // Aperta una voce, l'Indice è una striscia con le parti (quella della voce scelta) e la scheda prende il suo posto.
+        pagina.WaitForAssertion(() => Assert.Equal("stretto", pagina.Find("[data-indice]").GetAttribute("data-indice")));
         Assert.Equal(1, _lab.SceltaDellAip);
-        Assert.Contains("ABRUS", pagina.Markup, StringComparison.Ordinal);
+        Assert.Contains("ABRUS", pagina.Find("[data-colonna-scheda-aip]").TextContent, StringComparison.Ordinal);
+        Assert.Equal(["E2", "E4"], pagina.FindAll("[data-striscia-parte]").Select(e => e.TextContent.Trim()));
+        Assert.Contains("lab-scelto", pagina.Find("[data-striscia-parte='ENR 4']").ClassList);
+        Assert.True(pagina.Find(".lab-indice-tutto").HasAttribute("hidden"));
+
+        // «‹ Indice» lo riapre accanto alla scheda; «‹» lo stringe di nuovo; una parte della striscia lo riapre su di lei.
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=riapri-indice]").Click());
+        Assert.Equal("aperto", pagina.Find("[data-indice]").GetAttribute("data-indice"));
+        Assert.NotNull(pagina.Find("[data-colonna-scheda-aip]"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=stringi-indice]").Click());
+        Assert.Equal("stretto", pagina.Find("[data-indice]").GetAttribute("data-indice"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-striscia-parte='ENR 2']").Click());
+        Assert.Equal("aperto", pagina.Find("[data-indice]").GetAttribute("data-indice"));
+        Assert.False(pagina.Find("[data-parte='ENR 2']").HasAttribute("hidden"));
+
+        // Una voce nuova (qui dalla mappa) lo stringe di nuovo, e la scheda aperta è la sua parte.
+        await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", 0));
+        pagina.WaitForAssertion(() => Assert.Equal("stretto", pagina.Find("[data-indice]").GetAttribute("data-indice")));
+        Assert.Contains("lab-scelto", pagina.Find("[data-striscia-parte='ENR 2']").ClassList);
+    }
+
+    // Carta «L'Indice rifatto», R4: cercando, ogni scheda dice quante voci trova, e si apre una parte che ne ha.
+    [Fact]
+    public async Task LIndice_CercandoLeSchedeContanoLeVoci()
+    {
+        _albero.Scrivi("SectorFiles/Include/IT/lirf.str", "//MENU MAPS\r\n");
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var espanso = Path.Combine(_fuori, "espanso");
+        Assert.True(_lab.CambiaLAipEspanso(espanso), _lab.Rifiuto);
+        Directory.CreateDirectory(Path.Combine(espanso, "2611"));
+        await File.WriteAllTextAsync(Path.Combine(espanso, "2611", "li.json"), AipJson.Serialize(new AipDocument
+        {
+            State = "LI",
+            Airac = "2611",
+            Airspaces = [CtrDiProva("Roma CTR", new CircleGeometry(new Position(41.9, 12.5), new Distance(5, DistanceUnit.Nm)))],
+            Points =
+            [
+                new SignificantPoint { Section = "ENR 4.4", Designator = "ABRUS", Position = new Position(41.5, 12.25) },
+                new SignificantPoint { Section = "ENR 4.4", Designator = "ABETI", Position = new Position(41.6, 12.25) },
+            ],
+        }));
+        _lab.ScegliLaPagina(PaginaDelLab.AipIndice);
+        var pagina = _contesto.RenderComponent<Home>();
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-scheda-parte]")), TimeSpan.FromSeconds(10));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=cerca-aip]").Input("AB"));
+
+        pagina.WaitForAssertion(() =>
+        {
+            var scheda = Assert.Single(pagina.FindAll("[data-scheda-parte]"));
+            Assert.Equal("ENR 4", scheda.GetAttribute("data-scheda-parte"));
+            Assert.Equal("2", scheda.QuerySelector(".lab-nota")!.TextContent.Trim());
+            Assert.False(pagina.Find("[data-parte='ENR 4']").HasAttribute("hidden"));
+        });
     }
 
     // Carta «Gli aeroporti nel Lab», S1 (27 ottobre): in AD 2 uno scalo è una riga con la copertura delle IAP; il clic apre
@@ -555,7 +618,7 @@ public sealed class AipNellaBarraTests : IDisposable
         pagina.WaitForAssertion(() =>
         {
             Assert.Equal("IAP 1/2", pagina.Find("[data-scalo=LIXX] [data-copertura-iap]").TextContent.Trim());
-            Assert.Contains("1 scali", pagina.Find("[data-parte='AD 2'] summary").TextContent, StringComparison.Ordinal);
+            Assert.Contains("1 scali", pagina.Find("[data-scheda-parte='AD 2']").TextContent, StringComparison.Ordinal);
         }, TimeSpan.FromSeconds(10));
         await pagina.InvokeAsync(() => pagina.Find("[data-scalo=LIXX] button").Click());
 
@@ -740,7 +803,7 @@ public sealed class AipNellaBarraTests : IDisposable
 
         pagina.WaitForAssertion(() =>
         {
-            Assert.Contains("ciclo 2611, 2 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal);
+            Assert.Contains("ciclo 2611, 2 forme", pagina.Find("[data-aip-sulla-mappa]").GetAttribute("title"), StringComparison.Ordinal);
             Assert.True(pagina.Find("[data-strato=aip]").HasAttribute("checked"));
             Assert.Equal(["aip:CTR", "aip:RMZ/TMZ"], pagina.FindAll("[data-generi=aip] input").Select(i => i.GetAttribute("data-genere")));
         }, TimeSpan.FromSeconds(10));
@@ -780,7 +843,7 @@ public sealed class AipNellaBarraTests : IDisposable
         // Trovare e cambiare nello stesso giro del renderer: l'Indice, appena aperto, carica lo strato e si ridisegna
         // (CI 22-ott, UnknownEventHandlerIdException).
         await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true }));
-        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-aip-strato]")), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Contains("forme", pagina.Find("[data-aip-sulla-mappa]").GetAttribute("title"), StringComparison.Ordinal), TimeSpan.FromSeconds(10));
         await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", 0));
         pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-tasto=correggi-area]")), TimeSpan.FromSeconds(10));
 
@@ -813,8 +876,8 @@ public sealed class AipNellaBarraTests : IDisposable
         }, TimeSpan.FromSeconds(10));
         Assert.Equal("2000ft AMSL", Modello().Airspaces[0].Upper.Text);
 
-        // Aggiungi un'area dal riquadro, con la forma incollata come la scrive l'AIP.
-        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=aggiungi-area]").Click());
+        // Aggiungi un'area dal menu «Aggiungi ▾» (carta «L'Indice rifatto», R3), con la forma incollata come la scrive l'AIP.
+        await pagina.InvokeAsync(() => pagina.Find("[data-campo=aggiungi-tipo]").Change("Airspace"));
         await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-campo=area-identificativo]").Change("LI R999"));
         await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-campo=area-superiore]").Change("FL 100"));
         await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-campo=area-inferiore]").Change("GND"));
@@ -824,7 +887,7 @@ public sealed class AipNellaBarraTests : IDisposable
         await pagina.InvokeAsync(() => pagina.Find("[data-modulo-area=aggiungi] [data-tasto=salva-correzione]").Click());
         pagina.WaitForAssertion(() =>
         {
-            Assert.Contains("ciclo 2611, 2 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal);
+            Assert.Contains("ciclo 2611, 2 forme", pagina.Find("[data-aip-sulla-mappa]").GetAttribute("title"), StringComparison.Ordinal);
             Assert.Equal("LI R999", pagina.Find("[data-scheda-aip] .lab-etichetta").TextContent);
             Assert.Contains("Aggiunta (", pagina.Find("[data-correzione-aip]").TextContent, StringComparison.Ordinal);
         }, TimeSpan.FromSeconds(10));
@@ -837,7 +900,7 @@ public sealed class AipNellaBarraTests : IDisposable
         await pagina.InvokeAsync(() => pagina.Find("[data-campo=togli-perche]").Change("chiuso"));
         await pagina.InvokeAsync(() => pagina.Find("[data-campo=togli-fonte]").Change("AIC 9/26"));
         await pagina.InvokeAsync(() => pagina.Find("[data-tasto=conferma-togli]").Click());
-        pagina.WaitForAssertion(() => Assert.Contains("ciclo 2611, 1 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Contains("ciclo 2611, 1 forme", pagina.Find("[data-aip-sulla-mappa]").GetAttribute("title"), StringComparison.Ordinal), TimeSpan.FromSeconds(10));
         Assert.Equal(["LI R999"], Modello().Airspaces.Select(a => a.Key));
         Assert.Equal([CorrectionOp.Change, CorrectionOp.Add, CorrectionOp.Remove],
             AipCorrections.Deserialize(File.ReadAllText(correzioni)).Corrections.Select(c => c.Op));
@@ -875,7 +938,7 @@ public sealed class AipNellaBarraTests : IDisposable
         // Trovare e cambiare nello stesso giro del renderer: l'Indice, appena aperto, carica lo strato e si ridisegna
         // (CI 22-ott, UnknownEventHandlerIdException).
         await pagina.InvokeAsync(() => pagina.Find("[data-casella=aip-sulla-mappa]").ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = true }));
-        pagina.WaitForAssertion(() => Assert.Contains("2 forme", pagina.Find("[data-aip-strato]").TextContent, StringComparison.Ordinal), TimeSpan.FromSeconds(10));
+        pagina.WaitForAssertion(() => Assert.Contains("2 forme", pagina.Find("[data-aip-sulla-mappa]").GetAttribute("title"), StringComparison.Ordinal), TimeSpan.FromSeconds(10));
 
         // Il punto è la seconda voce dello strato, dopo l'area.
         await pagina.InvokeAsync(() => _lab.Scegli("aip:2611", 1));
@@ -896,9 +959,8 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Equal(41.5 + 1 / 60.0, punto.Position.Lat, 6);
         Assert.Equal(CorrectionKind.Point, Assert.Single(AipCorrections.Deserialize(File.ReadAllText(Path.Combine(espanso, "correzioni", "li.json"))).Corrections).Kind);
 
-        // «Aggiungi» chiede il tipo: per un punto il modulo generale.
+        // «Aggiungi ▾» è il menu dei tipi: per un punto il modulo generale.
         await pagina.InvokeAsync(() => pagina.Find("[data-campo=aggiungi-tipo]").Change("Point"));
-        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=aggiungi-area]").Click());
         pagina.WaitForAssertion(() => Assert.Equal("Point", pagina.Find("[data-modulo-voce=aggiungi]").GetAttribute("data-tipo-voce")), TimeSpan.FromSeconds(10));
     }
 

@@ -6,21 +6,84 @@
     L'indice dell'AIP espanso (riordino delle pagine, D9): le voci come nell'AIP — ENR 2, ENR 3, ENR 4, ENR 5, AD 2 —,
     sezione per sezione, AD 2 scalo per scalo. Un clic sceglie la voce: la scheda accanto, la forma inquadrata sulla
     mappa. Entrando nella pagina lo strato dell'AIP si carica da sé (è lo stesso di «Mostra l'AIP espanso sulla mappa»).
+    Dal 1 novembre (carta «L'Indice rifatto»): la testata in una riga (R3), le parti come schede (R4), e con una voce
+    aperta una striscia con le parti al posto dell'Indice intero (R2).
 *@
 <div class="lab-indice-aip" data-indice-aip>
+    @* Carta «L'Indice rifatto», R2: con una voce aperta l'Indice è una striscia con le parti; un clic lo riapre. *@
+    @if (Stretto && Lab.StratoDellAip is { } dellaStriscia)
+    {
+        <nav class="lab-indice-striscia" data-indice-striscia>
+            <button type="button" class="lab-voce lab-striscia-riapri" data-tasto="riapri-indice" title="Riapre l'Indice"
+                    @onclick="() => Riapri.InvokeAsync()">‹ <span>Indice</span></button>
+            @{
+                var partiDellaStriscia = Indice(dellaStriscia);
+                var apertaNellaStriscia = ParteAperta(partiDellaStriscia);
+            }
+            @foreach (var parte in partiDellaStriscia)
+            {
+                <button type="button" class="lab-voce lab-striscia-parte @(parte.Codice == apertaNellaStriscia ? "lab-scelto" : null)" data-striscia-parte="@parte.Codice"
+                        title="@parte.Codice @parte.Nome" @onclick="() => ApriLaParte(parte.Codice)">@Sigla(parte.Codice)</button>
+            }
+        </nav>
+    }
+    <div class="lab-indice-tutto" hidden="@(Stretto && Lab.StratoDellAip is not null)">
+    @* R3: la testata in una riga — ciclo, che cos'è oggi, gli altri cicli, la casella della mappa, «Aggiungi». Le frasi lunghe
+       stanno nel titolo, al passaggio del mouse. *@
+    <div class="lab-indice-testata" data-indice-testata>
     <h2 class="lab-riquadro-titolo">AIP espanso @(Lab.StratoDellAip is { } s ? $"· ciclo {s.Ciclo}" : "")</h2>
     @* I cicli (26 ottobre, committente: il ciclo di lavoro lo sceglie lui): che cos'è quello mostrato, e gli altri su cui passare. *@
     @if (Lab.StratoDellAip is { } mostrato)
     {
-        <p class="lab-nota" data-ciclo-indice>@Lab.StatoDeiCicliDellAip.Dice(mostrato.Ciclo)
-            @foreach (var altro in Lab.CicliConIlModello.Where(c => c != mostrato.Ciclo))
-            {
-                <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="lavora-sul-ciclo" data-lavora="@altro"
-                        title="Indice, mappa, correzioni e confronti col sector useranno il @altro" @onclick="() => Lab.LavoraSulCicloAsync(altro)">Lavora sul @altro</button>
-            }
-        </p>
+        <span class="lab-nota" data-ciclo-indice>· @Lab.StatoDeiCicliDellAip.Dice(mostrato.Ciclo)</span>
+        @foreach (var altro in Lab.CicliConIlModello.Where(c => c != mostrato.Ciclo))
+        {
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="lavora-sul-ciclo" data-lavora="@altro"
+                    title="Indice, mappa, correzioni e confronti col sector useranno il @altro" @onclick="() => Lab.LavoraSulCicloAsync(altro)">Lavora sul @altro</button>
+        }
     }
-    else if (Lab.CartellaDellAipEspanso is not null && Lab.CicloDiLavoro is null && Lab.CicliConIlModello.Count > 1)
+    @* Dal 22 ottobre qui, non più in «Lettura e consegna» (che non ha la mappa): la casella dello strato e «Aggiungi». *@
+    @if (Lab.CartellaDellAipEspanso is not null)
+    {
+        <label class="lab-nota" data-aip-sulla-mappa title="@TitoloDellaCasella()">
+            <input type="checkbox" data-casella="aip-sulla-mappa" checked="@Lab.Accesi.Contains(AipSullaMappa.Tipo.Id)"
+                   disabled="@(Lab.Sessione is null)" @onchange="e => Mostra(e.Value is true)" />
+            sulla mappa
+        </label>
+        @if (Lab.StratoDellAip is { } stratoMostrato && _aggiungi is null)
+        {
+            @* Le correzioni (slice 2 e 3): una voce si corregge dalla sua scheda; una che il PDF non ha si aggiunge da qui. *@
+            <select class="lab-campo lab-indice-aggiungi" data-campo="aggiungi-tipo" value=""
+                    title="Una voce che il PDF non ha (AIP SUP, AIC…): va nell'AIP espanso del ciclo @stratoMostrato.Ciclo, con la sua fonte"
+                    @onchange="ScegliCosaAggiungere">
+                <option value="">Aggiungi ▾</option>
+                @* Una procedura no: si ridisegna sopra la sua carta posata (S4), dalla pagina dello scalo. *@
+                @foreach (var t in Enum.GetValues<Aip.CorrectionKind>().Where(t => t != Aip.CorrectionKind.Procedure))
+                {
+                    <option value="@t">@CorrezioniDellAip.Nome(t)</option>
+                }
+            </select>
+        }
+    }
+    @if (PuoStringersi)
+    {
+        <button type="button" class="lab-voce lab-indice-stringi" data-tasto="stringi-indice" title="Stringe l'Indice: la scheda prende il suo posto"
+                @onclick="() => Stringi.InvokeAsync()">‹</button>
+    }
+    </div>
+    @if (Lab.StratoDellAip is not null && _aggiungi is Aip.CorrectionKind.Airspace)
+    {
+        <ModuloDellArea Chiuso="() => _aggiungi = null" />
+    }
+    else if (Lab.StratoDellAip is not null && _aggiungi is { } tipo)
+    {
+        <ModuloDiUnaVoce Tipo="tipo" Iniziali="_iniziali" PercheIniziale="@_percheIniziale" Chiuso="ChiudiLAggiunta" />
+    }
+    @if (_rifiutoDellaMappa is not null)
+    {
+        <p class="lab-avviso-breve" data-rifiuto-aip>@_rifiutoDellaMappa</p>
+    }
+    @if (Lab.StratoDellAip is null && Lab.CartellaDellAipEspanso is not null && Lab.CicloDiLavoro is null && Lab.CicliConIlModello.Count > 1)
     {
         <p class="lab-nota" data-scegli-ciclo>Su quale ciclo lavori?
             @foreach (var c in Lab.CicliConIlModello)
@@ -29,49 +92,6 @@
                         @onclick="() => Lab.LavoraSulCicloAsync(c)">@c · @Lab.StatoDeiCicliDellAip.Dice(c)</button>
             }
         </p>
-    }
-    @* Dal 22 ottobre qui, non più in «Lettura e consegna» (che non ha la mappa): la casella dello strato e «Aggiungi». *@
-    @if (Lab.CartellaDellAipEspanso is not null)
-    {
-        <div data-aip-sulla-mappa>
-            <label class="lab-nota">
-                <input type="checkbox" data-casella="aip-sulla-mappa" checked="@Lab.Accesi.Contains(AipSullaMappa.Tipo.Id)"
-                       disabled="@(Lab.Sessione is null)" @onchange="e => Mostra(e.Value is true)" />
-                Mostra l'AIP espanso sulla mappa
-            </label>
-            @if (Lab.StratoDellAip is { } stratoMostrato)
-            {
-                <span class="lab-nota" data-aip-strato> · ciclo @stratoMostrato.Ciclo, @stratoMostrato.Strato.Forme.Count forme@(Attese(stratoMostrato) is var (nonDisegnate, tutte) && nonDisegnate > 0 ? $" ({nonDisegnate} attese su {tutte} senza il punto nel sector)" : ""): i tipi si accendono negli Strati</span>
-                @* Le correzioni (slice 2 e 3): una voce si corregge dalla sua scheda; una che il PDF non ha si aggiunge da qui. *@
-                @if (_aggiungi is Aip.CorrectionKind.Airspace)
-                {
-                    <ModuloDellArea Chiuso="() => _aggiungi = null" />
-                }
-                else if (_aggiungi is { } tipo)
-                {
-                    <ModuloDiUnaVoce Tipo="tipo" Iniziali="_iniziali" PercheIniziale="@_percheIniziale" Chiuso="ChiudiLAggiunta" />
-                }
-                else
-                {
-                    <span class="lab-nota" data-aggiungi>
-                        <select class="lab-campo" data-campo="aggiungi-tipo" value="@_tipoDaAggiungere"
-                                @onchange="e => _tipoDaAggiungere = Enum.TryParse<Aip.CorrectionKind>(e.Value?.ToString(), out var t) ? t : _tipoDaAggiungere">
-                            @* Una procedura no: si ridisegna sopra la sua carta posata (S4), dalla pagina dello scalo. *@
-                            @foreach (var t in Enum.GetValues<Aip.CorrectionKind>().Where(t => t != Aip.CorrectionKind.Procedure))
-                            {
-                                <option value="@t">@CorrezioniDellAip.Nome(t)</option>
-                            }
-                        </select>
-                        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="aggiungi-area"
-                                title="Una voce che il PDF non ha (AIP SUP, AIC…): va nell'AIP espanso del ciclo @stratoMostrato.Ciclo, con la sua fonte" @onclick="() => _aggiungi = _tipoDaAggiungere">Aggiungi</button>
-                    </span>
-                }
-            }
-            @if (_rifiutoDellaMappa is not null)
-            {
-                <p class="lab-avviso-breve" data-rifiuto-aip>@_rifiutoDellaMappa</p>
-            }
-        </div>
     }
     @if (Lab.StratoDellAip is not { } strato)
     {
@@ -95,10 +115,24 @@
     {
         <input class="lab-cerca" type="search" placeholder="Cerca una voce (LI R12, M726, LIRF, ELKAP…)"
                @bind="_filtro" @bind:event="oninput" data-campo="cerca-aip" />
-        @foreach (var parte in Indice(strato))
+        var parti = Indice(strato);
+        var aperta = ParteAperta(parti);
+        @* R4: le parti come schede in riga, ognuna col suo numero (cercando: quante voci trova); dentro, l'albero di prima.
+           Le altre parti restano nella pagina, nascoste: cambiare scheda non ridisegna migliaia di righe, e i rami aperti
+           restano com'erano. *@
+        <nav class="lab-indice-schede" data-indice-schede>
+            @foreach (var parte in parti)
+            {
+                <button type="button" class="lab-scheda-parte @(parte.Codice == aperta ? "lab-scelto" : null)" data-scheda-parte="@parte.Codice"
+                        aria-pressed="@(parte.Codice == aperta ? "true" : "false")" title="@parte.Codice @parte.Nome" @onclick="() => _parte = parte.Codice">
+                    <strong>@parte.Codice</strong> <span class="lab-nota">@QuanteNellaScheda(parte)</span>
+                </button>
+            }
+        </nav>
+        @foreach (var parte in parti)
         {
-            <details class="lab-indice-parte" open data-parte="@parte.Codice">
-                <summary><strong>@parte.Codice</strong> @parte.Nome <span class="lab-nota">@(parte.Codice is "AD 2" or "AD 3" && string.IsNullOrWhiteSpace(_filtro) ? $"{parte.Gruppi.Count(g => g.Voci.Any(v => v.Genere == AipSullaMappa.Scali))} scali" : parte.Quante.ToString("N0"))</span></summary>
+            <section class="lab-indice-parte" data-parte="@parte.Codice" hidden="@(parte.Codice != aperta)">
+                <p class="lab-indice-parte-nome lab-nota">@parte.Nome</p>
                 @foreach (var gruppo in parte.Gruppi)
                 {
                     @* Carta «Gli aeroporti nel Lab», S1: in AD 2 e AD 3 uno scalo è una riga, e il clic apre la sua pagina; cercando
@@ -113,16 +147,75 @@
                         @Gruppo(gruppo)
                     }
                 }
-            </details>
+            </section>
         }
         @if (_indice is { Count: 0 })
         {
             <p class="lab-nota">Nessuna voce con «@_filtro».</p>
         }
     }
+    </div>
 </div>
 
 @code {
+    /// <summary>R2: l'Indice è una striscia con le parti (c'è una voce aperta, e la scheda ha il suo posto).</summary>
+    [Parameter] public bool Stretto { get; set; }
+
+    /// <summary>R2: «‹ Indice», o una parte della striscia: l'Indice torna largo.</summary>
+    [Parameter] public EventCallback Riapri { get; set; }
+
+    /// <summary>R2: l'Indice riaperto con una voce aperta si può stringere di nuovo.</summary>
+    [Parameter] public bool PuoStringersi { get; set; }
+
+    [Parameter] public EventCallback Stringi { get; set; }
+
+    /// <summary>La parte scelta col clic su una scheda; null finché non se ne sceglie una.</summary>
+    private string? _parte;
+    private int? _sceltaVista;
+
+    /// <summary>
+    /// R4: la scheda aperta — quella scelta, se cercando c'è ancora; quando si sceglie una voce (anche dalla mappa), la sua
+    /// parte; altrimenti la prima.
+    /// </summary>
+    private string ParteAperta(IReadOnlyList<GruppoDellIndice> parti)
+    {
+        if (Lab.SceltaDellAip != _sceltaVista)
+        {
+            _sceltaVista = Lab.SceltaDellAip;
+            if (_sceltaVista is { } scelta && parti.FirstOrDefault(p => Contiene(p, scelta)) is { } sua)
+                _parte = sua.Codice;
+        }
+        return (parti.Any(p => p.Codice == _parte) ? _parte : parti.FirstOrDefault()?.Codice) ?? "";
+    }
+
+    private string QuanteNellaScheda(GruppoDellIndice parte) =>
+        parte.Codice is "AD 2" or "AD 3" && string.IsNullOrWhiteSpace(_filtro)
+            ? $"{parte.Gruppi.Count(g => g.Voci.Any(v => v.Genere == AipSullaMappa.Scali))} scali"
+            : parte.Quante.ToString("N0");
+
+    /// <summary>Nella striscia: «ENR 2» → «E2», «AD 2» → «A2»; una parte senza numero («Altro») le prime tre lettere.</summary>
+    private static string Sigla(string parte) => parte.LastIndexOf(' ') is var spazio and > 0
+        ? parte[0] + parte[(spazio + 1)..]
+        : parte[..Math.Min(3, parte.Length)];
+
+    private async Task ApriLaParte(string parte)
+    {
+        _parte = parte;
+        await Riapri.InvokeAsync();
+    }
+
+    /// <summary>R3: la frase lunga dello strato, che prima stava accanto alla casella.</summary>
+    private string TitoloDellaCasella() => Lab.StratoDellAip is { } strato
+        ? $"Mostra l'AIP espanso sulla mappa · ciclo {strato.Ciclo}, {strato.Strato.Forme.Count} forme{(Attese(strato) is var (nonDisegnate, tutte) && nonDisegnate > 0 ? $" ({nonDisegnate} attese su {tutte} senza il punto nel sector)" : "")}: i tipi si accendono negli Strati"
+        : "Mostra l'AIP espanso sulla mappa";
+
+    /// <summary>R3: «Aggiungi ▾» è un menu solo: scelto il tipo, si apre il suo modulo.</summary>
+    private void ScegliCosaAggiungere(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<Aip.CorrectionKind>(e.Value?.ToString(), out var tipo))
+            _aggiungi = tipo;
+    }
+
     private string? _filtro;
     private bool _caricando;
 
@@ -262,7 +355,6 @@
     public void Dispose() => Lab.Cambiata -= Aggiorna;
 
     private Aip.CorrectionKind? _aggiungi;
-    private Aip.CorrectionKind _tipoDaAggiungere = Aip.CorrectionKind.Airspace;
     private string? _rifiutoDellaMappa;
 
     private async Task Mostra(bool mostra) => _rifiutoDellaMappa = await Lab.MostraLAipAsync(mostra) ? null : Lab.Rifiuto;

@@ -34,12 +34,25 @@
         break;
 
     case PaginaDelLab.AipIndice:
-        <aside class="lab-colonna lab-colonna-indice">
-            <IndiceDellAipVista />
+        @* Carta «L'Indice rifatto», R2: senza una voce l'Indice è largo e la scheda non c'è; aperta una voce (o uno scalo)
+           l'Indice si stringe in una striscia e la scheda prende il suo posto. Nella finestra dei pannelli la scheda resta. *@
+        var conVoce = Lab.VoceDellAipScelta is not null;
+        var stretto = IndiceStretto(conVoce);
+        var senzaScheda = !conVoce && !NellaFinestraDeiPannelli;
+        <aside class="lab-colonna lab-colonna-indice @(stretto ? "lab-colonna-indice-stretta" : senzaScheda ? "lab-colonna-indice-larga" : null)"
+               data-indice="@(stretto ? "stretto" : senzaScheda ? "largo" : "aperto")">
+            <IndiceDellAipVista Stretto="stretto" Riapri="RiapriLIndice" PuoStringersi="@(conVoce && !stretto)" Stringi="StringiLIndice" />
         </aside>
-        <div class="lab-divisore" data-divide="@($"{_p}indice")" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+        @if (!stretto)
+        {
+            <div class="lab-divisore" data-divide="@(senzaScheda ? "indice-largo" : $"{_p}indice")" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+        }
+        @if (senzaScheda)
+        {
+            break;
+        }
         var paginaDelloScalo = Lab.PaginaDelloScaloScelto;
-        <aside class="lab-colonna lab-colonna-ispettore @(paginaDelloScalo is null ? null : "lab-colonna-scalo") @(NellaFinestraDeiPannelli ? "lab-colonna-modifiche" : null)">
+        <aside class="lab-colonna lab-colonna-ispettore lab-colonna-scheda-aip @(NellaFinestraDeiPannelli ? "lab-colonna-modifiche" : null)" data-colonna-scheda-aip>
             @if (Lab.VoceDellAipScelta is null)
             {
                 <p class="lab-nota" data-scheda-aip-vuota>Scegli una voce nell'indice, o clicca una forma dell'AIP sulla mappa.</p>
@@ -68,7 +81,8 @@
         </aside>
         @if (!NellaFinestraDeiPannelli)
         {
-            <div class="lab-divisore" data-divide="ispettore" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+            @* Una larghezza sua, per la voce e per lo scalo: prima lo scalo ne aveva una che il divisore non toccava. *@
+            <div class="lab-divisore" data-divide="scheda-aip" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
         }
         break;
 
@@ -111,6 +125,27 @@
     [Parameter] public bool NellaFinestraDeiPannelli { get; set; }
 
     private string _p => NellaFinestraDeiPannelli ? "p-" : "";
+
+    private int? _sceltaDiPrima;
+    private bool _indiceRiaperto;
+
+    /// <summary>
+    /// R2: l'Indice è una striscia quando c'è una voce aperta, finché non lo si riapre; una voce nuova (dall'Indice o dalla
+    /// mappa) lo stringe di nuovo.
+    /// </summary>
+    private bool IndiceStretto(bool conVoce)
+    {
+        if (Lab.SceltaDellAip != _sceltaDiPrima)
+        {
+            _sceltaDiPrima = Lab.SceltaDellAip;
+            _indiceRiaperto = false;
+        }
+        return conVoce && !_indiceRiaperto;
+    }
+
+    private void RiapriLIndice() => _indiceRiaperto = true;
+
+    private void StringiLIndice() => _indiceRiaperto = false;
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
 

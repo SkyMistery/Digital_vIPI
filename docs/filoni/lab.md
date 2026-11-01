@@ -48,6 +48,13 @@ Restano al committente, nell'app vera, la mappa a occhio (A76-A77, A90, A95, A97
 - **Revisione grafica dell'Indice**: la carta [«L'Indice dell'AIP espanso, rifatto»](../feature/2026-11-01-indice-rifatto.md),
   col disegno; da approvare.
 
+**1 novembre, sera: l'Indice rifatto.** Il committente ha approvato le quattro regole della carta come proposte (R1 gli
+Strati sopra la mappa, R2 l'Indice che si stringe, R3 la testata in una riga, R4 le parti come schede): fatte (carta §6).
+Nell'Indice la mappa prende la colonna degli Strati, che si aprono dal tasto «Strati ▾» nel suo angolo; senza una voce
+l'Indice è largo e la scheda non c'è, con una voce è una striscia con le parti e la scheda prende il suo posto; le parti
+ENR 2 … AD 3 sono schede col loro numero, anche cercando. Il ground del sector negli Strati ha un titolo suo, e «Piste
+(.rw)» non si confonde più col genere dei `.geo`. Nessun codice comune. Prove A103-A106.
+
 ## Dove siamo — 27 ottobre 2026: gli aeroporti, la carta e la pagina dello scalo
 
 Il committente, dopo le prove A63-A67: ENR 2-5 vanno bene; gli aeroporti no — «parziale e incompleto o a pezzi»,

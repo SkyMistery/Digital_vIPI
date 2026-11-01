@@ -19,40 +19,33 @@
 
             @* La mappa non si smonta mai (D2): Consegna e Impostazioni la nascondono soltanto, e tornando a Sector o AIP
                strati, vista e scelta sono quelli di prima. Con display:contents i figli restano colonne di .lab-corpo. *@
-            <div class="lab-con-la-mappa @(MappaNascosta ? "lab-nascosto" : null)" data-mappa-nascosta="@(MappaNascosta ? "si" : "no")">
-            <aside class="lab-strati">
+            <div class="lab-con-la-mappa @(MappaNascosta ? "lab-nascosto" : null) @(StratiSopra ? "lab-strati-sopra" : null)" data-mappa-nascosta="@(MappaNascosta ? "si" : "no")">
+            @* Carta «L'Indice rifatto», R1: nell'Indice gli Strati stanno sopra la mappa, dietro un tasto nel suo angolo, e la
+               mappa prende la loro colonna. Si chiudono da soli al clic sulla mappa. *@
+            @if (StratiSopra)
+            {
+                <button type="button" class="lab-tasto lab-tasto-tenue lab-tasto-strati" data-tasto="strati" aria-expanded="@(_stratiAperti ? "true" : "false")"
+                        title="@(_stratiAperti ? "Chiude gli strati" : "Gli strati della mappa: che cosa si vede")" @onclick="() => _stratiAperti = !_stratiAperti">Strati @(_stratiAperti ? "▴" : "▾")</button>
+            }
+            <aside class="lab-strati @(StratiSopra && !_stratiAperti ? "lab-strati-chiusi" : null)" data-strati="@(StratiSopra ? (_stratiAperti ? "aperti" : "chiusi") : "colonna")">
                 <Sezione Chiave="strati">
                 <Titolo>Strati</Titolo>
                 <ChildContent>
-                @foreach (var strato in Lab.StratiDaMostrare)
+                @foreach (var strato in Lab.StratiDaMostrare.Where(s => !DelGround(s)))
                 {
-                    <label class="lab-strato @(strato.Forme.Count == 0 ? "lab-strato-vuoto" : null)">
-                        <input type="checkbox"
-                               checked="@Lab.Accesi.Contains(strato.Id)"
-                               disabled="@(strato.Tipo.Sfondo || strato.Forme.Count == 0)"
-                               @onchange="e => Accendi(strato.Id, e)"
-                               data-strato="@strato.Id" />
-                        <span class="lab-pallino" data-strato-colore="@strato.Id"></span>
-                        <span>@strato.Tipo.Nome</span>
-                        <span class="lab-nota">@strato.Forme.Count.ToString("N0")</span>
-                    </label>
-                    @* Slice 12c (H1): i generi dello strato acceso — assi, bordi, edifici, marcature… — uno per casella. *@
-                    @if (Lab.Accesi.Contains(strato.Id) && Lab.GeneriDi(strato.Id) is { Count: > 0 } generi)
-                    {
-                        <div class="lab-generi" data-generi="@strato.Id">
-                            @foreach (var genere in generi)
-                            {
-                                string stratoId = strato.Id, genereId = genere.Id;
-                                <label class="lab-strato lab-genere">
-                                    <input type="checkbox" checked="@Lab.GenereAcceso(stratoId, genereId)"
-                                           @onchange="e => Lab.AccendiIlGenere(stratoId, genereId, e.Value is true)"
-                                           data-genere="@($"{stratoId}:{genereId}")" />
-                                    <span>@genere.Nome</span>
-                                    <span class="lab-nota">@genere.Forme.ToString("N0")</span>
-                                </label>
-                            }
-                        </div>
-                    }
+                    @RigaDelloStrato(strato)
+                }
+                @* R1: nell'AIP espanso gli strati del sector col ground stanno sotto un titolo loro (prima «Piste» c'era due volte:
+                   un genere dei .geo e lo strato dei .rw). *@
+                @if (Lab.StratiDaMostrare.Where(DelGround).ToList() is { Count: > 0 } delGround)
+                {
+                    <div class="lab-strati-gruppo" data-strati-gruppo="ground">
+                        <p class="lab-strati-gruppo-titolo">Ground del sector</p>
+                        @foreach (var strato in delGround)
+                        {
+                            @RigaDelloStrato(strato)
+                        }
+                    </div>
                 }
                 </ChildContent>
                 </Sezione>
@@ -131,13 +124,17 @@
                     </p>
                 }
             </aside>
-            <div class="lab-divisore" data-divide="strati" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+            @if (!StratiSopra)
+            {
+                <div class="lab-divisore" data-divide="strati" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
+            }
 
             @* R4 (D15): una mappa per spazio di lavoro, sullo stesso motore. Una nasce la prima volta che si entra nel suo
                spazio e poi resta, nascosta quando lo spazio è un altro: strati, vista, zoom e scelta sono quelli di prima. *@
             @foreach (var spazio in SpaziConLaMappa())
             {
-                <div class="lab-mappa-dello-spazio @(spazio == Lab.SpazioAttivo ? null : "lab-nascosto")" data-mappa-dello-spazio="@spazio.ToString().ToLowerInvariant()">
+                <div class="lab-mappa-dello-spazio @(spazio == Lab.SpazioAttivo ? null : "lab-nascosto")" data-mappa-dello-spazio="@spazio.ToString().ToLowerInvariant()"
+                     @onclick="ChiudiGliStrati">
                     <Mappa @key="spazio" Spazio="spazio" />
                 </div>
             }
@@ -353,6 +350,49 @@ else
 
 
     private void Accendi(string strato, ChangeEventArgs e) => Lab.Accendi(strato, e.Value is true);
+
+    /// <summary>R1 della carta «L'Indice rifatto»: nell'Indice gli Strati sono un pannello sopra la mappa, non una colonna.</summary>
+    private bool StratiSopra => Lab.Pagina is PaginaDelLab.AipIndice;
+
+    private bool _stratiAperti;
+
+    private void ChiudiGliStrati() => _stratiAperti = false;
+
+    /// <summary>Nell'AIP espanso, uno strato del sector che c'è per il ground dello scalo (S5).</summary>
+    private bool DelGround(StratoDellaMappa strato) =>
+        Lab.SpazioAttivo is SpazioDiLavoro.Aip && SessioneDelLab.StratiDelGround.Contains(strato.Id);
+
+    private RenderFragment RigaDelloStrato(StratoDellaMappa strato) => __builder =>
+    {
+        <label class="lab-strato @(strato.Forme.Count == 0 ? "lab-strato-vuoto" : null)">
+            <input type="checkbox"
+                   checked="@Lab.Accesi.Contains(strato.Id)"
+                   disabled="@(strato.Tipo.Sfondo || strato.Forme.Count == 0)"
+                   @onchange="e => Accendi(strato.Id, e)"
+                   data-strato="@strato.Id" />
+            <span class="lab-pallino" data-strato-colore="@strato.Id"></span>
+            @* Nel gruppo del ground «Piste» è anche un genere dei .geo: lo strato dice da che file viene. *@
+            <span>@(DelGround(strato) && strato.Id == "piste" ? $"{strato.Tipo.Nome} (.rw)" : strato.Tipo.Nome)</span>
+            <span class="lab-nota">@strato.Forme.Count.ToString("N0")</span>
+        </label>
+        @* Slice 12c (H1): i generi dello strato acceso — assi, bordi, edifici, marcature… — uno per casella. *@
+        @if (Lab.Accesi.Contains(strato.Id) && Lab.GeneriDi(strato.Id) is { Count: > 0 } generi)
+        {
+            <div class="lab-generi" data-generi="@strato.Id">
+                @foreach (var genere in generi)
+                {
+                    string stratoId = strato.Id, genereId = genere.Id;
+                    <label class="lab-strato lab-genere">
+                        <input type="checkbox" checked="@Lab.GenereAcceso(stratoId, genereId)"
+                               @onchange="e => Lab.AccendiIlGenere(stratoId, genereId, e.Value is true)"
+                               data-genere="@($"{stratoId}:{genereId}")" />
+                        <span>@genere.Nome</span>
+                        <span class="lab-nota">@genere.Forme.ToString("N0")</span>
+                    </label>
+                }
+            </div>
+        }
+    };
 
     private void Aggiorna() => InvokeAsync(StateHasChanged);
 

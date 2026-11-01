@@ -129,4 +129,41 @@ public sealed class TreMappeTests : IDisposable
             Assert.Contains("lab-nascosto", pagina.Find("[data-mappa-dello-spazio='aip']").ClassList);
         });
     }
+
+    // Carta «L'Indice rifatto», R1: nell'Indice gli Strati sono un pannello sopra la mappa, dietro un tasto, e si chiudono
+    // al clic sulla mappa; nelle altre pagine restano una colonna col suo divisore. Il ground ha un titolo suo.
+    [Fact]
+    public async Task NellIndiceGliStratiStannoSopraLaMappa()
+    {
+        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        Assert.Equal("colonna", pagina.Find("[data-strati]").GetAttribute("data-strati"));
+        Assert.Empty(pagina.FindAll("[data-tasto=strati]"));
+        Assert.Contains("strati", pagina.FindAll("[data-divide]").Select(d => d.GetAttribute("data-divide")));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-pagina='aipindice']").Click());
+        pagina.WaitForAssertion(() => Assert.Equal("chiusi", pagina.Find("[data-strati]").GetAttribute("data-strati")));
+        Assert.DoesNotContain("strati", pagina.FindAll("[data-divide]").Select(d => d.GetAttribute("data-divide")));
+        Assert.Contains("lab-strati-sopra", pagina.Find(".lab-con-la-mappa").ClassList);
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=strati]").Click());
+        Assert.Equal("aperti", pagina.Find("[data-strati]").GetAttribute("data-strati"));
+        Assert.Equal("true", pagina.Find("[data-tasto=strati]").GetAttribute("aria-expanded"));
+
+        // Il ground del sector sotto il suo titolo, e «Piste» dice da che file viene.
+        await pagina.InvokeAsync(() => _lab.MostraIlGroundSullaCarta(true));
+        pagina.WaitForAssertion(() =>
+        {
+            var gruppo = pagina.Find("[data-strati-gruppo=ground]");
+            Assert.Contains("Ground del sector", gruppo.TextContent, StringComparison.Ordinal);
+            Assert.All(gruppo.QuerySelectorAll("[data-strato]"), s => Assert.Contains(s.GetAttribute("data-strato"), SessioneDelLab.StratiDelGround));
+            Assert.Equal(_lab.StratiDi(SpazioDiLavoro.Aip).Count(s => SessioneDelLab.StratiDelGround.Contains(s.Id)), gruppo.QuerySelectorAll("[data-strato]").Length);
+        });
+        if (pagina.FindAll("[data-strati-gruppo=ground] [data-strato=piste]") is { Count: 1 } piste)
+            Assert.Contains("(.rw)", piste.First().ParentElement!.TextContent, StringComparison.Ordinal);
+
+        // Un clic sulla mappa li chiude.
+        await pagina.InvokeAsync(() => pagina.Find("[data-mappa-dello-spazio='aip']").Click());
+        Assert.Equal("chiusi", pagina.Find("[data-strati]").GetAttribute("data-strati"));
+    }
 }
