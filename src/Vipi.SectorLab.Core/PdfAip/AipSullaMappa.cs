@@ -351,9 +351,10 @@ public static partial class AipSullaMappa
                     .Select(x => new CurveDelleProcedure.Vertice(new Position(x.LatitudeDeg, x.LongitudeDeg), conNome, true, null, 0)));
                 continue;
             }
-            // La virata sul punto: il verso del tratto che ne parte, la velocità di quello che arriva o di quello che parte.
+            // La virata sul punto: il verso del tratto che ne parte, la velocità di quello che arriva o di quello che parte (o
+            // quella della procedura, R6).
             var dopo = tratti.Skip(i + 1).FirstOrDefault(x => x.Position is not null || x.Fix is not null);
-            var raggio = prosa ? CurveDelleProcedure.Raggio(CurveDelleProcedure.Velocita(procedura.Kind, t, dopo)) : 0;
+            var raggio = prosa ? CurveDelleProcedure.Raggio(CurveDelleProcedure.Velocita(procedura.Kind, t, dopo, procedura.TurnSpeed)) : 0;
             pezzo.Add(new CurveDelleProcedure.Vertice(new Position(qui.LatitudeDeg, qui.LongitudeDeg), conNome, !prosa, dopo?.Turn, raggio,
                 CurveDelleProcedure.RottaVera(dopo)));
         }

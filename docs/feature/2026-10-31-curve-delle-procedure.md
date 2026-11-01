@@ -2,7 +2,7 @@
 
 Filone Sector Lab. Segue [«Le segnalazioni del 2611»](2026-10-23-segnalazioni-2611.md) (giro del 26 ottobre: le «SID
 dalla soglia») e il «Da vedere dopo» di [F7, SID e STAR](2026-10-19-f7-sid-e-star.md) (le virate delle convenzionali).
-**Approvata** il 31 ottobre sera (§4, D1-D4).
+**Approvata** il 31 ottobre sera (§4, D1-D4). R6 e R7 (§7) approvate e fatte il 1 novembre sera (§8).
 
 ## §0 — La domanda
 
@@ -194,3 +194,35 @@ sono salite divise per SID («if cleared via SID AMLON 9B: … b) SID ANC 8B: �
 senza tratti, le altre con il solo primo tratto. Proposta: un ramo diventa una salita a sé, col nome della SID («LIPR RWY
 12 per AMLON 9B»), e la SID la usa come oggi usa la salita della sua pista. LIEE RWY 32 (4) ha in più il testo italiano
 mescolato all'inglese nel PDF («rotta», «su», «105°. 300°»): va pulito prima.
+
+## §8 — R6 e R7 fatte (1 novembre, sera)
+
+Il committente: «Sì, R6 e R7», e alla domanda aperta di R6: **le REMARKS della salita iniziale valgono anche per le SID
+della stessa pista**. Misurato col lettore della prosa rifatto sul modello del 2611 (copia dell'ambiente di prova).
+
+**R6 — la velocità dal testo** (`Aip.Pdf.Italia`, `ItalianAd2ProseVelocita.cs`). La velocità delle virate di una procedura
+della prosa è la sola IAS MAX del suo testo o delle sue REMARKS, o la sola «during turn» fra più velocità; anche «Turns at
+IAS MAX 220 kt» e «Departure turn limited to 210 KT». Due velocità diverse senza una «during turn» (LIPQ 185/240, LIBD
+240/250, LIMP 185/210, LIPR RWY 30 180/210 fra due rami) non valgono: si resta a 210/220 kt e la nota della lettura lo
+dice (25 procedure). Una SID che non ne dice prende quella della salita che continua, se no della sola salita della sua
+pista. La **virata dopo il decollo** è della salita iniziale: per una SID vale prima la velocità della salita, poi la sua
+(LIRQ dalla 05: la salita dice 140 kt, BIBNO 1H dice 210 kt per le virate dopo). La velocità sta nel modello,
+`Procedure.TurnSpeed` (**codice comune**, `Aip`: un campo nuovo, facoltativo), e il Lab la usa per le curve dove il tratto
+non ne ha una sua (`CurveDelleProcedure.Velocita`, mappa e «Porta»).
+- 308 procedure con la velocità della procedura, 124 senza una velocità in un tratto (prima disegnate a 210/220 kt).
+- LIRQ RWY 05 e le sei SID «H» dalla 05: virata dopo il decollo a 140 kt, raggio 0,6 NM (era 1,4).
+- LIPH SID dalla 07 a 200 kt (1,25 NM, era 1,38); LIPO UVNIB 1X a 220 kt (1,51 NM).
+
+**R7 — le salite a rami** (`ItalianAd2Prose.DecodeAll`). Una salita iniziale coi rami per SID che hanno un percorso diventa
+una salita per ramo, col nome delle sue SID: «LIPR RWY 12 per AMLON 9B», «LIRN RWY 06 per altre SID». Si legge la parte
+comune col ramo, senza dividerla di nuovo (dividerla tagliava «turn left as soon as possible after take-off» al decollo,
+LICR RWY 33); il testo stampato resta quello intero. I rami che dicono solo una pendenza (LIPX RWY 04) non sono salite: la
+salita resta una. Un ramo che non si legge tiene la sola parte comune, come prima, e lo dice (LIPR RWY 12 AMLON 9B e BOA
+7Z, RWY 30 AMLON 9A e ANC 8A: arco DME senza radiale, «leave … on RDL 269», «for aircraft CAT»; LIRF RWY 07: «expect ATC
+instruction»). Un ramo che finisce su una rotta senza un punto è aperto e lo continua la SID (LIML RWY 17, due rami). Le
+SID continuavano già il loro ramo (SC1): non cambiano.
+- Salite iniziali: 127 (erano 100), con tratti 101 (erano 67).
+- LIEE RWY 32 (4): «on su track 300°» e «track 105°. 300° until» (il testo italiano mescolato nel PDF) si leggono «on
+  track 300°» e «track 300°», come gli altri due rami, e si dicono come errori di stampa.
+
+Test: `Ad2ProseVelocitaERamiTests` (17), `CurveDelleProcedureTests`. Prove a mano A107-A109.

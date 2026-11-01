@@ -34,6 +34,9 @@ public sealed class CurveDelleProcedureTests
         Assert.Equal(200, CurveDelleProcedure.Velocita(ProcedureKind.Sid, senza, conNota));
         Assert.Equal(210, CurveDelleProcedure.Velocita(ProcedureKind.Sid, senza, null));
         Assert.Equal(220, CurveDelleProcedure.Velocita(ProcedureKind.Star, senza, null));
+        // R6 (1 novembre): la velocità che l'AIP dice per tutta la procedura vale dove il tratto non ne ha una sua.
+        Assert.Equal(140, CurveDelleProcedure.Velocita(ProcedureKind.Sid, senza, null, dellaProcedura: 140));
+        Assert.Equal(200, CurveDelleProcedure.Velocita(ProcedureKind.Sid, senza, conNota, dellaProcedura: 140));
     }
 
     [Fact]

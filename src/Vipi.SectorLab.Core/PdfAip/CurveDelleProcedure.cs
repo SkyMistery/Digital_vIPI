@@ -46,10 +46,12 @@ public static partial class CurveDelleProcedure
 
     /// <summary>
     /// La velocità di una virata: quella stampata sul tratto che arriva al punto («-210», «IAS MAX 200 KT during turn»), o
-    /// su quello che ne parte, o quella della procedura.
+    /// su quello che ne parte; se no quella che l'AIP dice per tutta la procedura (<paramref name="dellaProcedura"/>, R6: la sola
+    /// IAS MAX del testo o delle REMARKS, <see cref="Procedure.TurnSpeed"/>), o quella di base.
     /// </summary>
-    public static double Velocita(ProcedureKind tipo, ProcedureLeg? arriva, ProcedureLeg? parte) =>
-        Stampata(arriva) ?? Stampata(parte) ?? (tipo is ProcedureKind.Sid or ProcedureKind.InitialClimb ? VelocitaDelleSid : VelocitaDelleAltre);
+    public static double Velocita(ProcedureKind tipo, ProcedureLeg? arriva, ProcedureLeg? parte, double? dellaProcedura = null) =>
+        Stampata(arriva) ?? Stampata(parte) ?? dellaProcedura
+        ?? (tipo is ProcedureKind.Sid or ProcedureKind.InitialClimb ? VelocitaDelleSid : VelocitaDelleAltre);
 
     /// <summary>La rotta vera di un tratto della prosa (<see cref="ProcedureLeg.TrueCourse"/>), da intercettare; solo per i CF.</summary>
     public static double? RottaVera(ProcedureLeg? t) =>

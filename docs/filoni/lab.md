@@ -55,6 +55,15 @@ l'Indice è largo e la scheda non c'è, con una voce è una striscia con le part
 ENR 2 … AD 3 sono schede col loro numero, anche cercando. Il ground del sector negli Strati ha un titolo suo, e «Piste
 (.rw)» non si confonde più col genere dei `.geo`. Nessun codice comune. Prove A103-A106.
 
+**1 novembre, notte: R6 e R7 delle curve** (carta delle curve §8; il committente: «Sì, R6 e R7», e le REMARKS della salita
+valgono anche per le SID della pista). R6: la velocità delle virate dal testo o dalle REMARKS (una sola IAS MAX, o una
+sola «during turn»; due diverse → 210/220 kt e si dice), per una SID quella della sua salita se non ne dice una; la
+virata dopo il decollo prende prima quella della salita. LIRQ dalla 05 a 140 kt, raggio 0,6 NM. R7: le salite coi rami
+per SID diventano una salita per ramo («LIPR RWY 12 per AMLON 9B»): salite 127 (erano 100), con tratti 101 (erano 67);
+un ramo che non si legge tiene la parte comune e lo dice. LIEE RWY 32 (4) pulita dal testo italiano. **Codice comune**:
+`Aip` (`Procedure.TurnSpeed`, campo nuovo facoltativo), `Aip.Pdf.Italia` (`ItalianAd2ProseVelocita.cs`, `DecodeAll`;
+lo usa ATCSim). Prove A107-A109.
+
 ## Dove siamo — 27 ottobre 2026: gli aeroporti, la carta e la pagina dello scalo
 
 Il committente, dopo le prove A63-A67: ENR 2-5 vanno bene; gli aeroporti no — «parziale e incompleto o a pezzi»,

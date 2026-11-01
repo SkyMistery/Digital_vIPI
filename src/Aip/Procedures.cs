@@ -91,6 +91,14 @@ public sealed record Procedure
     /// </summary>
     public IReadOnlyList<ClimbGradient>? ClimbGradients { get; init; }
 
+    /// <summary>
+    /// Una procedura letta dalla prosa: la velocità (IAS, kt) delle sue virate senza una velocità propria, quando l'AIP la dice
+    /// nel testo e non in un tratto (carta «Le curve delle procedure», R6): la sola IAS MAX del testo o delle REMARKS, o la sola
+    /// «during turn»; per una SID, se il suo testo non ne dice, quella della salita iniziale della sua pista. Null se l'AIP non la
+    /// dice, o ne dice più d'una.
+    /// </summary>
+    public double? TurnSpeed { get; init; }
+
     /// <summary>La pagina, con la <b>sua</b> data: nello stesso file le pagine hanno date diverse.</summary>
     public AipPage? Page { get; init; }
 
@@ -107,7 +115,8 @@ public sealed record Procedure
         && Description == other.Description && Minimums == other.Minimums && Remarks == other.Remarks && Page == other.Page
         && Segment == other.Segment && (Fixes ?? []).SequenceEqual(other.Fixes ?? []) && (Fixes is null) == (other.Fixes is null)
         && (DataBlock ?? []).SequenceEqual(other.DataBlock ?? []) && (DataBlock is null) == (other.DataBlock is null)
-        && (ClimbGradients ?? []).SequenceEqual(other.ClimbGradients ?? []) && (ClimbGradients is null) == (other.ClimbGradients is null);
+        && (ClimbGradients ?? []).SequenceEqual(other.ClimbGradients ?? []) && (ClimbGradients is null) == (other.ClimbGradients is null)
+        && TurnSpeed == other.TurnSpeed;
 
     public override int GetHashCode() => HashCode.Combine(Aerodrome, Kind, Designator);
 }

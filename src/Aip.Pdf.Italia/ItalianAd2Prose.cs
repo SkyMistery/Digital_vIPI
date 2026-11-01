@@ -39,9 +39,22 @@ public static partial class ItalianAd2Prose
     /// Come <see cref="Decode"/>, e in più le approssimazioni fatte leggendo una procedura che si legge: una prua disegnata
     /// come rotta, senza vento (committente, 23 ottobre: «disegnalo come se non ci fosse vento e segnalo»).
     /// </summary>
+    /// <param name="turnSpeed">
+    /// La velocità (kt) della virata dopo il decollo; null: la prima IAS MAX del testo, o 210 kt. <see cref="DecodeAll"/> la
+    /// decide con R6 (<see cref="Procedure.TurnSpeed"/>).
+    /// </param>
     public static (IReadOnlyList<ProcedureLeg> Legs, string? Problem, IReadOnlyList<string> Warnings) DecodeWithWarnings(
         Procedure procedure, Func<string, Position?> point, Func<string, Station?> station, Runway? runway = null, double? aerodromeVariation = null,
-        string? initialClimb = null, Departure? departure = null, Func<string, Localizer?>? localizer = null)
+        string? initialClimb = null, Departure? departure = null, Func<string, Localizer?>? localizer = null, double? turnSpeed = null) =>
+        LeggiLaProsa(procedure, point, station, runway, aerodromeVariation, initialClimb, departure, localizer, turnSpeed, ramoDiviso: false);
+
+    /// <param name="ramoDiviso">
+    /// R7: la descrizione è già il ramo di una salita iniziale con la sua parte comune davanti, e non si divide di nuovo (dividerla
+    /// taglierebbe «turn left as soon as possible after take-off …» al decollo, LICR RWY 33).
+    /// </param>
+    private static (IReadOnlyList<ProcedureLeg> Legs, string? Problem, IReadOnlyList<string> Warnings) LeggiLaProsa(
+        Procedure procedure, Func<string, Position?> point, Func<string, Station?> station, Runway? runway, double? aerodromeVariation,
+        string? initialClimb, Departure? departure, Func<string, Localizer?>? localizer, double? turnSpeed, bool ramoDiviso)
     {
         ArgumentNullException.ThrowIfNull(procedure);
         ArgumentNullException.ThrowIfNull(point);
@@ -53,7 +66,7 @@ public static partial class ItalianAd2Prose
         bool EStazione(string n) => station(n) is not null;
         bool EConosciuto(string n) => station(n) is not null || point(n) is not null;
         // Una salita iniziale si legge per la sua parte comune (i rami sono per le SID, SC1).
-        var descrizione = procedure.Kind == ProcedureKind.InitialClimb && procedure.Description is { } d ? Dividi(d).Comune : procedure.Description;
+        var descrizione = procedure.Kind == ProcedureKind.InitialClimb && procedure.Description is { } d && !ramoDiviso ? Dividi(d).Comune : procedure.Description;
         var (ricucito, ricuciture) = Ricuci(descrizione, EStazione, EConosciuto, inizio);
         var testo = Route(ricucito);
         if (testo is null) return ([], "senza testo", []);
@@ -67,7 +80,7 @@ public static partial class ItalianAd2Prose
         }
         var lettore = new Lettore(testo, point, station, runway, dallaPista: procedure.Kind is ProcedureKind.Sid or ProcedureKind.InitialClimb,
             declinazioneDelloScalo: aerodromeVariation, decollo: departure, quoteMinime: procedure.Minimums + "\n" + procedure.Description,
-            localizzatore: localizer);
+            localizzatore: localizer, velocita: turnSpeed);
         var (tratti, problema) = lettore.Leggi(inizio, procedure.Kind == ProcedureKind.Sid ? procedure.Designator.Split(' ')[0] : null);
         // Passo 8 (committente: «per tutte le STAR»): le MEA a tratti delle minime.
         if (problema is null && procedure.Kind == ProcedureKind.Star) tratti = ConLeMea(tratti, procedure.Minimums, point, station);
@@ -149,6 +162,9 @@ public static partial class ItalianAd2Prose
             return "";
         });
         t = RxRottaColQdr().Replace(t, m => Stampa(m, $"(TR {m.Groups[1].Value}°)"));
+        // R7 (LIEE RWY 32): il testo italiano mescolato all'inglese, «on su track 300°», «track 105°. 300° until».
+        t = RxSuDavantiATrack().Replace(t, m => Stampa(m, "on track"));
+        t = RxDueRotteDiFila().Replace(t, m => Stampa(m, $"track {m.Groups[2].Value}°"));
         return (t, avvisi);
     }
 
@@ -247,10 +263,39 @@ public static partial class ItalianAd2Prose
             if (p.Kind is not (ProcedureKind.Sid or ProcedureKind.Star or ProcedureKind.Transition or ProcedureKind.InitialClimb)) return [p];
             var scalo = scali.FirstOrDefault(a => a.Icao == p.Aerodrome);
             var declinazione = DeclinazioneDelloScalo(scalo, scali);
-            (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) Decodifica(Procedure q, string? pista, string? salita) =>
-                DecodeWithWarnings(q, Punto, Stazione, Pista(scalo, pista), declinazione, salita, DecolloDi(q, scalo, pista), Localizzatore);
+            // R7: un ramo di una salita iniziale si legge così com'è (la parte comune e il ramo), senza dividerlo di nuovo.
+            (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi, VelocitaDelTesto Velocita) Decodifica(
+                Procedure q, string? pista, string? salita, string? ramo = null)
+            {
+                var velocita = VelocitaPer(q, pista, ramo ?? salita);
+                // La virata dopo il decollo è della salita iniziale: per una SID vale prima la velocità della salita (LIRQ dalla 05:
+                // «During initial climb IAS MAX 140 KT», anche se la SID dice 210 kt per le sue virate dopo).
+                var delDecollo = q.Kind == ProcedureKind.Sid ? VelocitaDellaSalita(q, pista, salita).Nodi ?? velocita.Nodi : velocita.Nodi;
+                var (tratti, problema, avvisi) = LeggiLaProsa(ramo is null ? q : q with { Description = ramo }, Punto, Stazione, Pista(scalo, pista), declinazione,
+                    salita, DecolloDi(q, scalo, pista), Localizzatore, delDecollo ?? VelocitaDelleSid, ramoDiviso: ramo is not null);
+                return (tratti, problema, avvisi, velocita);
+            }
             IReadOnlyList<string> PisteDi(Procedure q) =>
                 q.Runways.Count > 0 ? q.Runways : PistaDallaRotta(q, scalo, declinazione, null) is { } r ? [r] : [];
+            // R6: la velocità delle virate. Un ramo di una salita: il ramo, poi tutta la salita. Il resto: il suo testo e le sue
+            // REMARKS; una SID che non ne dice, quella della salita (committente, 1 novembre: le REMARKS della salita valgono anche
+            // per le SID della sua pista).
+            VelocitaDelTesto VelocitaPer(Procedure q, string? pista, string? continua)
+            {
+                if (q.Kind == ProcedureKind.InitialClimb && continua is not null && VelocitaNelTesto(continua) is { Nodi: not null } delRamo)
+                    return delRamo;
+                var propria = VelocitaNelTesto(q.Description, q.Remarks);
+                return propria != default || q.Kind != ProcedureKind.Sid ? propria : VelocitaDellaSalita(q, pista, continua);
+            }
+            // R6, per una SID: la salita che continua (la parte comune e il suo ramo), se no la sola salita della sua pista.
+            VelocitaDelTesto VelocitaDellaSalita(Procedure q, string? pista, string? continua)
+            {
+                if (continua is not null && VelocitaNelTesto(continua) is { Nodi: not null } dellaSalita) return dellaSalita;
+                if (pista is null) return default;
+                var dellaPista = salite[q.Aerodrome].Where(s => PisteDi(s).Contains(pista, StringComparer.Ordinal))
+                    .Select(s => VelocitaNelTesto(s.Description, s.Remarks)).Where(v => v != default).Distinct().ToList();
+                return dellaPista is [var una] ? una : default;
+            }
             // Passo 5: le pendenze delle salite iniziali valgono anche per le SID — quelle che le nominano («For LAKOX 7W, GITOD
             // 8W…», «if cleared via SID KOVAS 6D») e quelle senza nomi della salita della sua pista (della stessa pagina, se ce
             // n'è più d'una).
@@ -271,17 +316,39 @@ public static partial class ItalianAd2Prose
             }
             if (p.Kind == ProcedureKind.Sid) p = ConLePendenzeDelleSalite(p);
             if (p.Legs.Count > 0) return [p];
-            Procedure Letta(Procedure q, (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi) esito, params string[] dette)
+            Procedure Letta(Procedure q, (IReadOnlyList<ProcedureLeg> Tratti, string? Problema, IReadOnlyList<string> Avvisi, VelocitaDelTesto Velocita) esito, params string[] dette)
             {
                 var avvisi = esito.Avvisi.Concat(dette).Concat(QuoteFuoriDalPercorso(q, esito.Tratti, n => Punto(n) ?? Stazione(n)?.Position)).ToList();
+                // R6: con due velocità e nessuna «during turn» si resta a quella di base, e si dice.
+                if (esito.Velocita.Diverse is { } diverse)
+                    avvisi.Add($"la IAS MAX non è una sola ({diverse} kt) e nessuna è «during turn»: le virate sono disegnate a {(q.Kind is ProcedureKind.Sid or ProcedureKind.InitialClimb ? VelocitaDelleSid : 220):0} kt");
                 approssimate.AddRange(avvisi.Select(a => (q, a)));
-                return q with { Legs = esito.Tratti, LegsFromDescription = true };
+                return q with { Legs = esito.Tratti, LegsFromDescription = true, TurnSpeed = esito.Velocita.Nodi };
             }
 
             // SC1: la salita iniziale ha i suoi tratti, se ha un percorso (alcune sono solo avvertenze e pendenze).
             if (p.Kind == ProcedureKind.InitialClimb)
             {
                 if (!HaUnPercorso(p.Description)) return [p];
+                // R7: coi rami per SID che hanno un percorso, una salita per ramo, la parte comune davanti. I rami che dicono solo una
+                // pendenza («304 ft/NM (5,0%)», LIPX RWY 04) non sono salite: la salita resta una.
+                var divisa = Dividi(p.Description!);
+                if (divisa.Rami.Where(r => RamoDiPercorso(r.Testo)).ToList() is { Count: > 0 } rami)
+                    return [.. rami.Select(r =>
+                    {
+                        var delRamo = p with { Designator = $"{p.Designator} per {NomeDelRamo(r.Condizione)}" };
+                        var pista = PisteDi(p).FirstOrDefault();
+                        var esito = Decodifica(delRamo, pista, null, $"{divisa.Comune} {r.Testo}".Trim());
+                        if (esito.Problema is null) return Letta(delRamo, esito);
+                        // Un ramo che finisce su una rotta senza un punto è aperto: lo continua la SID, come una salita (sotto).
+                        if (esito.Problema == "nessun punto") return delRamo;
+                        // Un ramo che non si legge («until joining ARC 8NM RIM DME», «then expect ATC instruction»): la parte
+                        // comune, come prima di R7, e si dice.
+                        var comune = Decodifica(delRamo, pista, null);
+                        if (comune.Problema is null) return Letta(delRamo, comune, $"il ramo non si legge ({esito.Problema}): disegnata la sola parte comune");
+                        if (comune.Problema is not ("nessun punto" or "senza testo")) nonLette.Add((delRamo, esito.Problema));
+                        return delRamo;
+                    })];
                 var salita = Decodifica(p, PisteDi(p).FirstOrDefault(), null);
                 if (salita.Problema is null) return [Letta(p, salita)];
                 // Una salita senza un punto suo («After take off proceed on track 135°», LIEE RWY 14) è aperta: la continua la SID.
@@ -742,7 +809,8 @@ public static partial class ItalianAd2Prose
     public sealed record Localizer(Position Antenna, double TrueCourse, double Variation);
 
     private sealed class Lettore(string testo, Func<string, Position?> punto, Func<string, Station?> stazione, Runway? pista, bool dallaPista = false,
-        double? declinazioneDelloScalo = null, Departure? decollo = null, string? quoteMinime = null, Func<string, Localizer?>? localizzatore = null)
+        double? declinazioneDelloScalo = null, Departure? decollo = null, string? quoteMinime = null, Func<string, Localizer?>? localizzatore = null,
+        double? velocita = null)
     {
         private readonly List<ProcedureLeg> _tratti = [];
 
@@ -1452,7 +1520,8 @@ public static partial class ItalianAd2Prose
         {
             var verso = Sphere.Normalize(tr + v);
             var destra = _virata == "R" || (_virata != "L" && Sphere.Normalize(verso - pista!.TrueBearing) < 180);
-            var nodi = RxIasMax().Match(testo) is { Success: true } m ? double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) : VelocitaDelleSid;
+            // R6: quella decisa per la procedura (anche dalle REMARKS, o dalla salita della pista); senza, la prima del testo.
+            var nodi = velocita ?? (RxIasMax().Match(testo) is { Success: true } m ? double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) : VelocitaDelleSid);
             var raggio = RaggioDiVirata(nodi);
             var centro = Sphere.Destination(fine, pista!.TrueBearing + (destra ? 90 : -90), raggio);
             var uscita = Sphere.Destination(centro, verso + (destra ? -90 : 90), raggio);

@@ -195,7 +195,7 @@ public static partial class ProcedureNelSector
                 var dopo = i + 1 < voci.Count ? voci[i + 1].Tratto : null;
                 var prosa = v.Di.LegsFromDescription;
                 return new CurveDelleProcedure.Vertice(v.Punto!.Value, v.Nome is not null, v.Fisso || !prosa, dopo?.Turn,
-                    prosa ? CurveDelleProcedure.Raggio(CurveDelleProcedure.Velocita(v.Di.Kind, v.Tratto, dopo)) : 0, CurveDelleProcedure.RottaVera(dopo));
+                    prosa ? CurveDelleProcedure.Raggio(CurveDelleProcedure.Velocita(v.Di.Kind, v.Tratto, dopo, v.Di.TurnSpeed)) : 0, CurveDelleProcedure.RottaVera(dopo));
             }).ToList())
             : voci.Select((v, i) => new CurveDelleProcedure.Tappa(v.Punto ?? default, i)).ToList();
 
