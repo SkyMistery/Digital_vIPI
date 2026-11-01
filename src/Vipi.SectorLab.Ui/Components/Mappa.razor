@@ -173,6 +173,25 @@
         }
         _evidenziataRifatta = false;
 
+        // F9 (carta «L'editor sulla mappa», R1): le maniglie del record scelto, solo sulla mappa del Sector. Si rimandano
+        // quando cambiano (un gesto, annulla, un'altra scelta): sono i vertici di un record, poche centinaia al più.
+        if (Spazio is SpazioDiLavoro.Sector)
+        {
+            var maniglie = Lab.Maniglie();
+            string firma = string.Join('|', maniglie.Select(m => FormattableString.Invariant($"{m.Campo}:{m.Posizione}:{m.Lat:R}:{m.Lon:R}:{m.PerNome}")));
+            bool rimandate = firma != _firmaDelleManiglie;
+            if (rimandate)
+            {
+                _firmaDelleManiglie = firma;
+                await Js.InvokeAsync<int>("sectorlab.mappa.maniglie", maniglie, Elemento);
+            }
+            if (rimandate || _indicato != Lab.VerticeIndicato)
+            {
+                _indicato = Lab.VerticeIndicato;
+                await Js.InvokeVoidAsync("sectorlab.mappa.indica", _indicato?.Campo, _indicato?.Posizione ?? 0, Elemento);
+            }
+        }
+
         // S3 (carta «Gli aeroporti nel Lab»): la carta posata e il punto della posa da prendere, solo sulla mappa dell'AIP.
         if (Spazio is SpazioDiLavoro.Aip)
         {
@@ -199,6 +218,18 @@
             }
         }
     }
+
+    private string _firmaDelleManiglie = "";
+    private (string Campo, int Posizione)? _indicato;
+
+    /// <summary>F9 (R2): una maniglia lasciata sulla mappa. Falso = rifiutato (la maniglia torna dov'era).</summary>
+    [JSInvokable]
+    public bool VerticeDallaMappa(string campo, int posizione, double lat, double lon)
+        => Lab.VerticeDallaMappa(campo, posizione, lat, lon);
+
+    /// <summary>F9 (R1): Esc con le maniglie accese.</summary>
+    [JSInvokable]
+    public void SpegniLaModifica() => Lab.ModificaSullaMappaDi(false);
 
     private int _versioneDelTracciato;
     private int _versioneDellaCarta;

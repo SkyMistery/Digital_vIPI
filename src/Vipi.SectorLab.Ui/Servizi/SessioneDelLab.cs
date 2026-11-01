@@ -614,6 +614,9 @@ public sealed partial class SessioneDelLab
 
         SceltaDellAip = null;
         Scelta = file is null ? null : (file, record);
+        // F9 (R1): le maniglie erano di un altro record, e tornandoci restano spente.
+        if (_modificaSullaMappa != Scelta)
+            _modificaSullaMappa = null;
         RigaSegnalata = null;
         // La nota «forma portata anche su…» (slice 8c) era del gesto di prima, su un altro record.
         FormaPortata = null;

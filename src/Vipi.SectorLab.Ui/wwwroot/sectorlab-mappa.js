@@ -259,6 +259,68 @@
         stato.carta = null;
     }
 
+    /// F9 (carta «L'editor sulla mappa»): le maniglie del record scelto. Marcatori di Leaflet (DOM, sopra la tela): sono i
+    /// vertici di UN record, al più qualche centinaio, e Leaflet sa già trascinarli.
+    function togliLeManiglie(stato) {
+        if (stato.maniglie) { stato.mappa.removeLayer(stato.maniglie.gruppo); stato.maniglie = null; }
+        stato.indicata = null;
+        if (stato.traccia) { stato.mappa.removeLayer(stato.traccia); stato.traccia = null; }
+    }
+
+    function icona(perNome) {
+        return L.divIcon({ className: 'lab-maniglia' + (perNome ? ' lab-maniglia-nome' : ''), iconSize: [12, 12] });
+    }
+
+    /// I vicini nello stesso elenco: mentre si trascina, i due tratti che toccano il vertice si vedono tratteggiati (R2).
+    function vicini(stato, m) {
+        var elenco = stato.maniglie.perCampo[m.campo] || {};
+        return [elenco[m.posizione - 1], elenco[m.posizione + 1]];
+    }
+
+    function trascinaLaManiglia(stato, m, marcatore) {
+        var partenza = marcatore.getLatLng();
+        marcatore.on('dragstart', function () {
+            stato.trascina = true;
+            if (stato.traccia) stato.mappa.removeLayer(stato.traccia);
+            stato.traccia = L.polyline([], { color: token('--lab-evidenza', '#e26e17'), weight: 2, dashArray: '6,4', interactive: false })
+                .addTo(stato.mappa);
+        });
+        marcatore.on('drag', function () {
+            var v = vicini(stato, m), qui = marcatore.getLatLng(), tratti = [];
+            if (v[0]) tratti.push([v[0].getLatLng(), qui]);
+            if (v[1]) tratti.push([qui, v[1].getLatLng()]);
+            if (stato.traccia) stato.traccia.setLatLngs(tratti);
+        });
+        marcatore.on('dragend', function () {
+            stato.trascina = false;
+            if (stato.traccia) { stato.mappa.removeLayer(stato.traccia); stato.traccia = null; }
+            var dove = marcatore.getLatLng();
+            if (stato.chiusa || !stato.riferimento) return;
+            // Maniglie nuove arrivate durante il trascinamento (un gesto dall'altra finestra): adesso si mettono, e il
+            // gesto parte lo stesso — il Lab lo rifiuta se quel vertice non c'è più.
+            if (stato.maniglieInAttesa) {
+                var attese = stato.maniglieInAttesa;
+                stato.maniglieInAttesa = null;
+                window.sectorlab.mappa.maniglie(attese, stato.id);
+            }
+            // Un gesto solo, al rilascio. Fatto: il Lab rimanda le maniglie dove sono adesso. Rifiutato: la maniglia torna
+            // dov'era, e il motivo sta nella Scheda accanto all'elenco.
+            stato.riferimento.invokeMethodAsync('VerticeDallaMappa', m.campo, m.posizione, dove.lat, dove.lng)
+                .then(function (fatto) { if (!fatto) marcatore.setLatLng(partenza); },
+                      function () { marcatore.setLatLng(partenza); });
+        });
+    }
+
+    // Esc spegne le maniglie (R1), come il loro tasto. Un ascoltatore solo, per tutte le mappe.
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        for (var chiave in mappe) {
+            var stato = mappe[chiave];
+            if (stato && stato.maniglie && !stato.trascina && stato.riferimento)
+                stato.riferimento.invokeMethodAsync('SpegniLaModifica').catch(function () { /* il circuito se n'è andato */ });
+        }
+    });
+
     window.sectorlab = window.sectorlab || {};
     window.sectorlab.mappa = {
         /// Crea la mappa nell'elemento dato e tiene il riferimento al componente, per le scelte col clic.
@@ -275,7 +337,7 @@
                 maxZoom: 20                  // un pixel ≈ 11 cm, come i sei decimali delle coordinate (MappaDelLab)
             }).setView([42.0, 12.5], 6);
 
-            var stato = mappe[elemento] = { mappa: mappa, riferimento: riferimento, strati: {}, evidenza: null, forme: {}, aurora: false,
+            var stato = mappe[elemento] = { id: elemento, mappa: mappa, riferimento: riferimento, strati: {}, evidenza: null, forme: {}, aurora: false,
                                             sfondo: null, simboli: [], immagini: {} };
             // Il riquadro della mappa cambia misura quando i pannelli vanno nell'altra finestra (e tornano): Leaflet
             // non se ne accorge da solo, e disegnerebbe solo nella parte che aveva prima.
@@ -566,6 +628,42 @@
                 stato.suPresa = function (e) { if (stato.prende) presa(stato, e.latlng.lat, e.latlng.lng, null); };
                 stato.mappa.on('click', stato.suPresa);
             }
+        },
+
+        /// F9 (R1, R2): le maniglie dei vertici del record scelto — [{ campo, posizione, lat, lon, perNome }], vuoto le
+        /// toglie. Un vertice scritto col nome ha una maniglia vuota che non si trascina (R6: lo sposta solo la calamita).
+        maniglie: function (elenco, elemento) {
+            var stato = prendi(elemento);
+            if (!stato) return 0;
+            // 🔴 Mai sotto il dito: rifatte a metà trascinamento, la maniglia presa sparirebbe e il gesto con lei.
+            if (stato.trascina) { stato.maniglieInAttesa = elenco || []; return 0; }
+            togliLeManiglie(stato);
+            if (!elenco || !elenco.length) return 0;
+            var gruppo = L.layerGroup(), perCampo = {};
+            for (var i = 0; i < elenco.length; i++) {
+                var m = elenco[i];
+                var marcatore = L.marker([m.lat, m.lon], {
+                    icon: icona(m.perNome), draggable: !m.perNome, autoPan: true, keyboard: false, zIndexOffset: 1000,
+                    title: (m.posizione + 1) + (m.perNome ? ' — è il nome di un punto: non si trascina' : '')
+                });
+                // Il clic su una maniglia non sceglie la forma che c'è sotto.
+                marcatore.on('click', function (e) { L.DomEvent.stop(e); });
+                if (!m.perNome) trascinaLaManiglia(stato, m, marcatore);
+                (perCampo[m.campo] = perCampo[m.campo] || {})[m.posizione] = marcatore;
+                gruppo.addLayer(marcatore);
+            }
+            gruppo.addTo(stato.mappa);
+            stato.maniglie = { gruppo: gruppo, perCampo: perCampo };
+            return elenco.length;
+        },
+
+        /// R7: la maniglia del vertice che il mouse indica nella Scheda (campo null: nessuna).
+        indica: function (campo, posizione, elemento) {
+            var stato = prendi(elemento);
+            if (!stato || !stato.maniglie) return;
+            if (stato.indicata && stato.indicata.getElement()) L.DomUtil.removeClass(stato.indicata.getElement(), 'lab-maniglia-indicata');
+            stato.indicata = campo === null ? null : (stato.maniglie.perCampo[campo] || {})[posizione] || null;
+            if (stato.indicata && stato.indicata.getElement()) L.DomUtil.addClass(stato.indicata.getElement(), 'lab-maniglia-indicata');
         },
 
         /// I colori della mappa: di Aurora (col fondo dello schermo radar) o del Lab. Le forme hanno già tutti e due.

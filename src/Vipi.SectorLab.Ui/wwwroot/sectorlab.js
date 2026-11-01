@@ -38,6 +38,13 @@
             return true;
         },
 
+        /// F9 (R7): porta in vista dentro il suo elenco l'elemento scelto (il vertice appena mosso sulla mappa). Solo
+        /// quanto basta: un elenco già in vista non si muove.
+        inVista: function (selettore) {
+            var elemento = document.querySelector(selettore);
+            if (elemento && elemento.scrollIntoView) elemento.scrollIntoView({ block: 'nearest' });
+        },
+
         /// Il tasto del tema: automatico → chiaro → scuro (sectorlab-tema.js, caricato nel <head>).
         cambiaTema: function () { if (window.sectorlabTema) window.sectorlabTema.cambia(); },
 

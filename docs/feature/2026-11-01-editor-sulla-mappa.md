@@ -1,8 +1,9 @@
 # L'editor sulla mappa — F9 (1 novembre 2026)
 
 Filone Sector Lab. È la **F9** del piano della carta [«Aurora Sector Lab»](2026-09-18-aurora-sector-lab.md) §7
-(«trascinare i vertici sulla mappa»), che finora non aveva una carta sua. **Da approvare**: regole proposte in §2,
-domande in §3.
+(«trascinare i vertici sulla mappa»), che finora non aveva una carta sua. **Approvata il 1 novembre come proposta**
+(«Sì, vai»): regole R1-R9 di §2, e le quattro domande di §3 con le risposte proposte (D1 solo la calamita, D2 alla F8,
+D3 e D4 dopo).
 
 ## §0 — La domanda
 
@@ -74,3 +75,25 @@ Il committente, 1 novembre: «andiamo con l'editor grafico?», nel Lab.
 4. Ridisegno della sola forma, misurato (R9).
 
 Ogni fetta: test bUnit dei gesti (la mappa vista dal circuito), prova sul banco a schermo, voci in `PROVE.md`.
+
+## §5 — Fetta 1, fatta (1 novembre, sera)
+
+- **Servizio** (`SessioneDelLab.Maniglie.cs`): `ModificaSullaMappaDi` accende le maniglie sul record scelto (solo se ha
+  vertici); `Maniglie()` le dà con la posizione di adesso — i vertici col nome al posto del loro punto nel catalogo del
+  master scelto, un nome che il catalogo non conosce senza maniglia; della Linea di un `.geo` solo i punti intorno al
+  segmento scelto, come la Scheda (`IntornoDellaLinea`, ora uno solo). `VerticeDallaMappa` fa il gesto `Cambia` di
+  `GestoSuiVertici` con la coordinata scritta da `CoordinateConverter.ToDottedDms`: storia, copie uguali e diff sono
+  quelli della Scheda. Rifiuta un vertice col nome (R6, finché non c'è la calamita) e un posto fuori dal mondo.
+  Scegliere un altro record spegne le maniglie, e tornandoci restano spente.
+- **Mappa** (`sectorlab-mappa.js`, `Mappa.razor`): marcatori di Leaflet trascinabili (DOM sopra la tela: sono i
+  vertici di un record), i due tratti vicini tratteggiati durante il trascinamento, un gesto al rilascio; rifiutato, la
+  maniglia torna dov'era. Il componente rimanda le maniglie quando cambiano (firma di campo, posizione e coordinate):
+  un gesto, annulla e ripeti le fanno seguire da sole. Maniglie che arrivano a metà trascinamento aspettano il rilascio.
+  Esc le spegne.
+- **Scheda**: il tasto «✎ Modifica sulla mappa» in testa alla Geometria; il vertice mosso dalla mappa segnato
+  nell'elenco e portato in vista (`sectorlab.inVista`); il mouse su un vertice accende la sua maniglia; il rifiuto
+  accanto all'elenco, come per i tasti.
+- **Prove**: 8 test (`EditorSullaMappaTests`), suite del Lab 1540. Sul banco: LIBB_FSS 48 maniglie, trascinato col
+  mouse il vertice 20 → «vertice spostato» e la forma portata sulle due copie uguali (l'altro LIBB_FSS, BB FIC);
+  Ctrl+Z la rimette; Esc spegne; LIBB_ES_CTR 52 maniglie, 36 col nome tratteggiate e ferme. Non visto: la finestra
+  dei pannelli staccata (il mouse sulla Scheda dall'altra finestra), la Linea di un `.geo` a schermo.

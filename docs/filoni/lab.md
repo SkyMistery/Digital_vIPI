@@ -4,11 +4,13 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-**1 novembre: la carta «L'editor sulla mappa»** ([`2026-11-01-editor-sulla-mappa.md`](../feature/2026-11-01-editor-sulla-mappa.md)),
-da approvare. È la F9 del piano («trascinare i vertici sulla mappa»), chiesta dal committente («andiamo con l'editor
-grafico?»). Proposte R1-R9: le maniglie sul solo record scelto, e ogni trascinamento è uno dei gesti della Geometria
-che ci sono già (spostato, aggiunto, tolto), con storia, copie uguali e diff di oggi; calamita sui punti accesi; il
-vertice col nome si sposta solo su un altro nome. Quattro domande (D1-D4). Nessun codice.
+**1 novembre: la carta «L'editor sulla mappa»** ([`2026-11-01-editor-sulla-mappa.md`](../feature/2026-11-01-editor-sulla-mappa.md)).
+È la F9 del piano («trascinare i vertici sulla mappa»), chiesta dal committente («andiamo con l'editor grafico?»).
+Regole R1-R9: le maniglie sul solo record scelto, e ogni trascinamento è uno dei gesti della Geometria che ci sono già
+(spostato, aggiunto, tolto), con storia, copie uguali e diff di oggi; calamita sui punti accesi; il vertice col nome si
+sposta solo su un altro nome. Approvata la sera stessa come proposta («Sì, vai»: D1 solo la calamita, D2 alla F8, D3 e
+D4 dopo). **Fetta 1 fatta** (carta §5): il tasto «✎ Modifica sulla mappa» nella Geometria, maniglie trascinabili, un
+gesto «vertice spostato» al rilascio, la Scheda che segue, Esc. Nessun codice comune. Prove A110-A112.
 
 **31 ottobre: la Scheda per gruppi, seconda parte** (D5 della carta del riordino, ferma «al via» dal 21 ottobre; il
 committente non poteva ancora fare le prove A75-A91 e ha detto «Sì, vai»). La Linea di un `.geo` ha lo stesso editor dei

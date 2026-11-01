@@ -2874,6 +2874,37 @@ body.lab-trascina * {
     cursor: crosshair !important;
 }
 
+/* F9 (carta «L'editor sulla mappa»): le maniglie dei vertici del record scelto. Piene si trascinano; vuote e tratteggiate
+   sono i vertici scritti col nome di un punto (R6). Quella che il mouse indica nella Scheda si vede di più (R7). */
+.lab-maniglia {
+    box-sizing: border-box;
+    border: 2px solid var(--lab-evidenza);
+    border-radius: 50%;
+    background: var(--lab-superficie);
+    cursor: move;
+}
+
+.lab-maniglia-nome {
+    border-style: dashed;
+    background: transparent;
+    cursor: not-allowed;
+}
+
+.lab-maniglia.lab-maniglia-indicata {
+    background: var(--lab-evidenza);
+    outline: 3px solid color-mix(in srgb, var(--lab-evidenza) 35%, transparent);
+}
+
+/* R7: nell'elenco della Geometria, il vertice appena mosso dalla mappa. */
+.lab-vertice-dalla-mappa .lab-numero {
+    color: var(--lab-evidenza);
+    font-weight: 700;
+}
+
+.lab-vertice-dalla-mappa .lab-campo {
+    border-color: var(--lab-evidenza);
+}
+
 /* S5: la casella del ground sopra la carta, e le eccezioni dello scalo sotto i controlli del ground. */
 .lab-campo-in-riga {
     display: flex;

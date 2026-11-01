@@ -1,5 +1,6 @@
 @implements IDisposable
 @inject SessioneDelLab Lab
+@inject IJSRuntime Js
 
 @*
     L'ispettore in lettura (carta F3 §2.2 passo 3, slice 5): i campi del record e, sotto, le righe del file com'è sul
@@ -210,6 +211,16 @@
 
         <section class="lab-gruppo-scheda" data-gruppo="geometria">
         <h3 class="lab-gruppo-titolo">Geometria</h3>
+        @* F9 (carta «L'editor sulla mappa», R1): le maniglie sui vertici di questo record, sulla mappa del Sector. *@
+        @if (Lab.HaVerticiDaMuovere(scheda.File, scheda.Indice))
+        {
+            <p class="lab-gesti-vertici">
+                <button class="lab-tasto @(Lab.ModificaSullaMappa ? "lab-tasto-acceso" : "lab-tasto-tenue")" data-modifica-sulla-mappa="@(Lab.ModificaSullaMappa ? "accesa" : "spenta")"
+                        aria-pressed="@(Lab.ModificaSullaMappa ? "true" : "false")"
+                        title="@(Lab.ModificaSullaMappa ? "Toglie le maniglie dalla mappa (anche Esc)" : "Mette sulla mappa una maniglia per vertice: trascinandola sposti il vertice (un gesto, come nell'elenco)")"
+                        @onclick="() => Lab.ModificaSullaMappaDi(!Lab.ModificaSullaMappa)">✎ Modifica sulla mappa</button>
+            </p>
+        }
         @* Una forma semplice ha un elenco solo; una zona a più tratti ne ha uno per tratto (slice 7-bis). *@
         @* Slice 5a: un elenco vuoto accanto a uno pieno è l'altra forma del record (le righe L di un'aerovia fatta di
            righe T): non si mostra. Un record con gli elenchi tutti vuoti li mostra, per poterli incollare. *@
@@ -253,7 +264,9 @@
                 @for (int i = da; i <= finoA; i++)
                 {
                     int posizione = i;
-                    <div class="lab-vertice @(linea is not null && (posizione == qui || posizione == qui + 1) ? "lab-vertice-scelto" : null)">
+                    @* R7: il vertice mosso dalla mappa si vede qui; il mouse su un vertice ne accende la maniglia. *@
+                    <div class="lab-vertice @(linea is not null && (posizione == qui || posizione == qui + 1) ? "lab-vertice-scelto" : null) @(DallaMappa(chiave, posizione) ? "lab-vertice-dalla-mappa" : null)"
+                         @onmouseenter="() => Indica(chiave, posizione)" @onmouseleave="() => Indica(null, 0)">
                         <span class="lab-numero">@(posizione + 1)</span>
                         @if (elenco.AmmetteNomi)
                         {
@@ -688,8 +701,8 @@ else
         return (tutti.Any(e => e.Quanti > 0) ? tutti.Where(e => e.Quanti > 0) : tutti).Select(e => (e.Chiave, e.Nome, e.AmmetteNomi));
     }
 
-    /// <summary>Quanti punti di una linea di un <c>.geo</c> si vedono prima e dopo il segmento scelto.</summary>
-    private const int IntornoDellaLinea = 20;
+    /// <summary>Quanti punti di una linea di un <c>.geo</c> si vedono prima e dopo il segmento scelto (anche le maniglie sulla mappa).</summary>
+    private const int IntornoDellaLinea = SessioneDelLab.IntornoDellaLinea;
 
     private void Gesto(SchedaDelRecord scheda, string campo, GestoDeiVertici gesto, int posizione, string? testo = null)
     {
@@ -716,7 +729,33 @@ else
     private string? RifiutoNellElenco(SchedaDelRecord scheda)
         => _gestoNellElenco is { } g && g.File == scheda.File && g.Record == scheda.Indice && ReferenceEquals(g.Rifiuto, Lab.Rifiuto)
             ? g.Campo
-            : null;
+            // F9: un vertice lasciato sulla mappa e rifiutato — il motivo accanto al suo elenco, come per i tasti.
+            : Lab.UltimoDallaMappa is { Rifiuto: { } r } m && m.File == scheda.File && m.Record == scheda.Indice && ReferenceEquals(r, Lab.Rifiuto)
+                ? m.Campo
+                : null;
+
+    /// <summary>R7: il vertice appena mosso dalla mappa (fatto o rifiutato).</summary>
+    private bool DallaMappa(string campo, int posizione)
+        => Lab.ModificaSullaMappa && Lab.UltimoDallaMappa is { } m && m.Campo == campo && m.Posizione == posizione;
+
+    // Il passaggio del mouse conta solo con le maniglie accese: senza, non c'è niente da accendere sulla mappa.
+    private void Indica(string? campo, int posizione)
+    {
+        if (Lab.ModificaSullaMappa)
+            Lab.IndicaIlVertice(campo, posizione);
+    }
+
+    /// <summary>L'ultimo vertice dalla mappa portato in vista nell'elenco: lo si porta una volta per gesto.</summary>
+    private GestoDallaMappa? _portatoInVista;
+
+    protected override async Task OnAfterRenderAsync(bool primo)
+    {
+        if (Lab.UltimoDallaMappa is { } m && !ReferenceEquals(m, _portatoInVista))
+        {
+            _portatoInVista = m;
+            await Js.InvokeVoidAsync("sectorlab.inVista", ".lab-vertice-dalla-mappa");
+        }
+    }
 
     /// <summary>I gradi fra due punti d'arco scritti dall'AOD, per QUEL record; null = la stima del Lab.</summary>
     private double? _gradi;
