@@ -119,7 +119,7 @@ public static partial class CurveDelleProcedure
             if (b.RottaDopo is { } rotta && Intercetta(piano, ux, uy, cx, cy, rotta, b.Verso, b.RaggioNm) is { } presa)
             {
                 uscita.Add(new Tappa(b.Punto, i));
-                uscita.AddRange(presa.Select(p => new Tappa(p, null)));
+                uscita.AddRange(DopoIlVertice(presa, b.Punto).Select(p => new Tappa(p, null)));
                 continue;
             }
             var corta = Math.Atan2(ux * wy - uy * wx, ux * wx + uy * wy) * 180 / Math.PI;   // >0 a sinistra
@@ -136,10 +136,17 @@ public static partial class CurveDelleProcedure
                 continue;
             }
             uscita.Add(new Tappa(b.Punto, i));
-            uscita.AddRange(Sorvolo(piano, ux, uy, cx, cy, destra, b.RaggioNm).Select(p => new Tappa(p, null)));
+            uscita.AddRange(DopoIlVertice(Sorvolo(piano, ux, uy, cx, cy, destra, b.RaggioNm), b.Punto).Select(p => new Tappa(p, null)));
         }
         return uscita;
     }
+
+    /// <summary>
+    /// La curva che parte dal vertice senza il suo primo punto, che è il vertice stesso: nel sector sarebbe una riga doppia
+    /// («LMT;LMT;» e subito la coordinata di LMT; banco, 1 novembre).
+    /// </summary>
+    private static IEnumerable<Position> DopoIlVertice(List<Position> curva, Position vertice) =>
+        curva.Count > 0 && Math.Abs(curva[0].Lat - vertice.Lat) < 1e-9 && Math.Abs(curva[0].Lon - vertice.Lon) < 1e-9 ? curva.Skip(1) : curva;
 
     /// <summary>L'arco tangente ai due tratti (fly-by); il raggio si stringe se il tratto più corto non basta.</summary>
     private static List<Position>? Raccordo(Piano piano, double ux, double uy, double wx, double wy, double virata, bool destra, double raggio, double posto)

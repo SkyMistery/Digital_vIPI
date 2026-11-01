@@ -41,6 +41,26 @@ public sealed class PosaSullaMappa
     /// <summary>Lo scarto più grande fra un punto della posa e dove la posa lo mette, in miglia; null con due o tre punti (lì è zero).</summary>
     public double? ScartoMassimoNm { get; }
 
+    /// <summary>
+    /// Quanto la posa allunga la carta in un verso rispetto all'altro: 1 è una carta conforme (con due punti lo è sempre), 1,5
+    /// la stira del 50%. Una carta vera resta vicina a 1; molto di più, con tre punti, vuol dire un punto fuori posto — tre punti
+    /// raddrizzano qualunque cosa e lo scarto non c'è ancora (banco, 1 novembre: l'ARP disegnato di LIRN, 290 m dal suo).
+    /// </summary>
+    public double Allungamento
+    {
+        get
+        {
+            // I due valori singolari della parte lineare [[A, B], [D, E]]: il loro rapporto.
+            double somma = _a * _a + _b * _b + _d * _d + _e * _e, det = Math.Abs(_a * _e - _b * _d);
+            var radice = Math.Sqrt(Math.Max(0, somma * somma - 4 * det * det));
+            double grande = Math.Sqrt((somma + radice) / 2), piccolo = Math.Sqrt(Math.Max(0, (somma - radice) / 2));
+            return piccolo <= 0 ? double.PositiveInfinity : grande / piccolo;
+        }
+    }
+
+    /// <summary>Oltre questo allungamento la posa avvisa che un punto è forse fuori posto.</summary>
+    public const double AllungamentoSospetto = 1.2;
+
     /// <summary>La posa dai punti, o null se non bastano (meno di due, due nello stesso posto, tre in fila).</summary>
     public static PosaSullaMappa? Da(IReadOnlyList<PuntoDellaPosa> punti)
     {

@@ -126,6 +126,18 @@ public sealed class CarteDiAvvicinamentoTests
     }
 
     [Fact]
+    public void LePagineDiTesto_NonSonoDisegni()
+    {
+        // Banco, 1 novembre: il «posa…» c'era anche sulle tabelle delle SID, delle STAR e dei parcheggi.
+        Assert.True(PagineDegliScali.DiTesto("STAR RWY24 RNAV1 OR RNP1 DESCRIPTION TABLES"));
+        Assert.True(PagineDegliScali.DiTesto("AIRCRAFT PARKING DOCKING CHART ICAO ­ DESCRIPTION TABLES"));
+        Assert.True(PagineDegliScali.DiTesto("ILS X RWY 05 CAT A/B/C TABULAR DESCRIPTION"));
+        Assert.True(PagineDegliScali.DiTesto("STAR LMT VOR RWY 28 description"));
+        Assert.False(PagineDegliScali.DiTesto("AERODROME CHART ICAO"));
+        Assert.False(PagineDegliScali.DiTesto("STANDARD INSTRUMENT DEPARTURE CHART (SID) RNAV1"));
+    }
+
+    [Fact]
     public void LeTabelle_TrovanoLaCarta_ColTrattinoMorbidoEColPdfInCoda()
     {
         // LIMC 5-27/5-29 e LIBC 5-7/5-9 sul 2611: i due titoli differiscono solo per la stampa.

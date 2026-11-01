@@ -281,12 +281,13 @@
                                     }
                                 </td>
                                 <td>
-                                    @* S3: si posa la carta (la prima pagina); le DESCRIPTION TABLES no, sono tabelle della loro carta. *@
+                                    @* S3: si posa la carta (la prima pagina); le DESCRIPTION TABLES no, sono tabelle della loro carta. Né le
+                                       pagine di testo delle SID, STAR e parcheggi. *@
                                     @if (c.Iap is { } suaCarta && ReferenceEquals(suaCarta.Carta, c.Carta))
                                     {
                                         <button type="button" class="lab-voce" data-posa-dalla-tabella="@c.Carta.Page" @onclick="() => ApriLaCarta(suaCarta)">@(posata ? "posata" : "posa…")</button>
                                     }
-                                    else if (c.Iap is null)
+                                    else if (c.Iap is null && !PagineDegliScali.DiTesto(c.Carta.Title))
                                     {
                                         <button type="button" class="lab-voce" data-posa-dalla-tabella="@c.Carta.Page" @onclick="() => ApriIlFoglio(c.Carta)">@(posata ? "posata" : "posa…")</button>
                                     }

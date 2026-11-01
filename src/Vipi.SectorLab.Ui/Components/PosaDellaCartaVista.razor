@@ -39,6 +39,11 @@
             var sulla = posa.Posa;
             double larghezza = Base * _zoom, altezza = larghezza * posa.Immagine.AltezzaInPunti / posa.Immagine.LarghezzaInPunti;
             <p class="lab-nota @(sulla is null ? "lab-stato-parziale" : null)" data-stato-posa>@Stato(posa, sulla)</p>
+            @if (sulla is not null && posa.Punti.Count >= 3 && sulla.Allungamento > PosaSullaMappa.AllungamentoSospetto)
+            {
+                <p class="lab-nota lab-stato-parziale" data-posa-stirata>I punti non stanno insieme: la carta è stirata, un verso è @Volte(sulla.Allungamento)
+                    l'altro. Un punto è forse fuori posto (sul disegno, o sulla mappa): toglilo e riprova, o aggiungine un altro per vedere lo scarto.</p>
+            }
             @if (posa.DiUnAltraData)
             {
                 <p class="lab-nota lab-stato-parziale" data-posa-altra-data>La posa è stata fatta sulla pagina del @Data(posa.DataPosata); questa è del @Data(posa.Carta.Effective). Guarda che i punti tornino, poi salva.</p>
@@ -216,6 +221,10 @@
     }
 
     private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    /// <summary>«1,8 volte», oltre dieci «più di dieci volte».</summary>
+    private static string Volte(double allungamento) =>
+        allungamento > 10 ? "più di dieci volte" : allungamento.ToString("0.0", Italiano) + " volte";
 
     private static string Posto(double x, double y, PosaInCorso posa) =>
         $"left:{Px(100 * x / posa.Immagine.LarghezzaInPunti)}%;top:{Px(100 * y / posa.Immagine.AltezzaInPunti)}%";

@@ -101,6 +101,25 @@ public sealed class PosaDellaCartaTests
     }
 
     [Fact]
+    public void Tre_punti_con_uno_fuori_posto_stirano_la_carta()
+    {
+        // Banco, 1 novembre: l'ARP disegnato di LIRN sta a ~290 m dal suo, e con le due soglie la carta si stirava senza avviso.
+        var nota = PosaSullaMappa.Da([
+            new PuntoDellaPosa(0, 0, 40.90, 14.28),
+            new PuntoDellaPosa(500, 0, 40.90, 14.31),
+        ])!;
+        PuntoDellaPosa Su(double x, double y) { var c = nota.SullaTerra(x, y); return new(x, y, c.LatitudeDeg, c.LongitudeDeg); }
+
+        Assert.Equal(1.0, nota.Allungamento, 6);
+        // Come a LIRN: le due soglie lontane, il terzo punto vicino alla loro linea.
+        Assert.InRange(PosaSullaMappa.Da([Su(50, 60), Su(400, 80), Su(220, 130)])!.Allungamento, 1.0, 1.01);
+
+        var storto = Su(220, 130) with { Lat = Su(220, 130).Lat - 0.29 / 111.32 };
+        var stirata = PosaSullaMappa.Da([Su(50, 60), Su(400, 80), storto])!;
+        Assert.True(stirata.Allungamento > PosaSullaMappa.AllungamentoSospetto);
+    }
+
+    [Fact]
     public void Punti_che_non_bastano_non_posano_niente()
     {
         Assert.Null(PosaSullaMappa.Da([]));

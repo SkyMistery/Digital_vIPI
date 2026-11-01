@@ -209,6 +209,8 @@ public sealed class VerticiAschermoTests : IDisposable
         await pagina.InvokeAsync(() => pagina.Find("[data-spezza='2']").Click());
         Assert.Equal(3, _lab.LineaDi(liap, 0)!.Punti.Count);
         pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-continua]")));
+        // «continua in un'altra linea (record 4)», non «continua in la linea dopo» (banco, 1 novembre).
+        Assert.Contains("continua in un'altra linea (record ", pagina.Find("[data-continua]").TextContent);
         await pagina.InvokeAsync(() => pagina.Find("[data-unisci]").Click());
         Assert.Equal(punti, _lab.LineaDi(liap, 0)!.Punti.Count);
     }

@@ -150,6 +150,24 @@ public sealed class CurveDelleProcedureTests
     }
 
     [Fact]
+    public void DopoIlVertice_LaCurvaNonRipeteIlVertice()
+    {
+        // Banco, 1 novembre: «Porta» di LICA SUGEP 3G scriveva «LMT;LMT;» e subito la coordinata di LMT, e il punto dove si
+        // prende la radiale due volte di fila. La curva comincia dopo il vertice, non sopra.
+        var b = Da(O, 0, 10);
+        var sorvolo = CurveDelleProcedure.Disegna([new V(O, true, false, null, 0), new V(b, true, false, null, 1.4), new V(Da(b, 90, 10), true, false, null, 0)]);
+        var presa = CurveDelleProcedure.Disegna(
+            [new V(O, true, false, null, 0), new V(b, true, false, "R", 1.0, RottaDopo: 90), new V(Da(Da(b, 0, 3), 90, 15), true, false, null, 0)]);
+
+        foreach (var tappe in new[] { sorvolo, presa })
+        {
+            var dopo = tappe.SkipWhile(t => t.Vertice != 1).Skip(1).First();
+            Assert.Null(dopo.Vertice);
+            Assert.True(Distanza(dopo.Punto, b) > 0.01);
+        }
+    }
+
+    [Fact]
     public void UnaRottaCheVaDirittaAlPunto_NonSiIntercetta()
     {
         var b = Da(O, 0, 10);

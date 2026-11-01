@@ -2865,13 +2865,13 @@ public sealed partial class SessioneDelLab
     /// <summary>Dove continua la linea dopo l'ultimo punto dell'elenco, oltre un'interruzione.</summary>
     public Continuazione? ContinuaDopo(string fileRelativo, int record, string campo)
         => campo == ChiaveDellaLinea
-            ? LineaDi(fileRelativo, record)?.Dopo is { } dopo ? new Continuazione(dopo, ChiaveDellaLinea, $"la linea dopo (record {dopo + 1})") : null
+            ? LineaDi(fileRelativo, record)?.Dopo is { } dopo ? new Continuazione(dopo, ChiaveDellaLinea, $"un'altra linea (record {dopo + 1})") : null
             : Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? Interruzioni.Dopo(file, record, campo) : null;
 
     /// <summary>D5: la linea di un <c>.geo</c> che finisce dove questa comincia, staccata da righe vuote; null per gli altri elenchi.</summary>
     public Continuazione? ContinuaPrima(string fileRelativo, int record, string campo)
         => campo == ChiaveDellaLinea && LineaDi(fileRelativo, record)?.Prima is { } prima
-            ? new Continuazione(prima, ChiaveDellaLinea, $"la linea prima (record {prima + 1})")
+            ? new Continuazione(prima, ChiaveDellaLinea, $"un'altra linea (record {prima + 1})")
             : null;
 
     /// <summary>

@@ -20,6 +20,22 @@ prosa hanno le virate a curve sulla mappa e nelle righe portate nel sector (i pu
 raccordano, le radiali si intercettano a 45°); 24 SID su 25 partono dalla fine pista con la virata. Codice comune:
 `Aip.Pdf.Italia` (R3, `TrueCourse`). Test: importer 356, Lab 1 527.
 
+**1 novembre: le prove A75-A98 sul banco, quattro correzioni.** Il committente ha chiesto quali prove potesse fare Claude:
+fatte tutte e 24 sul banco (esiti «Claude sul banco: …» nella pagina delle prove), 23 passano; la A81 non si raggiunge
+(senza sector il Lab non apre l'AIP espanso, e un sector aperto non si chiude: il messaggio è una guardia). Dalle prove,
+corretto col suo «sì»:
+- la Linea di un `.geo` spezzata diceva «continua in la linea dopo (record N)»: ora «continua in un'altra linea»
+  (e «prima c'è un'altra linea»);
+- il «posa…» della scheda Carte non c'è più sulle pagine di testo (le DESCRIPTION TABLES di SID, STAR e parcheggi, le
+  «TABULAR DESCRIPTION», le «… description» della prosa): `PagineDegliScali.DiTesto`;
+- una posa a tre punti con un punto fuori posto stirava la carta senza dirlo (a LIRN il ⊕ dell'ARP disegnato sta a
+  ~290 m dalle sue coordinate: con le due soglie 1 cm = 62 m invece di 132). `PosaSullaMappa.Allungamento` è il rapporto
+  fra i due valori singolari della parte lineare (1 = conforme); oltre 1,2 la posa avvisa «I punti non stanno insieme…»;
+- «Porta» di una procedura della prosa scriveva righe doppie: la curva dopo un punto sorvolato, o l'intercettazione di una
+  radiale, comincia sul vertice stesso (`LMT;LMT;` e subito la coordinata di LMT). La curva ora parte dal punto dopo.
+
+Restano al committente, nell'app vera, la mappa a occhio (A76-A77, A90, A95, A97) e le prove di prima. Nessun codice comune.
+
 ## Dove siamo — 27 ottobre 2026: gli aeroporti, la carta e la pagina dello scalo
 
 Il committente, dopo le prove A63-A67: ENR 2-5 vanno bene; gli aeroporti no — «parziale e incompleto o a pezzi»,

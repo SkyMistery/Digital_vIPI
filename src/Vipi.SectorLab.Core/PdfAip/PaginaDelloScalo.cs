@@ -315,6 +315,12 @@ public static partial class PagineDegliScali
         RxAvvicinamento().IsMatch(titolo) && !RxNonAvvicinamento().IsMatch(titolo);
 
     /// <summary>
+    /// Vero per una pagina di AD 2.24 che è testo e non disegno: le «DESCRIPTION TABLES» delle SID, delle STAR e dei parcheggi,
+    /// le «TABULAR DESCRIPTION», le «… description» delle procedure in prosa. Non si posa sulla mappa (banco, 1 novembre).
+    /// </summary>
+    public static bool DiTesto(string titolo) => RxDescrizione().IsMatch(titolo ?? "");
+
+    /// <summary>
     /// Le piste coi due lati: il lato opposto è quello la cui soglia è la fine di questo (AD 2.12 lo stampa così), o, senza
     /// coordinate, quello col numero a 18 di distanza e la lettera scambiata.
     /// </summary>
@@ -377,6 +383,9 @@ public static partial class PagineDegliScali
 
     [GeneratedRegex(@"\s*\bDESCRIPTION\s+TABLES?\b\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RxTabelle();
+
+    [GeneratedRegex(@"\bDESCRIPTION\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex RxDescrizione();
 
     [GeneratedRegex(@"\bRWY\s*(?<p>\d{2}[LRC]?)(?:\s*/\s*(?<p>\d{2}[LRC]?))*\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
     private static partial Regex RxPisteDelTitolo();
