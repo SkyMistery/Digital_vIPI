@@ -170,3 +170,27 @@ arco, non uno spigolo. Il banco ha l'AIP espanso letto prima di R3: le 24 SID nu
 2. R5, il confronto con la curva.
 3. R3, la virata dopo il decollo nel lettore della prosa; misura sul 2611.
 4. Prova a schermo sul banco e prove a mano nuove per il committente.
+
+## §7 — Dopo le prove del 1 novembre
+
+**Fatto: LICR PAZZE 2A RWY 29.** Il perché: AD 2.12 di LICR stampa la quota della soglia 11 come «NIL / NIL», e
+`DecolloDi` senza quella quota rinunciava alla fine della pista della 29 e partiva dallo scalo (`FromAerodrome`), dove R3
+non vira. Ora la quota della fine pista, se manca, è quella della soglia di partenza, se no dello scalo: la posizione c'è.
+Codice comune (`Aip.Pdf.Italia`).
+
+**Proposta R6 — la velocità dal resto del testo.** La virata si disegna con la velocità della colonna o della nota del
+tratto, se no 210/220 kt. Ma la IAS MAX sta spesso nel testo della procedura (o nelle sue REMARKS) e non in un tratto:
+sul 2611, di 213 procedure della prosa con una «IAS MAX» nel testo, **48** hanno una velocità che nessun tratto porta —
+LIPH 200 kt (10), LIEE 220 (8), LIPQ 185/240 (7), LIMJ 185 (4), LIBD 220-250 (4), LIPO 220 (2), LIPX 250 (2), LIPR
+180/210 (2), una a LIBP, LIBR, LICG 150, LICR 200, LIMC, LIMP, LIPB 160, LIRQ 140, LIRZ. Proposta: se il testo dice **una
+sola** IAS MAX (o una sola «during turn»), quella vale per le virate della procedura senza velocità propria; con due
+velocità diverse e nessuna «during turn» (LIPQ 185/240, LIBD 240/250) si resta a 210/220 e si dice. LIRQ dalla 05 a
+140 kt: raggio 0,6 NM invece di 1,4. Da decidere: anche le REMARKS della **salita iniziale** valgono per le SID della
+stessa pista (LIRQ: la 140 sta lì)?
+
+**Proposta R7 — le salite iniziali a rami.** Le salite di LIPR e il ramo 4 di LIEE RWY 32 non sono un problema di curve:
+sono salite divise per SID («if cleared via SID AMLON 9B: … b) SID ANC 8B: …»), che il lettore non legge. Sul 2611 sono
+**20 salite su 100**, in 13 scali (LIBF, LIBP, LIBR, LICB, LIEE 5, LIMC, LIML 2, LIMP, LIPE, LIPR 2, LIRN, LIRP 2): 8
+senza tratti, le altre con il solo primo tratto. Proposta: un ramo diventa una salita a sé, col nome della SID («LIPR RWY
+12 per AMLON 9B»), e la SID la usa come oggi usa la salita della sua pista. LIEE RWY 32 (4) ha in più il testo italiano
+mescolato all'inglese nel PDF («rotta», «su», «105°. 300°»): va pulito prima.

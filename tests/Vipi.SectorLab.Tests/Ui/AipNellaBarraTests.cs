@@ -165,6 +165,14 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Empty(pagina.FindAll("[data-problemi-troncati]"));
         await pagina.InvokeAsync(() => pagina.Find("[data-tipo-problemi='']").Click());
         Assert.Equal(200, pagina.FindAll("[data-problema-aip]").Count);
+
+        // «mostrale tutte»: le 251, anche l'attesa; un altro gruppo torna al taglio.
+        await pagina.InvokeAsync(() => pagina.Find("[data-tutte-le-segnalazioni]").Click());
+        Assert.Equal(251, pagina.FindAll("[data-problema-aip]").Count);
+        Assert.Empty(pagina.FindAll("[data-problemi-troncati]"));
+        await pagina.InvokeAsync(() => pagina.Find("[data-gruppo-problemi=Nota]").Click());
+        await pagina.InvokeAsync(() => pagina.Find("[data-gruppo-problemi='']").Click());
+        Assert.Equal(200, pagina.FindAll("[data-problema-aip]").Count);
     }
 
     // 26 ottobre (committente: «le segnalazioni come si correggono?», «dove inserisco le coordinate di AJO?»): una segnalazione

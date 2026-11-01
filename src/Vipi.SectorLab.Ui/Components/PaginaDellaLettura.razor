@@ -441,11 +441,14 @@
                         @{
                             IReadOnlyList<ProblemaDellImport> scelte = _tipoDelleSegnalazioni is { } tipo
                                 ? delGruppo.Where(p => p.Problema.Kind == tipo).ToList() : delGruppo;
-                            var mostrate = _tipoDelleSegnalazioni is null ? scelte.Take(MassimoSenzaFiltro) : scelte;
+                            var tagliate = _tipoDelleSegnalazioni is null && !_senzaTaglio && scelte.Count > MassimoSenzaFiltro;
+                            var mostrate = tagliate ? scelte.Take(MassimoSenzaFiltro) : scelte;
                         }
-                        @if (_tipoDelleSegnalazioni is null && scelte.Count > MassimoSenzaFiltro)
+                        @if (tagliate)
                         {
-                            <p class="lab-nota" data-problemi-troncati>Le prime @MassimoSenzaFiltro di @scelte.Count: scegli un tipo per vederle tutte.</p>
+                            @* Banco, 1 novembre: la nota di BIBNO 1H stava oltre la 200ª, e senza un tipo non si trovava. *@
+                            <p class="lab-nota" data-problemi-troncati>Le prime @MassimoSenzaFiltro di @scelte.Count: scegli un tipo, o
+                                <button type="button" class="lab-tasto lab-tasto-tenue" data-tutte-le-segnalazioni @onclick="() => _senzaTaglio = true">mostrale tutte</button></p>
                         }
                         @if (!diLavoro && Lab.CicloDiLavoro is not null)
                         {
@@ -498,6 +501,7 @@
         _gruppoDelleSegnalazioni = gruppo;
         _tutteLeSegnalazioni = gruppo is null;
         _tipoDelleSegnalazioni = null;
+        _senzaTaglio = false;
     }
 
     private static string NomeDelGruppo(GruppoDellaSegnalazione gruppo) => gruppo switch
@@ -520,6 +524,9 @@
 
     /// <summary>Quante segnalazioni si mostrano senza un tipo scelto: con un tipo, tutte le sue.</summary>
     private const int MassimoSenzaFiltro = 200;
+
+    /// <summary>«mostrale tutte»: senza un tipo scelto, niente taglio (fino al prossimo gruppo).</summary>
+    private bool _senzaTaglio;
 
     private const string NonLetti = "PDF non letti";
 

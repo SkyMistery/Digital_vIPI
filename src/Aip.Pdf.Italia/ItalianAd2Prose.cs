@@ -409,8 +409,11 @@ public static partial class ItalianAd2Prose
         var (piedi, detta) = ItalianClimbGradients.PerDisegnare(p.ClimbGradients) is { } g && ItalianClimbGradients.PiediPerMiglio(g) is { } ft
             ? (ft, $"{ft:0} ft/NM{(g.Percent is { } pc ? $" ({pc:0.#}%)" : "")}{(g.Reason == ClimbGradientReason.Obstacles ? ", la pendenza degli ostacoli" : ", la pendenza stampata")}")
             : (200.0, "il 3,3% (200 ft/NM): la procedura non stampa una pendenza degli ostacoli");
+        // La quota della fine pista: se AD 2.12 stampa «NIL / NIL» (LICR 11, così PAZZE 2A dalla 29 partiva dallo scalo e la virata
+        // dopo il decollo non si disegnava; banco, 1 novembre) quella della soglia di partenza, se no dello scalo.
         if (pista is not null && PistaOpposta(pista) is { } opposta && scalo.Runways.FirstOrDefault(r => r.Designator == opposta) is { Threshold: { } fine } altra
-            && QuotaInPiedi(altra.ThresholdElevation) is { } quota)
+            && (QuotaInPiedi(altra.ThresholdElevation) ?? QuotaInPiedi(scalo.Runways.FirstOrDefault(r => r.Designator == pista)?.ThresholdElevation)
+                ?? QuotaInPiedi(scalo.Elevation)) is { } quota)
             return new Departure(fine, quota, piedi, detta, false);
         return scalo.Arp is { } arp && QuotaInPiedi(scalo.Elevation) is { } dello ? new Departure(arp, dello, piedi, detta, true) : null;
     }

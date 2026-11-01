@@ -781,6 +781,29 @@ public sealed class Ad2ProseTests
         Assert.Equal(90, pista.TrueBearing, 0);
     }
 
+    // LICR 11 stampa «NIL / NIL» per la quota della soglia: la fine pista della 29 c'è lo stesso, alla quota della 29 (banco,
+    // 1 novembre: PAZZE 2A partiva dallo scalo e la virata dopo il decollo non si disegnava).
+    [Fact]
+    public void LaFinePistaSenzaQuota_PrendeQuellaDellaSogliaDiPartenza()
+    {
+        var scalo = new Aerodrome
+        {
+            Icao = "LIXX", Name = "Prova", Arp = new Position(39.0, 16.015), Elevation = "100 FT",
+            Runways =
+            [
+                new() { Designator = "11", Threshold = new Position(39.0, 16.0), ThresholdElevation = "NIL / NIL" },
+                new() { Designator = "29", Threshold = new Position(39.0, 16.03), ThresholdElevation = "42.2 FT / NIL" },
+            ],
+        };
+
+        var decollo = ItalianAd2Prose.DecolloDi(P(ProcedureKind.Sid, "PAZZE 2A", "Proceed on TR 014°."), scalo, "29");
+
+        Assert.NotNull(decollo);
+        Assert.False(decollo.FromAerodrome);
+        Assert.Equal(new Position(39.0, 16.0), decollo.End);
+        Assert.Equal(42.2, decollo.Elevation, 1);
+    }
+
     // La declinazione quando il testo non nomina un VOR: dall'NDB nominato, se no dallo scalo (LIRS ILOWE 1W, LIEE KOVAS 2C).
     [Fact]
     public void UnaRottaSenzaVor_LaDeclinazioneDalloScalo()

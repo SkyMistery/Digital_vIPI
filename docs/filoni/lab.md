@@ -36,6 +36,18 @@ corretto col suo «sì»:
 
 Restano al committente, nell'app vera, la mappa a occhio (A76-A77, A90, A95, A97) e le prove di prima. Nessun codice comune.
 
+**1 novembre, dopo: quattro lavori mentre il committente aspetta di provare** (li ha scelti lui fra quattro proposti):
+- **Segnalazioni tutte visibili**: in Lettura e consegna, accanto a «Le prime 200 di 275», il tasto «mostrale tutte»
+  (fino al prossimo gruppo). La nota di BIBNO 1H stava oltre la 200ª.
+- **Le curve, LICR PAZZE 2A RWY 29**: AD 2.12 stampa la quota della soglia 11 «NIL / NIL», e senza la quota il lettore
+  partiva dallo scalo invece che dalla fine della pista; ora la quota è quella della soglia di partenza o dello scalo.
+  **Codice comune** (`Aip.Pdf.Italia`, `DecolloDi`). Le salite di LIPR e il ramo 4 di LIEE non sono curve: sono le 20
+  salite iniziali a rami per SID, proposta R7 nella carta delle curve (§7).
+- **Velocità dalle REMARKS**: misurato e proposto (carta delle curve §7, R6): 48 procedure della prosa hanno nel testo una
+  IAS MAX che nessun tratto porta. Da decidere col committente.
+- **Revisione grafica dell'Indice**: la carta [«L'Indice dell'AIP espanso, rifatto»](../feature/2026-11-01-indice-rifatto.md),
+  col disegno; da approvare.
+
 ## Dove siamo — 27 ottobre 2026: gli aeroporti, la carta e la pagina dello scalo
 
 Il committente, dopo le prove A63-A67: ENR 2-5 vanno bene; gli aeroporti no — «parziale e incompleto o a pezzi»,

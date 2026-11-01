@@ -396,6 +396,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-10-27-aeroporti-nel-lab.md`](feature/2026-10-27-aeroporti-nel-lab.md) — Gli aeroporti nel Lab (27 ottobre 2026)
 - [`feature/2026-10-28-stato-dei-documenti.md`](feature/2026-10-28-stato-dei-documenti.md) — Lo stato dei documenti — carta (28 ottobre 2026)
 - [`feature/2026-10-31-curve-delle-procedure.md`](feature/2026-10-31-curve-delle-procedure.md) — Le curve delle procedure (31 ottobre 2026)
+- [`feature/2026-11-01-indice-rifatto.md`](feature/2026-11-01-indice-rifatto.md) — L'Indice dell'AIP espanso, rifatto (1 novembre 2026)
 
 ### `filoni`
 
