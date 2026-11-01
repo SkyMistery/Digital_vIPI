@@ -4,6 +4,12 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+**1 novembre: la carta «L'editor sulla mappa»** ([`2026-11-01-editor-sulla-mappa.md`](../feature/2026-11-01-editor-sulla-mappa.md)),
+da approvare. È la F9 del piano («trascinare i vertici sulla mappa»), chiesta dal committente («andiamo con l'editor
+grafico?»). Proposte R1-R9: le maniglie sul solo record scelto, e ogni trascinamento è uno dei gesti della Geometria
+che ci sono già (spostato, aggiunto, tolto), con storia, copie uguali e diff di oggi; calamita sui punti accesi; il
+vertice col nome si sposta solo su un altro nome. Quattro domande (D1-D4). Nessun codice.
+
 **31 ottobre: la Scheda per gruppi, seconda parte** (D5 della carta del riordino, ferma «al via» dal 21 ottobre; il
 committente non poteva ancora fare le prove A75-A91 e ha detto «Sì, vai»). La Linea di un `.geo` ha lo stesso editor dei
 vertici delle altre forme (+, −, in fondo, Inverti, Incolla da testo, ✂ e Unisci); nei Collegamenti di un record la voce
