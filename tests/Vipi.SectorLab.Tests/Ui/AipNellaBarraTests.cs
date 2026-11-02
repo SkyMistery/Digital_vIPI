@@ -226,6 +226,41 @@ public sealed class AipNellaBarraTests : IDisposable
         Assert.Null(_lab.AggiuntaRichiesta);
     }
 
+    // 2 novembre (committente: «ho aggiunto AJO ma mi dà ancora questo»): la lettura ricordata è di prima della correzione, e la
+    // segnalazione resta fino a «Rileggi»; al posto del tasto «Aggiungi AJO», che sembrava non servito, si dice che c'è già.
+    [Fact]
+    public async Task UnDatoGiaAggiuntoDopoLaLettura_NonRiproponeIlTasto_EDiceDiRileggere()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pdf = Path.Combine(_fuori, "AIP");
+        var espanso = Path.Combine(_fuori, "espanso");
+        Assert.True(_lab.CambiaLaCartellaDeiPdf(pdf), _lab.Rifiuto);
+        Assert.True(_lab.CambiaLAipEspanso(espanso), _lab.Rifiuto);
+        var cartella = Directory.CreateDirectory(Core.PdfAip.EmendamentoDellAip.CartellaDelCiclo(pdf, "2611")).FullName;
+        await File.WriteAllBytesAsync(Path.Combine(cartella, "LI-ENR 5.1.2.pdf"), PdfAipFinto.Enr51("06 AUG 2026", "LI R901 - Prova Uno"));
+        Assert.True(await _lab.LeggiLAipAsync("2611"), _lab.Rifiuto);
+        // AJO aggiunta dopo la lettura, come l'ha scritta il Lab il 2 novembre (correzioni/li.json).
+        Directory.CreateDirectory(Path.Combine(espanso, "correzioni"));
+        await File.WriteAllTextAsync(Path.Combine(espanso, "correzioni", "li.json"), """
+            {"schemaVersion":1,"state":"LI","corrections":[{"id":"2026-11-02-1","kind":"navaid","key":"AJO VOR-DME","op":"add",
+             "after":{"designator":"AJO","type":"VOR-DME","position":{"lat":41.77,"lon":8.77}},
+             "reason":"stazione nominata dalle procedure di LIEA, LIEO, che l'AIP italiano non ha","source":"AIP France","since":"2611"}]}
+            """);
+        Assert.True(await _lab.MostraLAipAsync(true), _lab.Rifiuto);
+        Core.PdfAip.ProblemaDellImport Problema(string chiave) =>
+            new("LI-AD 2 LIEA 5.pdf", new Aip.Pdf.Italia.ImportIssue(Aip.Pdf.Italia.ImportIssueKind.Procedure, chiave, 1,
+                "prosa non letta: AJO: non è una radioassistenza dell'AIP"));
+        _lab.UltimoAipEspanso = _lab.UltimoAipEspanso! with { Problemi = [Problema("LIEA Star CORSI 3F RWY 02/20"), Problema("LIEO Star TEREZ 1A")] };
+        _lab.ScegliLaPagina(PaginaDelLab.Aip);
+
+        var pagina = _contesto.RenderComponent<Home>();
+
+        pagina.WaitForAssertion(() => Assert.Equal(2, pagina.FindAll("[data-gia-aggiunto=AJO]").Count), TimeSpan.FromSeconds(10));
+        Assert.Empty(pagina.FindAll("[data-tasto=aggiungi-mancante]"));
+        Assert.Contains("AJO aggiunto il 02/11/2026", pagina.Find("[data-gia-aggiunto]").TextContent);
+        Assert.Contains("Rileggi", pagina.Find("[data-gia-aggiunto]").TextContent);
+    }
+
     // 26 ottobre (committente): «Vai alla voce» lascia accesa sulla mappa solo quella voce; una che l'Indice non ha (LIBD
     // FL100: Not closed) o che non si disegna (un'attesa senza il punto nel sector) apre il PDF alla pagina della
     // segnalazione. Poi le voci si riaccendono una per una, o un gruppo dell'Indice tutto insieme.

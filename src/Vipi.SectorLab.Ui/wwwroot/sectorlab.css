@@ -2940,6 +2940,12 @@ body.lab-trascina * {
 
 .lab-avviso-sulla-mappa { white-space: normal; }
 
+/* Il dato che mancava (AJO) è già aggiunto dopo la lettura: al posto del tasto «Aggiungi», in verde tenue. */
+.lab-gia-aggiunto {
+    color: var(--lab-ok, inherit);
+    font-size: .85rem;
+}
+
 /* R7: nell'elenco della Geometria, il vertice appena mosso dalla mappa. */
 .lab-vertice-dalla-mappa .lab-numero {
     color: var(--lab-evidenza);

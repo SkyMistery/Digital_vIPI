@@ -460,7 +460,13 @@
                                 <li class="lab-nota" data-problema-aip="@p.Problema.Kind" data-gruppo="@SegnalazioniDellAip.Gruppo(p.Problema)">
                                     <button type="button" class="lab-voce" title="Apre il PDF a quella pagina" @onclick="() => ApriLaSegnalazione(esito.Ciclo, p)"><code>@p.File@(p.Problema.Page is { } n ? $" p.{n}" : "")</code></button>
                                     <span>@Tipo(p.Problema.Kind)@(p.Problema.Key is { } k ? $" · {k}" : "")@(p.Problema.Detail is { } d ? $": {d}" : "")</span>
-                                    @if (diLavoro && SegnalazioniDellAip.DatoMancante(p.Problema) is var (_, manca))
+                                    @if (diLavoro && SegnalazioniDellAip.DatoMancante(p.Problema) is var (_, gia) && Lab.GiaAggiunto(esito.Ciclo, p.Problema) is { } aggiunta)
+                                    {
+                                        @* Aggiunto dopo questa lettura: la segnalazione se ne va alla prossima «Rileggi», e lo si dice al posto del tasto. *@
+                                        <span class="lab-gia-aggiunto" data-gia-aggiunto="@gia"
+                                              title="@($"Correzione {aggiunta.Id}{(aggiunta.Source is { } fonte ? $", fonte {fonte}" : "")}: la lettura qui sopra è di prima")">✓ @gia aggiunto@(DataDellaCorrezione(aggiunta) is { } quando ? $" il {quando}" : ""): premi <b>Rileggi</b> sul @esito.Ciclo per leggere di nuovo queste voci</span>
+                                    }
+                                    else if (diLavoro && SegnalazioniDellAip.DatoMancante(p.Problema) is var (_, manca))
                                     {
                                         <button type="button" class="lab-tasto" data-tasto="aggiungi-mancante" data-manca="@manca"
                                                 title="Apre «Aggiungi» nell'Indice con la sigla già scritta: mancano i dati dalla sua fonte" @onclick="() => AggiungiIlMancante(esito.Ciclo, p)">Aggiungi @manca</button>
@@ -519,6 +525,13 @@
     };
 
     private async Task VaiAllaVoce(string ciclo, ProblemaDellImport p) => _rifiuto = await Lab.VaiAllaSegnalazioneAsync(ciclo, p) ? null : Lab.Rifiuto;
+
+    /// <summary>Il giorno di una correzione dal suo id (<c>2026-11-02-1</c> → «02/11/2026»), o null.</summary>
+    private static string? DataDellaCorrezione(Aip.AipCorrection correzione)
+        => correzione.Id.Length >= 10 && DateOnly.TryParseExact(correzione.Id[..10], "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+               System.Globalization.DateTimeStyles.None, out var giorno)
+            ? giorno.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)
+            : null;
 
     private void AggiungiIlMancante(string ciclo, ProblemaDellImport p) => _rifiuto = Lab.AggiungiIlDatoMancante(ciclo, p.Problema) ? null : Lab.Rifiuto;
 

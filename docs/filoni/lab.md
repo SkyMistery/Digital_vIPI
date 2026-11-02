@@ -24,6 +24,11 @@ diventa il suo nome dove l'elenco li sa scrivere. Motore del solo Lab (`DisegnaI
 rilascio è il gesto del campo Posizione (gemelli compresi). Trovato e corretto insieme un difetto di prima: spostato un
 punto, il catalogo non si rifaceva e chi lo cita per nome restava disegnato al posto vecchio fino al salvataggio; ora lo
 segue, anche dalla Scheda e dopo un annulla. Prove A120-A121.
+**2 novembre, il tasto «Aggiungi AJO»** (committente: «ho aggiunto AJO ma mi dà ancora questo»). Le Segnalazioni sono quelle
+della lettura ricordata, fatta prima della correzione: se ne vanno alla prossima «Rileggi», com'era scritto al 26 ottobre.
+Ma il tasto restava come se l'aggiunta non fosse servita. Ora, se una correzione in piedi del ciclo di lavoro ha già
+aggiunto quella stazione o quel punto (`GiaAggiunto`), al posto del tasto c'è «✓ AJO aggiunto il 02/11/2026: premi Rileggi
+sul 2611 per leggere di nuovo queste voci». Prova A122.
 
 **31 ottobre: la Scheda per gruppi, seconda parte** (D5 della carta del riordino, ferma «al via» dal 21 ottobre; il
 committente non poteva ancora fare le prove A75-A91 e ha detto «Sì, vai»). La Linea di un `.geo` ha lo stesso editor dei

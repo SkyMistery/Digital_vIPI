@@ -5136,6 +5136,20 @@ public sealed partial class SessioneDelLab
     /// </summary>
     public (global::Aip.CorrectionKind Tipo, string Nome, string Perche)? AggiuntaRichiesta { get; private set; }
 
+    /// <summary>
+    /// La correzione in piedi che ha già aggiunto il dato che manca alla segnalazione (AJO aggiunta dopo la lettura), o
+    /// null. La lettura ricordata è com'era: finché non si rilegge, la segnalazione resta, ma il tasto «Aggiungi AJO» non
+    /// deve sembrare non servito (committente, 2 novembre). Solo nel ciclo di lavoro, che è quello delle correzioni lette.
+    /// </summary>
+    public global::Aip.AipCorrection? GiaAggiunto(string ciclo, Aip.Pdf.Italia.ImportIssue problema)
+    {
+        if (ciclo != CicloDiLavoro || _correzioniSullaMappa is not { } file
+            || Core.PdfAip.SegnalazioniDellAip.DatoMancante(problema) is not var (tipo, nome))
+            return null;
+        return file.Corrections.LastOrDefault(c => c.Kind == tipo && c.Op == global::Aip.CorrectionOp.Add && c.Superseded is null
+            && string.Equals(c.Key.Split(' ')[0], nome, StringComparison.OrdinalIgnoreCase));
+    }
+
     /// <summary>«Aggiungi AJO» su una segnalazione: porta all'Indice col modulo già aperto e la sigla scritta.</summary>
     public bool AggiungiIlDatoMancante(string ciclo, Aip.Pdf.Italia.ImportIssue problema)
     {
