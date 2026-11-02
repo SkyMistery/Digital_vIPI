@@ -91,7 +91,7 @@
                         <Titolo>In vista <span class="lab-nota">@Lab.InVista.Count</span></Titolo>
                         <Accanto>
                             <button class="lab-annulla" @onclick="Lab.SvuotaLaVista" data-tasto="vista-tutto"
-                                    title="@(Lab.Fuoco is { } fuoco && Lab.SpazioAttivo is SpazioDiLavoro.Sector ? $"La mappa torna a mostrare tutto {fuoco}" : "La mappa torna a mostrare tutti gli strati accesi")">@(Lab.Fuoco is not null && Lab.SpazioAttivo is SpazioDiLavoro.Sector ? "torna allo scalo" : "mostra tutto")</button>
+                                    title="@(Lab.Fuoco is { } fuoco && Lab.SpazioAttivo is SpazioDiLavoro.Sector ? $"La mappa torna a mostrare tutto {fuoco}" : "La mappa torna a mostrare tutti gli strati accesi")">@(Lab.Fuoco is not null && Lab.SpazioAttivo is SpazioDiLavoro.Sector ? (Lab.FuocoSuUnSettore ? "torna al settore" : "torna allo scalo") : "mostra tutto")</button>
                         </Accanto>
                         <ChildContent>
                         @foreach (string chiave in Lab.InVista)

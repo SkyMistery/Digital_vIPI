@@ -817,15 +817,20 @@
             for (var i = 0; i < (chiavi || []).length; i++) stato.spenti[chiavi[i]] = true;
             var ids = Object.keys(stato.strati);
             for (var j = 0; j < ids.length; j++) applicaSpenti(stato, ids[j]);
-            if (stato.vistaVoluta && stato.vistaVoluta.length) this.vista(stato.vistaVoluta, elemento, stato.vistaInGrigio);
+            if (stato.vistaVoluta && stato.vistaVoluta.length) this.vista(stato.vistaVoluta, elemento, stato.vistaInGrigio, stato.vistaAccanto);
         },
 
         /// `grigio` (il fuoco, D1): le forme fuori dalla vista restano sulla mappa in grigio e senza clic, invece di sparire.
-        vista: function (chiavi, elemento, grigio) {
+        /// `accanto` (il fuoco su un settore, R7): queste forme fuori dalla vista restano in grigio anche senza `grigio` — i
+        /// bordi dei settori vicini, per vedere dove si toccano.
+        vista: function (chiavi, elemento, grigio, accanto) {
             var stato = prendi(elemento);
             if (!stato) return 0;
             stato.vistaVoluta = chiavi;
             stato.vistaInGrigio = !!grigio;
+            stato.vistaAccanto = accanto || [];
+            var vicine = {};
+            for (var a = 0; a < stato.vistaAccanto.length; a++) vicine[stato.vistaAccanto[a]] = true;
             if (stato.gruppoDellaVista) { stato.mappa.removeLayer(stato.gruppoDellaVista); stato.gruppoDellaVista = null; }
             var ids = Object.keys(stato.strati);
             // Il grigio di prima si toglie a tutte: si rimette sotto, solo dove serve.
@@ -859,6 +864,7 @@
                 strato.eachLayer(function (l) {
                     var f = l.sectorlab;
                     if (f && (volute[f.p + '#' + f.r] || volute[f.p + '#*'])) gruppo.addLayer(l);
+                    else if (f && vicine[f.p + '#' + f.r]) { inGrigio(l, true); gruppo.addLayer(l); }
                 });
             }
             if (!grigio) {

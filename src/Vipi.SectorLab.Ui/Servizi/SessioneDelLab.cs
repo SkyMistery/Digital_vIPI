@@ -601,6 +601,7 @@ public sealed partial class SessioneDelLab
         // Il fuoco era di quell'albero; il file che lo ricorda resta, per quando il sector si riapre.
         Fuoco = null;
         _chiaviDelFuoco = null;
+        ScordaIlSettore();
         VersioneDelFuoco++;
         ScordaIProblemi();
         Avvisa();

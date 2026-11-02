@@ -155,7 +155,9 @@
             bool fuocoCambiato = _versioneDelFuoco != Lab.VersioneDelFuoco;
             _versioneDellaVista = Stato.VersioneDellaVista;
             _versioneDelFuoco = Lab.VersioneDelFuoco;
-            await Js.InvokeVoidAsync("sectorlab.mappa.vista", Lab.VistaDaMostrare(Spazio).ToArray(), Elemento, Lab.RestoInGrigioDi(Spazio));
+            // R7: col fuoco su un settore, i bordi dei settori accanto restano attenuati anche col resto nascosto.
+            await Js.InvokeVoidAsync("sectorlab.mappa.vista", Lab.VistaDaMostrare(Spazio).ToArray(), Elemento, Lab.RestoInGrigioDi(Spazio),
+                Lab.AccantoDaMostrare(Spazio).ToArray());
             if (fuocoCambiato && Spazio is SpazioDiLavoro.Sector && Lab.Fuoco is null)
                 await Js.InvokeVoidAsync("sectorlab.mappa.scordaIlFuoco", Elemento);
         }

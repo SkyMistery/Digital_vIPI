@@ -148,4 +148,31 @@ fuoco ricordato per mappa (fetta 2) resta: non era la causa, ma non costa niente
 Sul banco: «Di LIRF: 1 modifica in 1 file», `lirf.geo` primo, «Annulla tutto» ha tolto la modifica (non salvata). Test:
 `FuocoTests` (14), Lab 1 580.
 
-**Resta** (§5): R7, il settore — dopo la prova del committente sullo scalo (D3) — e la Scheda a striscia (D4).
+**Fetta 5, R7** (2 novembre, sera; il committente: «Comincia R7», prima delle prove sullo scalo). Il settore è una
+**posizione** ATC (D2), e la vista per settore (`VistaPerSettore`, nel Core) la riconosce così: i settori dei `.tfl` che
+la accendono (`LIRR_NC_CTR;CTR;…`, anche dentro un `.tfl` comune), i bordi dei `.hartcc`, `.lartcc` e `.artcc` col suo
+nome (lo scalo dell'ACC intero o senza le prime due lettere, più la parte di mezzo: `LIRR NC` o `RR NC`), i file col suo
+nome (`lirr_nc_ctr.tfl`) e le sue righe dei `.frq`. Un bordo col nome di un altro ACC (`LIRR ES0` per `LICA_ES0_APP`)
+non si prende: dal solo nome non si sa. Fra le posizioni da scegliere ci sono solo quelle con qualcosa da disegnare
+(206 sul sector vero): il fuoco su `LIRR_FSS`, che sta solo nei `.frq`, mostrerebbe una mappa vuota.
+
+Nella colonna una linguetta **Settori**, accanto a Scali: lo stesso elenco (`ScaliVista` con `Settori`), la stessa
+striscia («◎ LIRR_NC_CTR 131.200 · ⌖ Il settore · esci»), lo stesso fuoco: le chiavi sono i record del settore e dei
+bordi e i file col suo nome interi, la mappa va sul poligono del settore (strato «Settori e bordi»), il file col suo nome
+si apre sotto il settore, R4, R5 e R8 valgono uguali. In `fuoco.txt` un settore si scrive `settore:LIRR_NC_CTR`; uno
+scalo resta il solo codice, com'era. **I settori accanto**: le forme degli altri settori e bordi che entrano nel riquadro
+del settore si vedono in grigio anche col resto nascosto, senza clic (il quarto argomento di `sectorlab.mappa.vista`); con
+«il resto in grigio» si vede tutto il sector attenuato, come per lo scalo. Con una vista a mano («Solo questo sulla
+mappa») niente accanto.
+
+Trovato sul banco: con la colonna già sui Settori, una scelta dalla mappa non si vedeva nell'elenco — né la voce scelta né
+il file aperto — fino a un cambio di linguetta. `ScaliVista` non ha parametri che cambiano, e il ridisegno della colonna
+non arrivava fin lì (la lezione «componente senza parametri non si ridisegna»): ora si iscrive da sé. Valeva anche per lo
+scalo, nella linguetta Scali; le prove della fetta 2 passavano da Sfoglia, e la linguetta rifatta ridisegnava tutto.
+
+Sul banco col sector vero (1 400 px): linguetta Settori, LIRR_NC_CTR con «Settori 1» (63 vertici), «Bordi 1» (RR NC in
+`lirr.hartcc`), il file e le due righe di `itfreq.frq` e `lirr.frq`; la mappa sul poligono, i settori accanto grigi
+intorno; un clic su un vicino non sceglie niente, uno sul bordo di NC lo sceglie con la mappa ferma e apre
+`lirr_nc_ctr.tfl` sotto il settore; riavviato il banco il fuoco è tornato sul settore. Test: `FuocoSuUnSettoreTests` (12).
+
+**Resta** (§5): la Scheda a striscia (D4), dopo la prova del committente.

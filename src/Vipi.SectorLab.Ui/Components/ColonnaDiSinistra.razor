@@ -6,14 +6,14 @@
     in quella dei pannelli: lo stesso componente, così le due non si separano. Si iscrive da sé a Cambiata (vedi Mappa.razor).
 *@
 <aside class="lab-colonna lab-colonna-sfoglia">
-    @* Il fuoco (carta «Lavorare su uno scalo», R1, D1): finché c'è, lo dice in testa, con l'uscita. *@
+    @* Il fuoco (carta «Lavorare su uno scalo», R1, D1, R7): finché c'è, lo dice in testa, con l'uscita. *@
     @if (Lab.Fuoco is { } fuoco)
     {
-        <div class="lab-fuoco" data-fuoco="@fuoco">
+        <div class="lab-fuoco" data-fuoco="@fuoco" data-fuoco-genere="@Lab.GenereDelFuoco">
             <p class="lab-fuoco-titolo">
-                <span title="Lavori su questo scalo: la mappa mostra solo i suoi file">◎ @fuoco <span class="lab-nota">@NomeDelloScalo(fuoco)</span></span>
+                <span title="@(Lab.FuocoSuUnSettore ? "Lavori su questo settore: la mappa mostra solo i suoi settori e bordi, e attenuati quelli accanto" : "Lavori su questo scalo: la mappa mostra solo i suoi file")">◎ @fuoco <span class="lab-nota">@NomeDelFuoco(fuoco)</span></span>
                 <button type="button" class="lab-annulla" data-tasto="inquadra-il-fuoco" @onclick="Lab.InquadraIlFuoco"
-                        title="Riporta la mappa sullo scalo intero">⌖ Lo scalo</button>
+                        title="@(Lab.FuocoSuUnSettore ? "Riporta la mappa sul settore intero" : "Riporta la mappa sullo scalo intero")">⌖ @(Lab.FuocoSuUnSettore ? "Il settore" : "Lo scalo")</button>
                 <button type="button" class="lab-annulla" data-tasto="esci-dal-fuoco" @onclick="Lab.EsciDalFuoco"
                         title="Torna al sector intero">esci</button>
             </p>
@@ -31,6 +31,10 @@
         <button role="tab" aria-selected="@(_linguetta == Linguetta.Scali)" class="@(_linguetta == Linguetta.Scali ? "lab-linguetta-scelta" : null)"
                 @onclick="() => _linguetta = Linguetta.Scali" data-linguetta="scali"
                 title="Tutto quello che riguarda uno scalo, da qualunque file">Scali</button>
+        @* R7: la vista per settore (una posizione ATC), per il fuoco su un settore. *@
+        <button role="tab" aria-selected="@(_linguetta == Linguetta.Settori)" class="@(_linguetta == Linguetta.Settori ? "lab-linguetta-scelta" : null)"
+                @onclick="() => _linguetta = Linguetta.Settori" data-linguetta="settori"
+                title="I settori, i bordi e i file di una posizione ATC">Settori</button>
         <button role="tab" aria-selected="@(_linguetta == Linguetta.Problemi)" class="@(_linguetta == Linguetta.Problemi ? "lab-linguetta-scelta" : null)"
                 @onclick="() => _linguetta = Linguetta.Problemi" data-linguetta="problemi">
             Problemi
@@ -56,6 +60,10 @@
     {
         <ScaliVista OnApriUnFile="_ => _linguetta = Linguetta.Sfoglia" />
     }
+    else if (_linguetta == Linguetta.Settori)
+    {
+        <ScaliVista Settori="true" OnApriUnFile="_ => _linguetta = Linguetta.Sfoglia" />
+    }
     else
     {
         <Sfoglia />
@@ -67,13 +75,20 @@
     {
         Sfoglia,
         Scali,
+        Settori,
         Problemi,
     }
 
-    /// <summary>Che cosa mostra la colonna: l'albero (slice 5), la vista per scalo (12d) o i problemi (10).</summary>
+    /// <summary>Che cosa mostra la colonna: l'albero (slice 5), la vista per scalo (12d) o per settore (R7), o i problemi (10).</summary>
     private Linguetta _linguetta;
 
-    private string NomeDelloScalo(string icao) => Lab.ScaliDellaVista().FirstOrDefault(s => s.Icao == icao)?.Nome ?? "";
+    /// <summary>Accanto al codice nella striscia: il nome dello scalo, o la frequenza della posizione.</summary>
+    private string NomeDelFuoco(string fuoco) => Lab.FuocoSuUnSettore
+        ? Lab.SettoriDellaVista().FirstOrDefault(s => s.Codice == fuoco)?.Frequenza ?? ""
+        : Lab.ScaliDellaVista().FirstOrDefault(s => s.Icao == fuoco)?.Nome ?? "";
+
+    /// <summary>La linguetta di quel che sta nel fuoco: Settori o Scali.</summary>
+    private Linguetta LinguettaDelFuoco => Lab.FuocoSuUnSettore ? Linguetta.Settori : Linguetta.Scali;
 
     private int Errori => Lab.ProblemiDellAlbero.Count(p => p.Gravita == Gravita.Errore);
 
@@ -81,9 +96,9 @@
 
     protected override void OnInitialized()
     {
-        // Il fuoco (R3): si lavora sullo scalo, e la colonna parte dal suo elenco.
+        // Il fuoco (R3): si lavora sullo scalo (o sul settore), e la colonna parte dal suo elenco.
         if (Lab.Fuoco is not null)
-            _linguetta = Linguetta.Scali;
+            _linguetta = LinguettaDelFuoco;
         _sceltaVista = Lab.Scelta;
         SeguiLaBarra();
         Lab.Cambiata += Aggiorna;
@@ -102,9 +117,11 @@
         _sceltaVista = Lab.Scelta;
         if (Lab.Fuoco is not null && Lab.Scelta is { } scelta && Lab.EDelFuoco(scelta.File))
         {
-            if (Lab.ScaloScelto != Lab.Fuoco)
+            if (Lab.FuocoSuUnSettore && Lab.SettoreScelto != Lab.Fuoco)
+                Lab.ScegliIlSettore(Lab.Fuoco);
+            else if (!Lab.FuocoSuUnSettore && Lab.ScaloScelto != Lab.Fuoco)
                 Lab.ScegliLoScalo(Lab.Fuoco);
-            _linguetta = Linguetta.Scali;
+            _linguetta = LinguettaDelFuoco;
         }
     }
 

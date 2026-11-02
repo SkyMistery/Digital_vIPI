@@ -166,7 +166,7 @@ public static class VistaPerScalo
         return Math.Sqrt((dx * dx) + (dy * dy));
     }
 
-    private static IEnumerable<(string File, int Indice, T Record)> Record<T>(SessioneAperta sessione)
+    internal static IEnumerable<(string File, int Indice, T Record)> Record<T>(SessioneAperta sessione)
         where T : class
         => sessione.File.Values.OrderBy(f => f.Relativo, StringComparer.Ordinal).OfType<IFileConRecord>()
             .SelectMany(f => f.RecordDelModello.Select((r, i) => (File: ((FileAperto)f).Relativo, Indice: i, Record: r as T)))
@@ -175,5 +175,5 @@ public static class VistaPerScalo
 
     private static bool Stesso(string? a, string b) => string.Equals(a?.Trim(), b, StringComparison.OrdinalIgnoreCase);
 
-    private static string NomeDelFile(string relativo) => relativo[(relativo.Replace('\\', '/').LastIndexOf('/') + 1)..];
+    internal static string NomeDelFile(string relativo) => relativo[(relativo.Replace('\\', '/').LastIndexOf('/') + 1)..];
 }

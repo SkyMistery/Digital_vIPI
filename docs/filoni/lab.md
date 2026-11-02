@@ -4,6 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+**2 novembre, sera: lavorare su un settore** (R7 della carta [`2026-11-02-lavorare-su-uno-scalo.md`](../feature/2026-11-02-lavorare-su-uno-scalo.md);
+il committente: «Comincia R7», prima delle prove sullo scalo). Il fuoco anche su una **posizione** ATC (D2): linguetta
+**Settori**, «◎ Lavora su LIRR_NC_CTR», e la mappa mostra solo il suo settore del `.tfl`, il suo bordo (`RR NC` in
+`lirr.hartcc`) e il file col suo nome, va sul suo poligono, e i settori accanto restano in grigio, senza clic, per vedere
+dove si toccano. Tutto il resto del fuoco vale uguale (colonna, scelta senza zoom, Consegna, riavvio). La vista per
+settore sta nel Core (`VistaPerSettore`). Trovato sul banco e corretto anche per lo scalo: con la colonna già sulla sua
+linguetta, una scelta dalla mappa non si vedeva nell'elenco fino a un cambio di linguetta (`ScaliVista` ora si iscrive da
+sé). Resta la Scheda a striscia (D4). Nessun codice comune. Prove A129-A131.
+
 **2 novembre, pomeriggio: lavorare su uno scalo** (committente: «non riesco a lavorare bene se lavoro con singolo settore
 o singolo aeroporto, tipo per fare l'editing a terra»). Carta [`2026-11-02-lavorare-su-uno-scalo.md`](../feature/2026-11-02-lavorare-su-uno-scalo.md),
 approvata («Sì, vai», D1-D4 come proposte). Il **fuoco**: «◎ Lavora su LIRF» nella linguetta Scali, e finché non si esce

@@ -11,10 +11,19 @@ public sealed partial class SessioneDelLab
     // --- il fuoco: lavorare su uno scalo (carta «Lavorare su uno scalo o su un settore», R1-R2, D1) ------------------
 
     /// <summary>
-    /// Lo scalo su cui si lavora (R1), o null: col fuoco la mappa del Sector mostra solo i suoi file e le sue righe, più le
-    /// coste. Resta finché non si esce, anche dopo un riavvio del Lab (si ricorda in <c>fuoco.txt</c>).
+    /// Lo scalo (R1) o la posizione ATC (R7) su cui si lavora, o null: col fuoco la mappa del Sector mostra solo i suoi file
+    /// e le sue righe, più le coste. Resta finché non si esce, anche dopo un riavvio del Lab (si ricorda in <c>fuoco.txt</c>).
     /// </summary>
     public string? Fuoco { get; private set; }
+
+    /// <summary>R7: il fuoco è su un settore (una posizione ATC, D2), non su uno scalo.</summary>
+    public bool FuocoSuUnSettore { get; private set; }
+
+    /// <summary>Come si chiama quel che sta nel fuoco, nei testi: «scalo» o «settore».</summary>
+    public string GenereDelFuoco => FuocoSuUnSettore ? "settore" : "scalo";
+
+    // In fuoco.txt un settore si scrive col prefisso: uno scalo, com'era prima di R7, solo col codice.
+    private const string PrefissoDelSettore = "settore:";
 
     /// <summary>D1: col fuoco il resto del sector è nascosto; con questa casella si vede in grigio, e non si sceglie.</summary>
     public bool RestoInGrigio { get; private set; }
@@ -26,9 +35,10 @@ public sealed partial class SessioneDelLab
     public int InquadratureDelFuoco { get; private set; }
 
     /// <summary>
-    /// Le chiavi della vista del fuoco (R2): le righe dell'<c>.ap</c> e del <c>.rw</c> dello scalo (<c>file#3</c>), i
-    /// suoi file e i suoi disegni a terra interi (<c>file#*</c>). Le posizioni no: stanno nel <c>.frq</c> e non si
-    /// disegnano. Vuota senza fuoco.
+    /// Le chiavi della vista del fuoco (R2): per uno scalo le righe dell'<c>.ap</c> e del <c>.rw</c> (<c>file#3</c>), i
+    /// suoi file e i suoi disegni a terra interi (<c>file#*</c>); per un settore (R7) i settori dei <c>.tfl</c> e i bordi
+    /// col suo nome (<c>file#3</c>) e i file col suo nome (<c>file#*</c>). Le posizioni no: stanno nel <c>.frq</c> e non
+    /// si disegnano. Vuota senza fuoco.
     /// </summary>
     public IReadOnlyList<string> ChiaviDelFuoco
     {
@@ -36,20 +46,67 @@ public sealed partial class SessioneDelLab
         {
             if (Fuoco is null || Sessione is null)
                 return [];
-            if (_chiaviDelFuoco is null || _chiaviDi != (Fuoco, _versioneDeiFile))
-                (_chiaviDelFuoco, _chiaviDi) = (Chiavi(VistaPerScalo.Di(Sessione, Fuoco)), (Fuoco, _versioneDeiFile));
+            if (_chiaviDelFuoco is null || _chiaviDi != (Fuoco, FuocoSuUnSettore, _versioneDeiFile))
+                (_chiaviDelFuoco, _chiaviDi) = (FuocoSuUnSettore
+                    ? Chiavi(VistaPerSettore.Di(Sessione, Fuoco), ["settori", "bordi"], ["file"])
+                    : Chiavi(VistaPerScalo.Di(Sessione, Fuoco), ["scalo", "piste"], ["file", "terra"]),
+                    (Fuoco, FuocoSuUnSettore, _versioneDeiFile));
             return _chiaviDelFuoco;
 
-            static List<string> Chiavi(IReadOnlyList<SezioneDelloScalo> sezioni) =>
+            static List<string> Chiavi(IReadOnlyList<SezioneDelloScalo> sezioni, string[] diRecord, string[] diFile) =>
             [
-                .. sezioni.Where(s => s.Id is "scalo" or "piste").SelectMany(s => s.Voci).Select(v => ChiaveDellaVista(v.File, v.Record)),
-                .. sezioni.Where(s => s.Id is "file" or "terra").SelectMany(s => s.Voci).Select(v => ChiaveDellaVista(v.File, null)),
+                .. sezioni.Where(s => diRecord.Contains(s.Id)).SelectMany(s => s.Voci).Select(v => ChiaveDellaVista(v.File, v.Record)),
+                .. sezioni.Where(s => diFile.Contains(s.Id)).SelectMany(s => s.Voci).Select(v => ChiaveDellaVista(v.File, null)),
             ];
         }
     }
 
     private List<string>? _chiaviDelFuoco;
-    private (string Scalo, int Versione) _chiaviDi;
+    private (string Fuoco, bool Settore, int Versione) _chiaviDi;
+
+    /// <summary>
+    /// R7: i bordi dei settori accanto a quello del fuoco — le forme degli altri settori e bordi che arrivano nel suo
+    /// riquadro —, che la mappa mostra attenuate anche col resto nascosto: si vede dove si toccano. Vuota per uno scalo.
+    /// </summary>
+    public IReadOnlyList<string> ChiaviAccanto
+    {
+        get
+        {
+            if (!FuocoSuUnSettore || Riquadro() is not { } suo)
+                return [];
+            if (_accanto is null || _accantoDi != (Fuoco!, _versioneDeiFile) || !ReferenceEquals(_accantoCon, Strati))
+            {
+                var nelFuoco = new HashSet<string>(ChiaviDelFuoco, StringComparer.Ordinal);
+                _accanto = [.. Strati.Where(s => s.Id == StratoDeiSettori).SelectMany(s => s.Forme)
+                    .Where(f => !nelFuoco.Contains(ChiaveDellaVista(f.File, f.Record)) && !nelFuoco.Contains(ChiaveDellaVista(f.File, null)))
+                    .Where(f => Tocca(f, suo))
+                    .Select(f => ChiaveDellaVista(f.File, f.Record))
+                    .Distinct(StringComparer.Ordinal)];
+                (_accantoDi, _accantoCon) = ((Fuoco!, _versioneDeiFile), Strati);
+            }
+            return _accanto;
+
+            // Il riquadro della forma entra in quello del settore: basta, per «accanto» (un confine in comune lo fa sempre).
+            static bool Tocca(FormaDellaMappa forma, RiquadroDelFuoco riquadro)
+            {
+                var punti = forma.Tratti.SelectMany(t => t).ToList();
+                return punti.Count > 0
+                       && punti.Min(p => p.LatitudeDeg) <= riquadro.Nord && punti.Max(p => p.LatitudeDeg) >= riquadro.Sud
+                       && punti.Min(p => p.LongitudeDeg) <= riquadro.Est && punti.Max(p => p.LongitudeDeg) >= riquadro.Ovest;
+            }
+        }
+    }
+
+    private List<string>? _accanto;
+    private (string Fuoco, int Versione) _accantoDi;
+    private object? _accantoCon;
+
+    // Lo strato dei .tfl e dei bordi (.hartcc, .lartcc, .artcc): quello del settore, per il riquadro e per «accanto».
+    private const string StratoDeiSettori = "settori";
+
+    /// <summary>R7: quel che la mappa di uno spazio mostra attenuato accanto al fuoco; solo sul Sector, senza una vista a mano.</summary>
+    public IReadOnlyList<string> AccantoDaMostrare(SpazioDiLavoro spazio)
+        => spazio is SpazioDiLavoro.Sector && _mappe[spazio].InVista.Count == 0 ? ChiaviAccanto : [];
 
     /// <summary>
     /// Quel che la mappa di uno spazio mostra: la vista scelta a mano (Solo questo sulla mappa, «In vista»), se c'è; se no,
@@ -78,10 +135,36 @@ public sealed partial class SessioneDelLab
             return false;
         }
 
-        Fuoco = scalo;
         ScaloScelto = scalo;
+        AccendiIlFuoco(scalo, settore: false);
+        return true;
+    }
+
+    /// <summary>
+    /// R7: si lavora su questa posizione ATC (D2). La sceglie anche nella linguetta Settori; per il resto come
+    /// <see cref="LavoraSu"/>. Falso, col rifiuto, se la posizione non ha niente da disegnare.
+    /// </summary>
+    public bool LavoraSulSettore(string? codice)
+    {
+        string? settore = codice?.Trim().ToUpperInvariant();
+        if (Sessione is null || string.IsNullOrEmpty(settore) || !SettoriDellaVista().Any(s => s.Codice == settore))
+        {
+            Rifiuto = $"«{codice}» non è una posizione con un settore o un bordo in questo sector.";
+            Avvisa();
+            return false;
+        }
+
+        SettoreScelto = settore;
+        AccendiIlFuoco(settore, settore: true);
+        return true;
+    }
+
+    private void AccendiIlFuoco(string fuoco, bool settore)
+    {
+        Fuoco = fuoco;
+        FuocoSuUnSettore = settore;
         var mappa = _mappe[SpazioDiLavoro.Sector];
-        // La vista a mano era del lavoro di prima: col fuoco si riparte dallo scalo intero.
+        // La vista a mano era del lavoro di prima: col fuoco si riparte dallo scalo (o dal settore) intero.
         if (mappa.InVista.Count > 0)
         {
             mappa.InVista.Clear();
@@ -94,17 +177,17 @@ public sealed partial class SessioneDelLab
 
         VersioneDelFuoco++;
         InquadratureDelFuoco++;
-        Ricorda("fuoco.txt", scalo, "fuoco");
+        Ricorda("fuoco.txt", settore ? PrefissoDelSettore + fuoco : fuoco, "fuoco");
         Avvisa();
-        return true;
     }
 
-    /// <summary>Esce dal fuoco: la mappa torna agli strati accesi, come fuori dal fuoco. Lo scalo resta scelto negli Scali.</summary>
+    /// <summary>Esce dal fuoco: la mappa torna agli strati accesi, come fuori dal fuoco. Lo scalo (o il settore) resta scelto.</summary>
     public void EsciDalFuoco()
     {
         if (Fuoco is null)
             return;
         Fuoco = null;
+        FuocoSuUnSettore = false;
         VersioneDelFuoco++;
         Ricorda("fuoco.txt", null, "fuoco");
         Avvisa();
@@ -184,7 +267,9 @@ public sealed partial class SessioneDelLab
     {
         if (ChiaviDelFuoco.Count == 0)
             return null;
-        var delGround = Strati.Where(s => StratiDelGround.Contains(s.Tipo.Id)).SelectMany(FormeDelFuoco).ToList();
+        // R7: per un settore, il suo poligono e i suoi bordi.
+        IReadOnlyList<string> principali = FuocoSuUnSettore ? [StratoDeiSettori] : StratiDelGround;
+        var delGround = Strati.Where(s => principali.Contains(s.Tipo.Id)).SelectMany(FormeDelFuoco).ToList();
         var forme = delGround.Count > 0 ? delGround : [.. Strati.SelectMany(FormeDelFuoco)];
         double sud = double.MaxValue, ovest = double.MaxValue, nord = double.MinValue, est = double.MinValue;
         foreach (var forma in forme)
@@ -219,12 +304,74 @@ public sealed partial class SessioneDelLab
     private IReadOnlyList<GenereDelloStrato> GeneriDelFuoco(StratoDellaMappa strato)
         => GeneriDellaMappa.Di(strato with { Forme = FormeDelFuoco(strato) });
 
-    /// <summary>All'apertura di un sector: il fuoco ricordato, se lo scalo c'è ancora.</summary>
+    /// <summary>All'apertura di un sector: il fuoco ricordato, se lo scalo (o la posizione) c'è ancora.</summary>
     private void RiprendiIlFuoco()
     {
         Fuoco = null;
+        FuocoSuUnSettore = false;
         _chiaviDelFuoco = null;
-        if (Ricordata("fuoco.txt") is { } scalo && ScaliDellaVista().Any(s => s.Icao == scalo))
-            LavoraSu(scalo);
+        _accanto = null;
+        if (Ricordata("fuoco.txt") is not { } ricordato)
+            return;
+        if (ricordato.StartsWith(PrefissoDelSettore, StringComparison.Ordinal))
+        {
+            string settore = ricordato[PrefissoDelSettore.Length..];
+            if (SettoriDellaVista().Any(s => s.Codice == settore))
+                LavoraSulSettore(settore);
+        }
+        else if (ScaliDellaVista().Any(s => s.Icao == ricordato))
+        {
+            LavoraSu(ricordato);
+        }
+    }
+
+    // --- la vista per settore (R7): la linguetta Settori ---------------------------------------------------------------
+
+    /// <summary>La posizione scelta nella linguetta Settori, o null.</summary>
+    public string? SettoreScelto { get; private set; }
+
+    /// <summary>Le posizioni fra cui scegliere: quelle con un settore o un bordo da disegnare.</summary>
+    public IReadOnlyList<SettoreDellaVista> SettoriDellaVista()
+    {
+        if (Sessione is null)
+            return [];
+        if (_settori is null || !ReferenceEquals(_settoriDi, Strati) || _settoriAlla != _versioneDeiFile)
+            (_settori, _settoriDi, _settoriAlla) = (VistaPerSettore.Settori(Sessione), Strati, _versioneDeiFile);
+        return _settori;
+    }
+
+    /// <summary>Sceglie la posizione della linguetta Settori (null: nessuna).</summary>
+    public void ScegliIlSettore(string? codice)
+    {
+        SettoreScelto = string.IsNullOrWhiteSpace(codice) ? null : codice.Trim().ToUpperInvariant();
+        Registro.Scrivi("settore", SettoreScelto ?? "nessuno");
+        Avvisa();
+    }
+
+    /// <summary>Tutto quello che riguarda la posizione scelta: settori, bordi, file col suo nome, righe dei <c>.frq</c>.</summary>
+    public IReadOnlyList<SezioneDelloScalo> VistaDelSettore()
+    {
+        if (Sessione is null || SettoreScelto is null)
+            return [];
+        if (_vistaDelSettore is null || _vistaDelSettoreDi != (SettoreScelto, _versioneDeiFile) || !ReferenceEquals(_vistaDelSettoreCon, Strati))
+            (_vistaDelSettore, _vistaDelSettoreDi, _vistaDelSettoreCon) = (VistaPerSettore.Di(Sessione, SettoreScelto), (SettoreScelto, _versioneDeiFile), Strati);
+        return _vistaDelSettore;
+    }
+
+    private IReadOnlyList<SettoreDellaVista>? _settori;
+    private object? _settoriDi;
+    private int _settoriAlla;
+    private IReadOnlyList<SezioneDelloScalo>? _vistaDelSettore;
+    private (string Settore, int Versione) _vistaDelSettoreDi;
+    private object? _vistaDelSettoreCon;
+
+    /// <summary>Alla chiusura del sector: il settore scelto e quel che ne era calcolato erano di quell'albero.</summary>
+    private void ScordaIlSettore()
+    {
+        SettoreScelto = null;
+        FuocoSuUnSettore = false;
+        _settori = null;
+        _vistaDelSettore = null;
+        _accanto = null;
     }
 }
