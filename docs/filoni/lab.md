@@ -4,6 +4,16 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+**2 novembre, pomeriggio: lavorare su uno scalo** (committente: «non riesco a lavorare bene se lavoro con singolo settore
+o singolo aeroporto, tipo per fare l'editing a terra»). Carta [`2026-11-02-lavorare-su-uno-scalo.md`](../feature/2026-11-02-lavorare-su-uno-scalo.md),
+approvata («Sì, vai», D1-D4 come proposte). Il **fuoco**: «◎ Lavora su LIRF» nella linguetta Scali, e finché non si esce
+(anche dopo un riavvio) la mappa mostra solo lo scalo e va sul suo ground, il resto è nascosto o in grigio, la colonna resta
+sullo scalo e i suoi file si aprono lì, scegliere un record non sposta la mappa («⌖ Portami lì» sì), gli Strati stanno
+sopra la mappa (822 px invece di 590 a 1 400), e in Consegna le modifiche dello scalo vanno in testa e si annullano anche
+da sole. Fette 1-4 in `aefe92a0`, `f5419f04`, `77c06e7f`. Trovato per strada: lo zoom animato delle coste, in coda al
+fotogramma dopo, riportava la mappa sull'Italia dopo l'inquadratura sullo scalo (ora senza animazione). Restano R7 (il
+settore) e la Scheda a striscia (D4), dopo la prova. Nessun codice comune. Lab 1 580. Prove A124-A128.
+
 **2 novembre, A11 e A13 decise** (committente: «A11, dividila in due, A13 dividila in due»). **Magra** (ENR 5.6.1.8), due
 poligoni sotto un nome, ora sono due aree, «Magra 1» e «Magra 2», con gli stessi limiti e le stesse note: lo fa il lettore
 dei parchi (`ItalianEnr5`, solo per ENR 5.6; nelle altre tabelle si tiene il primo poligono e si dice, come prima). Il conto
