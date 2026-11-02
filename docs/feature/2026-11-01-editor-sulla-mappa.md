@@ -97,3 +97,21 @@ Ogni fetta: test bUnit dei gesti (la mappa vista dal circuito), prova sul banco 
   mouse il vertice 20 → «vertice spostato» e la forma portata sulle due copie uguali (l'altro LIBB_FSS, BB FIC);
   Ctrl+Z la rimette; Esc spegne; LIBB_ES_CTR 52 maniglie, 36 col nome tratteggiate e ferme. Non visto: la finestra
   dei pannelli staccata (il mouse sulla Scheda dall'altra finestra), la Linea di un `.geo` a schermo.
+
+## §6 — Fetta 2, fatta (2 novembre)
+
+- **Maniglia di mezzo** (R3): fra due vertici di fila di un elenco che sa scrivere coordinate (non i punti di una
+  procedura `.str` né il tracciato di un'aerovia: `ManigliaDelVertice.Aggiungibile`), una maniglia più piccola a metà;
+  trascinata, `VerticeAggiuntoDallaMappa` fa il gesto `Aggiungi` della Scheda prima del secondo vertice, con la
+  coordinata del rilascio. Una maniglia di mezzo vecchia (i due vertici non sono più di fila) si rifiuta. Mentre si
+  trascina, le altre di mezzo si nascondono: starebbero a metà dei tratti vecchi.
+- **La Linea di un `.geo`** sapeva aggiungere solo una copia del punto («+» della Scheda, da spostare poi): dalla mappa
+  sarebbero stati due gesti, «aggiungi» e «sposta». Ora `LineeDelGeo.ConUnPuntoInPiu` e `GestoSullaLinea` del motore
+  prendono il punto nuovo (`dove`, `nuovo`): un gesto solo, un annulla solo. Il «+» della Scheda resta una copia.
+- **Clic destro** (R4): sulla maniglia un menu con «Togli il vertice N» (popup di Leaflet coi colori del Lab), che fa il
+  gesto `Togli` della Scheda, col suo rifiuto sull'ultimo vertice. Anche un vertice col nome si toglie. Dopo, la Scheda
+  segna il vertice che ha preso il suo posto.
+- **Prove**: 5 test nuovi (`EditorSullaMappaTests`, 13), suite del Lab 1545. Sul banco, col mouse: LIBB_FSS 48 maniglie
+  e 47 di mezzo; trascinata quella fra il 23 e il 24 → «vertice aggiunto (48 → 49)» e la forma portata sulle due copie
+  uguali; clic destro sul vertice nuovo → «Togli il vertice 24» → la forma torna com'era e le Modifiche si svuotano.
+  Non visto a schermo: la Linea di un `.geo` (solo nei test).

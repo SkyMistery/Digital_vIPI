@@ -1475,8 +1475,9 @@ public sealed class ModificheInSospeso
     /// «−», «Inverti», o i punti di «Incolla da testo» (<paramref name="incollati"/>, al posto di tutti). I segmenti si
     /// riscrivono fra un punto e il prossimo; quelli che restano uguali restano le loro righe. Una voce nel testo del file.
     /// </summary>
+    /// <param name="nuovo">Per «+»: dove va il punto nuovo (F9, dalla mappa); senza, una copia del punto che c'è lì.</param>
     public object GestoSullaLinea(FileAperto file, int indice, GestoSullaLinea gesto, int posizione = 0,
-                                  IReadOnlyList<Coordinate>? incollati = null, string etichetta = "")
+                                  IReadOnlyList<Coordinate>? incollati = null, string etichetta = "", Coordinate? nuovo = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         if (file is not IFileConRecord conRecord || LineaDi(file, indice) is not { } linea)
@@ -1484,7 +1485,7 @@ public sealed class ModificheInSospeso
         string? perche = null;
         IReadOnlyList<Coordinate>? punti = gesto switch
         {
-            Modifiche.GestoSullaLinea.Aggiungi => LineeDelGeo.ConUnPuntoInPiu(linea, posizione, out perche),
+            Modifiche.GestoSullaLinea.Aggiungi => LineeDelGeo.ConUnPuntoInPiu(linea, posizione, out perche, nuovo),
             Modifiche.GestoSullaLinea.Togli => LineeDelGeo.ConUnPuntoInMeno(linea, posizione, out perche),
             Modifiche.GestoSullaLinea.Inverti => [.. linea.Punti.Reverse()],
             _ => incollati,

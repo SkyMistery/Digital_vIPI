@@ -161,6 +161,100 @@ public sealed class EditorSullaMappaTests : IDisposable
         Assert.Equal(linea.Punti.Count, dopo.Punti.Count);
     }
 
+    // --- fetta 2: aggiungere e togliere dalla mappa (R3, R4) -----------------------------------------------------
+
+    [Fact]
+    public async Task LaManigliaDiMezzoAggiungeUnVerticeColSuoPostoInUnGestoSolo()
+    {
+        await ApriEScegliIlSettore();
+        _lab.ModificaSullaMappaDi(true);
+        Assert.All(_lab.Maniglie(), m => Assert.True(m.Aggiungibile));
+
+        // Fra il vertice 0 e ALB.
+        Assert.True(_lab.VerticeAggiuntoDallaMappa("Vertices", 1, 42.5, 10.25));
+
+        var maniglie = _lab.Maniglie();
+        Assert.Equal(4, maniglie.Count);
+        Assert.Equal(42.5, maniglie[1].Lat, 6);
+        Assert.True(maniglie[2].PerNome);
+        Assert.Equal(1, _lab.Modifiche.Quante);
+        Assert.Equal(new GestoDallaMappa(Settore, 0, "Vertices", 1, null), _lab.UltimoDallaMappa);
+
+        // Un gesto solo: un annulla lo toglie tutto.
+        _lab.Annulla();
+        Assert.Equal(3, _lab.Maniglie().Count);
+        Assert.False(_lab.Modifiche.CEQualcosa);
+
+        _lab.Ripeti();
+        await _lab.SalvaAsync();
+        Assert.Equal("N042.30.00.000;E010.15.00.000;", Righe(Settore)[2]);
+    }
+
+    [Fact]
+    public async Task UnaManigliaDiMezzoVecchiaSiRifiuta()
+    {
+        await ApriEScegliIlSettore();
+        _lab.ModificaSullaMappaDi(true);
+
+        // Dopo l'ultimo vertice non c'è un tratto: nessuna maniglia di mezzo lì.
+        Assert.False(_lab.VerticeAggiuntoDallaMappa("Vertices", 3, 42.0, 12.0));
+
+        Assert.False(_lab.Modifiche.CEQualcosa);
+        Assert.Contains("la forma è cambiata", _lab.Rifiuto);
+    }
+
+    [Fact]
+    public async Task IlClicDestroToglieAncheUnVerticeColNomeMaNonLUltimo()
+    {
+        await ApriEScegliIlSettore();
+        _lab.ModificaSullaMappaDi(true);
+
+        Assert.True(_lab.VerticeToltoDallaMappa("Vertices", 1));
+        Assert.Equal(2, _lab.Maniglie().Count);
+        Assert.DoesNotContain(_lab.Maniglie(), m => m.PerNome);
+        Assert.True(_lab.VerticeToltoDallaMappa("Vertices", 1));
+
+        Assert.False(_lab.VerticeToltoDallaMappa("Vertices", 0));
+        Assert.Contains("ultimo vertice", _lab.Rifiuto);
+        Assert.Same(_lab.Rifiuto, _lab.UltimoDallaMappa?.Rifiuto);
+        Assert.Single(_lab.Maniglie());
+    }
+
+    [Fact]
+    public async Task NellaLineaDiUnGeoLaManigliaDiMezzoAggiungeIlPuntoDoveLasciata()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        int primo = Enumerable.Range(0, 200).First(r => _lab.LineaDi(Geo, r) is not null);
+        var linea = _lab.LineaDi(Geo, primo)!;
+        int record = linea.Record[4];
+        _lab.Scegli(Geo, record);
+        _lab.ModificaSullaMappaDi(true);
+
+        Assert.True(_lab.VerticeAggiuntoDallaMappa(SessioneDelLab.ChiaveDellaLinea, 5, 42.5, 13.5));
+
+        var dopo = _lab.LineaDi(Geo, linea.Record[0])!;
+        Assert.Equal(linea.Punti.Count + 1, dopo.Punti.Count);
+        Assert.Equal(42.5, dopo.Punti[5].LatitudeDeg, 6);
+        Assert.Equal(linea.Punti[5], dopo.Punti[6]);
+
+        // Un gesto solo, non «aggiungi» e poi «sposta».
+        _lab.Annulla();
+        Assert.False(_lab.Modifiche.CEQualcosa);
+    }
+
+    [Fact]
+    public async Task IlPiuDellaLineaNellaSchedaFaAncoraUnaCopiaDelPunto()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        int primo = Enumerable.Range(0, 200).First(r => _lab.LineaDi(Geo, r) is not null);
+        var linea = _lab.LineaDi(Geo, primo)!;
+
+        Assert.True(_lab.GestoSuiVertici(Geo, linea.Record[0], SessioneDelLab.ChiaveDellaLinea, GestoDeiVertici.Aggiungi, 2));
+
+        var dopo = _lab.LineaDi(Geo, linea.Record[0])!;
+        Assert.Equal(dopo.Punti[2], dopo.Punti[3]);
+    }
+
     [Fact]
     public async Task IlTastoDellaSchedaMandaLeManiglieEIlMouseSulVerticeLIndica()
     {

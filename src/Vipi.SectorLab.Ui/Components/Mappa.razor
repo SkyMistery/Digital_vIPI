@@ -178,7 +178,7 @@
         if (Spazio is SpazioDiLavoro.Sector)
         {
             var maniglie = Lab.Maniglie();
-            string firma = string.Join('|', maniglie.Select(m => FormattableString.Invariant($"{m.Campo}:{m.Posizione}:{m.Lat:R}:{m.Lon:R}:{m.PerNome}")));
+            string firma = string.Join('|', maniglie.Select(m => FormattableString.Invariant($"{m.Campo}:{m.Posizione}:{m.Lat:R}:{m.Lon:R}:{m.PerNome}:{m.Aggiungibile}")));
             bool rimandate = firma != _firmaDelleManiglie;
             if (rimandate)
             {
@@ -226,6 +226,15 @@
     [JSInvokable]
     public bool VerticeDallaMappa(string campo, int posizione, double lat, double lon)
         => Lab.VerticeDallaMappa(campo, posizione, lat, lon);
+
+    /// <summary>F9 (R3): la maniglia di mezzo lasciata sulla mappa. Falso = rifiutato.</summary>
+    [JSInvokable]
+    public bool VerticeAggiuntoDallaMappa(string campo, int primaDi, double lat, double lon)
+        => Lab.VerticeAggiuntoDallaMappa(campo, primaDi, lat, lon);
+
+    /// <summary>F9 (R4): «Togli questo vertice» dal clic destro su una maniglia.</summary>
+    [JSInvokable]
+    public bool VerticeToltoDallaMappa(string campo, int posizione) => Lab.VerticeToltoDallaMappa(campo, posizione);
 
     /// <summary>F9 (R1): Esc con le maniglie accese.</summary>
     [JSInvokable]

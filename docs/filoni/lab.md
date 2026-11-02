@@ -11,6 +11,8 @@ Regole R1-R9: le maniglie sul solo record scelto, e ogni trascinamento è uno de
 sposta solo su un altro nome. Approvata la sera stessa come proposta («Sì, vai»: D1 solo la calamita, D2 alla F8, D3 e
 D4 dopo). **Fetta 1 fatta** (carta §5): il tasto «✎ Modifica sulla mappa» nella Geometria, maniglie trascinabili, un
 gesto «vertice spostato» al rilascio, la Scheda che segue, Esc. Nessun codice comune. Prove A110-A112.
+**2 novembre, fetta 2** (carta §6): la maniglia di mezzo aggiunge un vertice dove la lasci, il clic destro apre «Togli
+il vertice N»; la Linea di un `.geo` ora sa aggiungere un punto già al suo posto (un gesto solo). Prove A113-A114.
 
 **31 ottobre: la Scheda per gruppi, seconda parte** (D5 della carta del riordino, ferma «al via» dal 21 ottobre; il
 committente non poteva ancora fare le prove A75-A91 e ha detto «Sì, vai»). La Linea di un `.geo` ha lo stesso editor dei

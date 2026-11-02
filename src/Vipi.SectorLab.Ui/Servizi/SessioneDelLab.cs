@@ -2820,6 +2820,10 @@ public sealed partial class SessioneDelLab
                 : Modifiche.GestoSullaLinea(file, record, Core.Modifiche.GestoSullaLinea.Incolla,
                     incollati: [.. letto.Punti.Select(p => new Coordinate(p.Lat, p.Lon))], etichetta: etichetta);
         }
+        else if (gesto == GestoDeiVertici.Aggiungi && testo is not null && !PuntoDelTesto(testo, out _))
+        {
+            esito = new ModificaRifiutata($"«{testo}» non è una coordinata che il sector sappia scrivere.");
+        }
         else
         {
             var suLinea = gesto switch
@@ -2828,7 +2832,9 @@ public sealed partial class SessioneDelLab
                 GestoDeiVertici.Togli => Core.Modifiche.GestoSullaLinea.Togli,
                 _ => Core.Modifiche.GestoSullaLinea.Inverti,
             };
-            esito = Modifiche.GestoSullaLinea(file, record, suLinea, posizione, etichetta: etichetta);
+            // F9 (R3): un punto aggiunto dalla mappa porta già il suo posto; dal tasto «+» è una copia, da spostare poi.
+            Coordinate? nuovo = gesto == GestoDeiVertici.Aggiungi && testo is not null && PuntoDelTesto(testo, out var dove) ? dove : null;
+            esito = Modifiche.GestoSullaLinea(file, record, suLinea, posizione, etichetta: etichetta, nuovo: nuovo);
         }
         Registro.Scrivi("linea", $"{fileRelativo}#{record} {gesto} {posizione}: {Descrivi(esito)}");
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;

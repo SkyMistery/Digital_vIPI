@@ -109,7 +109,8 @@ public static class LineeDelGeo
     /// I punti dopo «+» (D5, l'editor dei vertici anche per i <c>.geo</c>): come per un elenco di vertici, una copia del punto
     /// <paramref name="posizione"/> al suo posto (in fondo, dell'ultimo), da spostare poi. Null col perché se lì non si può.
     /// </summary>
-    public static IReadOnlyList<Coordinate>? ConUnPuntoInPiu(LineaDelGeo linea, int posizione, out string? perche)
+    /// <param name="dove">Dove va il punto nuovo (F9, la maniglia di mezzo sulla mappa); senza, è una copia del punto che c'è lì.</param>
+    public static IReadOnlyList<Coordinate>? ConUnPuntoInPiu(LineaDelGeo linea, int posizione, out string? perche, Coordinate? dove = null)
     {
         ArgumentNullException.ThrowIfNull(linea);
         perche = null;
@@ -119,7 +120,7 @@ public static class LineeDelGeo
             return null;
         }
         var punti = linea.Punti.ToList();
-        punti.Insert(posizione, punti[Math.Min(posizione, punti.Count - 1)]);
+        punti.Insert(posizione, dove ?? punti[Math.Min(posizione, punti.Count - 1)]);
         return punti;
     }
 

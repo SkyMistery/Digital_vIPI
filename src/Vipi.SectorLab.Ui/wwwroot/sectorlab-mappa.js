@@ -265,34 +265,31 @@
         if (stato.maniglie) { stato.mappa.removeLayer(stato.maniglie.gruppo); stato.maniglie = null; }
         stato.indicata = null;
         if (stato.traccia) { stato.mappa.removeLayer(stato.traccia); stato.traccia = null; }
+        stato.mappa.closePopup();
     }
 
-    function icona(perNome) {
-        return L.divIcon({ className: 'lab-maniglia' + (perNome ? ' lab-maniglia-nome' : ''), iconSize: [12, 12] });
+    function icona(classe, lato) {
+        return L.divIcon({ className: 'lab-maniglia' + (classe ? ' ' + classe : ''), iconSize: [lato, lato] });
     }
 
-    /// I vicini nello stesso elenco: mentre si trascina, i due tratti che toccano il vertice si vedono tratteggiati (R2).
-    function vicini(stato, m) {
-        var elenco = stato.maniglie.perCampo[m.campo] || {};
-        return [elenco[m.posizione - 1], elenco[m.posizione + 1]];
-    }
-
-    function trascinaLaManiglia(stato, m, marcatore) {
+    /// Una maniglia che si trascina: mentre la tieni, `tratti(qui)` dice i tratti tratteggiati da mostrare (R2: i due che
+    /// toccano il vertice; R3: i due che il vertice nuovo farebbe); al rilascio `gesto(dove)` chiede il gesto al Lab.
+    function trascinabile(stato, marcatore, tratti, gesto) {
         var partenza = marcatore.getLatLng();
         marcatore.on('dragstart', function () {
             stato.trascina = true;
+            // Le maniglie di mezzo dei tratti che si muovono resterebbero a metà del tratto vecchio: si nascondono.
+            L.DomUtil.addClass(stato.mappa.getContainer(), 'lab-mappa-trascina');
             if (stato.traccia) stato.mappa.removeLayer(stato.traccia);
             stato.traccia = L.polyline([], { color: token('--lab-evidenza', '#e26e17'), weight: 2, dashArray: '6,4', interactive: false })
                 .addTo(stato.mappa);
         });
         marcatore.on('drag', function () {
-            var v = vicini(stato, m), qui = marcatore.getLatLng(), tratti = [];
-            if (v[0]) tratti.push([v[0].getLatLng(), qui]);
-            if (v[1]) tratti.push([qui, v[1].getLatLng()]);
-            if (stato.traccia) stato.traccia.setLatLngs(tratti);
+            if (stato.traccia) stato.traccia.setLatLngs(tratti(marcatore.getLatLng()));
         });
         marcatore.on('dragend', function () {
             stato.trascina = false;
+            L.DomUtil.removeClass(stato.mappa.getContainer(), 'lab-mappa-trascina');
             if (stato.traccia) { stato.mappa.removeLayer(stato.traccia); stato.traccia = null; }
             var dove = marcatore.getLatLng();
             if (stato.chiusa || !stato.riferimento) return;
@@ -305,9 +302,28 @@
             }
             // Un gesto solo, al rilascio. Fatto: il Lab rimanda le maniglie dove sono adesso. Rifiutato: la maniglia torna
             // dov'era, e il motivo sta nella Scheda accanto all'elenco.
-            stato.riferimento.invokeMethodAsync('VerticeDallaMappa', m.campo, m.posizione, dove.lat, dove.lng)
-                .then(function (fatto) { if (!fatto) marcatore.setLatLng(partenza); },
-                      function () { marcatore.setLatLng(partenza); });
+            gesto(dove).then(function (fatto) { if (!fatto) marcatore.setLatLng(partenza); },
+                             function () { marcatore.setLatLng(partenza); });
+        });
+    }
+
+    /// R4: il clic destro su una maniglia apre «Togli il vertice N» lì accanto. Un menu e non un tasto da solo (né Canc):
+    /// con la mappa sotto la mano si toglierebbe troppo facilmente.
+    function menuDelVertice(stato, m, marcatore) {
+        marcatore.on('contextmenu', function (e) {
+            L.DomEvent.stop(e);
+            if (e.originalEvent) L.DomEvent.preventDefault(e.originalEvent);
+            var tasto = L.DomUtil.create('button', 'lab-tasto lab-togli-dalla-mappa');
+            tasto.type = 'button';
+            tasto.textContent = 'Togli il vertice ' + (m.posizione + 1);
+            L.DomEvent.on(tasto, 'click', function (ev) {
+                L.DomEvent.stop(ev);
+                stato.mappa.closePopup();
+                if (!stato.chiusa && stato.riferimento)
+                    stato.riferimento.invokeMethodAsync('VerticeToltoDallaMappa', m.campo, m.posizione).catch(function () { /* il circuito se n'è andato */ });
+            });
+            L.popup({ closeButton: false, offset: [0, -6], className: 'lab-menu-maniglia' })
+                .setLatLng(marcatore.getLatLng()).setContent(tasto).openOn(stato.mappa);
         });
     }
 
@@ -630,8 +646,10 @@
             }
         },
 
-        /// F9 (R1, R2): le maniglie dei vertici del record scelto — [{ campo, posizione, lat, lon, perNome }], vuoto le
-        /// toglie. Un vertice scritto col nome ha una maniglia vuota che non si trascina (R6: lo sposta solo la calamita).
+        /// F9 (R1-R4): le maniglie dei vertici del record scelto — [{ campo, posizione, lat, lon, perNome, aggiungibile }],
+        /// vuoto le toglie. Un vertice scritto col nome ha una maniglia vuota che non si trascina (R6: lo sposta solo la
+        /// calamita). Fra due vertici di fila di un elenco che sa scrivere coordinate, una maniglia di mezzo più piccola:
+        /// trascinata, aggiunge lì un vertice (R3). Il clic destro su una maniglia la toglie (R4).
         maniglie: function (elenco, elemento) {
             var stato = prendi(elemento);
             if (!stato) return 0;
@@ -639,18 +657,52 @@
             if (stato.trascina) { stato.maniglieInAttesa = elenco || []; return 0; }
             togliLeManiglie(stato);
             if (!elenco || !elenco.length) return 0;
-            var gruppo = L.layerGroup(), perCampo = {};
+            var gruppo = L.layerGroup(), perCampo = {}, ferma = function (e) { L.DomEvent.stop(e); };
             for (var i = 0; i < elenco.length; i++) {
-                var m = elenco[i];
-                var marcatore = L.marker([m.lat, m.lon], {
-                    icon: icona(m.perNome), draggable: !m.perNome, autoPan: true, keyboard: false, zIndexOffset: 1000,
-                    title: (m.posizione + 1) + (m.perNome ? ' — è il nome di un punto: non si trascina' : '')
-                });
-                // Il clic su una maniglia non sceglie la forma che c'è sotto.
-                marcatore.on('click', function (e) { L.DomEvent.stop(e); });
-                if (!m.perNome) trascinaLaManiglia(stato, m, marcatore);
-                (perCampo[m.campo] = perCampo[m.campo] || {})[m.posizione] = marcatore;
-                gruppo.addLayer(marcatore);
+                (function (m) {
+                    var marcatore = L.marker([m.lat, m.lon], {
+                        icon: icona(m.perNome ? 'lab-maniglia-nome' : null, 12), draggable: !m.perNome, autoPan: true,
+                        keyboard: false, zIndexOffset: 1000,
+                        title: (m.posizione + 1) + (m.perNome ? ' — è il nome di un punto: non si trascina' : '') + ' (clic destro: togli)'
+                    });
+                    // Il clic su una maniglia non sceglie la forma che c'è sotto.
+                    marcatore.on('click', ferma);
+                    if (!m.perNome) {
+                        trascinabile(stato, marcatore, function (qui) {
+                            var suoi = stato.maniglie.perCampo[m.campo] || {}, prima = suoi[m.posizione - 1], dopo = suoi[m.posizione + 1], tratti = [];
+                            if (prima) tratti.push([prima.getLatLng(), qui]);
+                            if (dopo) tratti.push([qui, dopo.getLatLng()]);
+                            return tratti;
+                        }, function (dove) {
+                            return stato.riferimento.invokeMethodAsync('VerticeDallaMappa', m.campo, m.posizione, dove.lat, dove.lng);
+                        });
+                    }
+                    menuDelVertice(stato, m, marcatore);
+                    (perCampo[m.campo] = perCampo[m.campo] || {})[m.posizione] = { marcatore: marcatore, dati: m };
+                    gruppo.addLayer(marcatore);
+                })(elenco[i]);
+            }
+            // Le maniglie di mezzo, dopo quelle dei vertici: sotto di loro (zIndexOffset più basso).
+            for (var j = 0; j < elenco.length; j++) {
+                (function (m) {
+                    var dopo = (perCampo[m.campo] || {})[m.posizione + 1];
+                    if (!m.aggiungibile || !dopo) return;
+                    var a = L.latLng(m.lat, m.lon), b = L.latLng(dopo.dati.lat, dopo.dati.lon);
+                    var mezzo = L.marker([(a.lat + b.lat) / 2, (a.lng + b.lng) / 2], {
+                        icon: icona('lab-maniglia-mezzo', 8), draggable: true, autoPan: true, keyboard: false, zIndexOffset: 500,
+                        title: 'Trascina per aggiungere un vertice fra il ' + (m.posizione + 1) + ' e il ' + (m.posizione + 2)
+                    });
+                    mezzo.on('click', ferma);
+                    mezzo.on('contextmenu', ferma);
+                    trascinabile(stato, mezzo, function (qui) { return [[a, qui], [qui, b]]; }, function (dove) {
+                        return stato.riferimento.invokeMethodAsync('VerticeAggiuntoDallaMappa', m.campo, m.posizione + 1, dove.lat, dove.lng);
+                    });
+                    gruppo.addLayer(mezzo);
+                })(elenco[j]);
+            }
+            // indica() cerca il marcatore del vertice.
+            for (var campo in perCampo) {
+                for (var posizione in perCampo[campo]) perCampo[campo][posizione] = perCampo[campo][posizione].marcatore;
             }
             gruppo.addTo(stato.mappa);
             stato.maniglie = { gruppo: gruppo, perCampo: perCampo };

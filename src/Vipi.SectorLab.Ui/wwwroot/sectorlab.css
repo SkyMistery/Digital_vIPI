@@ -2890,6 +2890,27 @@ body.lab-trascina * {
     cursor: not-allowed;
 }
 
+/* R3: la maniglia di mezzo, fra due vertici: più piccola e tenue, si trascina per aggiungere un vertice. Mentre si
+   trascina una maniglia le altre di mezzo spariscono (starebbero a metà dei tratti vecchi), tranne quella presa. */
+.lab-maniglia.lab-maniglia-mezzo {
+    border-width: 1.5px;
+    opacity: .7;
+    cursor: copy;
+}
+
+.lab-maniglia.lab-maniglia-mezzo:hover { opacity: 1; }
+.lab-mappa-trascina .lab-maniglia-mezzo:not(.leaflet-drag-target) { visibility: hidden; }
+
+/* R4: il menu del clic destro su una maniglia — un tasto solo, nel popup di Leaflet coi colori del Lab. */
+.lab-menu-maniglia .leaflet-popup-content-wrapper,
+.lab-menu-maniglia .leaflet-popup-tip {
+    background: var(--lab-superficie);
+    color: inherit;
+}
+
+.lab-menu-maniglia .leaflet-popup-content { margin: .3rem; }
+.lab-togli-dalla-mappa { white-space: nowrap; }
+
 .lab-maniglia.lab-maniglia-indicata {
     background: var(--lab-evidenza);
     outline: 3px solid color-mix(in srgb, var(--lab-evidenza) 35%, transparent);
