@@ -175,4 +175,17 @@ Sul banco col sector vero (1 400 px): linguetta Settori, LIRR_NC_CTR con «Setto
 intorno; un clic su un vicino non sceglie niente, uno sul bordo di NC lo sceglie con la mappa ferma e apre
 `lirr_nc_ctr.tfl` sotto il settore; riavviato il banco il fuoco è tornato sul settore. Test: `FuocoSuUnSettoreTests` (12).
 
-**Resta** (§5): la Scheda a striscia (D4), dopo la prova del committente.
+**D4, la Scheda a striscia** (2 novembre, sera; il committente: «Ok, procedi», anche questa prima delle prove). Col
+fuoco, in testa alla colonna della Scheda un «‹» la stringe a una striscia di 3 rem, come l'Indice dell'AIP con una voce
+aperta: «‹ Scheda» la riapre, e sotto, se ce ne sono, il conto delle modifiche in sospeso (le Modifiche stanno nella stessa
+colonna, e stretta non si vedrebbero). Il divisore della colonna sparisce. Resta stretta finché non la si riapre, anche
+scegliendo altri record dalla mappa o dall'elenco: chi ritocca il ground sulla mappa la Scheda non la guarda, e un record
+scelto che la riaprisse da solo ridarebbe alla Scheda lo spazio appena tolto (l'Indice invece si stringe a ogni voce
+nuova, perché lì la voce è quel che si legge). Uscendo dal fuoco, o chiudendo il sector, riparte larga; nella finestra
+dei pannelli (due schermi) la Scheda ha una colonna sua e non si stringe.
+
+Sul banco col sector vero (1 400 px), fuoco su LIRF: mappa da 822 a **1 090 px**; scelto un record di `lirf.geo`
+dall'elenco la Scheda resta stretta; «‹ Scheda» la riapre sulla scheda del record (BUILDING), mappa di nuovo a 822.
+Test: `FuocoTests` (15), Lab 1 593.
+
+**Fatto tutto** (§5): R1-R8 e D1-D4. Il seguito dipende dalle prove del committente (A124-A132).

@@ -188,6 +188,8 @@ public sealed partial class SessioneDelLab
             return;
         Fuoco = null;
         FuocoSuUnSettore = false;
+        // D4: la Scheda stretta era di quel lavoro; al prossimo fuoco riparte larga.
+        _schedaStretta = false;
         VersioneDelFuoco++;
         Ricorda("fuoco.txt", null, "fuoco");
         Avvisa();
@@ -200,6 +202,24 @@ public sealed partial class SessioneDelLab
             return;
         RestoInGrigio = inGrigio;
         VersioneDelFuoco++;
+        Avvisa();
+    }
+
+    /// <summary>
+    /// D4 (R6): col fuoco la Scheda (con le Modifiche) si stringe a una striscia, «‹ Scheda», e la mappa prende il suo
+    /// posto — come l'Indice dell'AIP con una voce aperta. Resta stretta finché non la si riapre, anche scegliendo altri
+    /// record: chi ritocca il ground sulla mappa la Scheda non la guarda. Fuori dal fuoco la Scheda è sempre larga.
+    /// </summary>
+    public bool SchedaAStriscia => Fuoco is not null && _schedaStretta;
+
+    private bool _schedaStretta;
+
+    /// <summary>D4: stringe (vero) o riapre la Scheda; stringere vale solo col fuoco.</summary>
+    public void StringiLaScheda(bool stretta)
+    {
+        if ((stretta && Fuoco is null) || _schedaStretta == stretta)
+            return;
+        _schedaStretta = stretta;
         Avvisa();
     }
 
@@ -370,6 +390,7 @@ public sealed partial class SessioneDelLab
     {
         SettoreScelto = null;
         FuocoSuUnSettore = false;
+        _schedaStretta = false;
         _settori = null;
         _vistaDelSettore = null;
         _accanto = null;

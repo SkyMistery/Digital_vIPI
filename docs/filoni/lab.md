@@ -11,7 +11,12 @@ il committente: «Comincia R7», prima delle prove sullo scalo). Il fuoco anche 
 dove si toccano. Tutto il resto del fuoco vale uguale (colonna, scelta senza zoom, Consegna, riavvio). La vista per
 settore sta nel Core (`VistaPerSettore`). Trovato sul banco e corretto anche per lo scalo: con la colonna già sulla sua
 linguetta, una scelta dalla mappa non si vedeva nell'elenco fino a un cambio di linguetta (`ScaliVista` ora si iscrive da
-sé). Resta la Scheda a striscia (D4). Nessun codice comune. Prove A129-A131.
+sé). Nessun codice comune. Prove A129-A131.
+
+**2 novembre, sera: la Scheda a striscia** (D4 della stessa carta; il committente: «Ok, procedi»). Col fuoco un «‹» in
+testa alla Scheda la stringe a una striscia «‹ Scheda» col conto delle modifiche in sospeso, e la mappa prende il suo
+posto (su LIRF a 1 400 px da 822 a 1 090 px). Resta stretta finché non la si riapre, anche scegliendo altri record; fuori
+dal fuoco è sempre larga. Con questa la carta è fatta tutta. Nessun codice comune. Prova A132.
 
 **2 novembre, pomeriggio: lavorare su uno scalo** (committente: «non riesco a lavorare bene se lavoro con singolo settore
 o singolo aeroporto, tipo per fare l'editing a terra»). Carta [`2026-11-02-lavorare-su-uno-scalo.md`](../feature/2026-11-02-lavorare-su-uno-scalo.md),

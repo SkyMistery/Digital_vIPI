@@ -23,9 +23,32 @@
                 <Modifiche />
             </aside>
         }
+        else if (Lab.SchedaAStriscia)
+        {
+            @* Carta «Lavorare su uno scalo», D4: col fuoco la Scheda stretta a una striscia; la mappa prende il suo posto.
+               Le modifiche in sospeso restano contate, per non perderle di vista. *@
+            <aside class="lab-colonna lab-colonna-ispettore lab-colonna-scheda-stretta" data-scheda="stretta">
+                <nav class="lab-indice-striscia" data-scheda-striscia>
+                    <button type="button" class="lab-voce lab-striscia-riapri" data-tasto="riapri-scheda" title="Riapre la Scheda e le Modifiche"
+                            @onclick="() => Lab.StringiLaScheda(false)">‹ <span>Scheda</span></button>
+                    @if (Lab.Modifiche.Quante is > 0 and var quante)
+                    {
+                        <button type="button" class="lab-voce" data-striscia-modifiche="@quante"
+                                title="@(quante == 1 ? "1 modifica in sospeso" : $"{quante} modifiche in sospeso"): riapre la Scheda e le Modifiche"
+                                @onclick="() => Lab.StringiLaScheda(false)">@quante<span class="lab-nota"> mod.</span></button>
+                    }
+                </nav>
+            </aside>
+        }
         else
         {
-            <aside class="lab-colonna lab-colonna-ispettore">
+            <aside class="lab-colonna lab-colonna-ispettore" data-scheda="larga">
+                @if (Lab.Fuoco is not null)
+                {
+                    @* D4: col fuoco la Scheda si stringe, come l'Indice dell'AIP. *@
+                    <button type="button" class="lab-voce lab-scheda-stringi" data-tasto="stringi-scheda"
+                            title="Stringe la Scheda a una striscia: la mappa prende il suo posto" @onclick="() => Lab.StringiLaScheda(true)">‹</button>
+                }
                 <Scheda />
                 <Modifiche />
             </aside>

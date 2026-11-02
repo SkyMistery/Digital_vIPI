@@ -2393,6 +2393,18 @@ body.lab-trascina * {
     font-weight: 600;
 }
 
+/* Carta «Lavorare su uno scalo», D4: col fuoco la Scheda si stringe a una striscia, come l'Indice (stessa misura). */
+.lab-colonna.lab-colonna-scheda-stretta {
+    width: 3rem;
+    min-width: 3rem;
+    padding: .4rem .15rem;
+}
+
+.lab-scheda-stringi {
+    float: right;
+    font-weight: 600;
+}
+
 /* R4: le parti come schede in riga, col loro numero. */
 .lab-indice-schede {
     display: flex;

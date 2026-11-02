@@ -258,6 +258,42 @@ public sealed class FuocoTests : IDisposable
         pagina.WaitForAssertion(() => Assert.Equal("colonna", pagina.Find("[data-strati]").GetAttribute("data-strati")));
     }
 
+    // --- D4: la Scheda a striscia ---------------------------------------------------------------------------------------
+
+    // D4: col fuoco la Scheda si stringe a una striscia (col conto delle modifiche) e si riapre; scegliere un record la
+    // lascia stretta. Fuori dal fuoco la Scheda è sempre larga, e al fuoco dopo riparte larga.
+    [Fact]
+    public async Task ASchermo_ColFuocoLaSchedaSiStringeAUnaStriscia()
+    {
+        await Apri();
+        var pannelli = _contesto.RenderComponent<PannelliDellaPagina>();
+        Assert.Empty(pannelli.FindAll("[data-tasto='stringi-scheda']"));
+        _lab.StringiLaScheda(true);
+        Assert.False(_lab.SchedaAStriscia);
+
+        await pannelli.InvokeAsync(() => _lab.LavoraSu("LIXA"));
+        pannelli.WaitForAssertion(() => pannelli.Find("[data-tasto='stringi-scheda']").Click());
+
+        pannelli.WaitForAssertion(() => Assert.Equal("stretta", pannelli.Find("[data-scheda]").GetAttribute("data-scheda")));
+        Assert.Empty(pannelli.FindAll("[data-divide='ispettore']"));
+        Assert.Empty(pannelli.FindAll("[data-striscia-modifiche]"));
+
+        // Una modifica si conta nella striscia; un record scelto non la riapre.
+        await pannelli.InvokeAsync(() => _lab.CambiaCampo(It + "GEO/lixa.geo", 0, "Color", "TAXIWAY"));
+        await pannelli.InvokeAsync(() => _lab.Scegli(It + "GEO/lixa.geo", 0));
+        pannelli.WaitForAssertion(() => Assert.Equal("1", pannelli.Find("[data-striscia-modifiche]").GetAttribute("data-striscia-modifiche")));
+        Assert.True(_lab.SchedaAStriscia);
+
+        pannelli.Find("[data-tasto='riapri-scheda']").Click();
+        pannelli.WaitForAssertion(() => Assert.Equal("larga", pannelli.Find("[data-scheda]").GetAttribute("data-scheda")));
+
+        _lab.StringiLaScheda(true);
+        await pannelli.InvokeAsync(_lab.EsciDalFuoco);
+        pannelli.WaitForAssertion(() => Assert.Equal("larga", pannelli.Find("[data-scheda]").GetAttribute("data-scheda")));
+        _lab.LavoraSu("LIXA");
+        Assert.False(_lab.SchedaAStriscia);
+    }
+
     // --- fetta 2: R3, R4 ------------------------------------------------------------------------------------------------
 
     // R3: col fuoco un file dello scalo si apre nella linguetta Scali, coi suoi record; non si salta a Sfoglia.
