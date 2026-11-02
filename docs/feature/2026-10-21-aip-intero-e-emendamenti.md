@@ -698,6 +698,10 @@ I passi della carta sono tutti fatti: 1, 7, 2, 3, 4, 5, 6, 8. Restano aperti col
 poligoni?), `li-ad2.json` (12 MB: un file per scalo?), l'avvicinamento come una procedura per segmento; dopo, fuori da
 questa carta, AIP SUP ed emendamenti non AIRAC, uno per uno (§2).
 
+**2 novembre, decise** (committente: «A11, dividila in due, A13 dividila in due»): Magra sono due aree, «Magra 1» e
+«Magra 2», e il conto di ENR 5.5 e 5.6 torna tutto (5 589 su 5 589); `li-ad2.json` è diviso in due, scali e SMAC in
+`li-ad2.json`, procedure in `li-ad2-procedure.json`. Storia e misure in `docs/filoni/lab.md`, 2 novembre.
+
 ### Passo 8-bis — i cicli nel repo, e le segnalazioni per tipo (22 ottobre, trovato preparando le prove a mano)
 
 Riscrivendo `PROVE.md` sul 2611 intero (851 PDF, letti con una sonda col codice di `be395bbb`) sono venute fuori tre cose

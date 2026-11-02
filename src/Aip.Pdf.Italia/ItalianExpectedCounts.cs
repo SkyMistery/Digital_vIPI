@@ -77,7 +77,8 @@ public static partial class ItalianExpectedCounts
     /// <summary>
     /// Le coordinate della prima colonna (a sinistra del 40% della pagina: le note a destra ne citano altre, ENR 5.6.1.7),
     /// come punti di una geometria: un punto stampato due volte di seguito è uno (ENR 5.6.1.10, Gola della Rossa), e il
-    /// primo punto riscritto prima di «to point of origin» chiude l'anello, non è un vertice (Monti Sibillini).
+    /// primo punto riscritto chiude l'anello, non è un vertice — prima di «to point of origin» (Monti Sibillini) o da solo,
+    /// fra due poligoni sotto un nome (Magra).
     /// </summary>
     private static int Coordinate(IReadOnlyList<PdfPageText> pages)
     {
@@ -100,9 +101,15 @@ public static partial class ItalianExpectedCounts
                 foreach (Match m in RxCoordinata().Matches(riga))
                 {
                     var c = RxSpazi().Replace(m.Value, "");
-                    if (anello.Count == 0 || anello[^1] != c) anello.Add(c);
+                    // Il primo punto riscritto chiude l'anello anche senza «to point of origin»: Magra (ENR 5.6.1.8)
+                    // chiude così il primo dei suoi due poligoni, e il secondo comincia alla riga dopo.
+                    if (anello.Count > 2 && c == anello[0]) Chiudi(origine: false);
+                    else if (anello.Count == 0 || anello[^1] != c) anello.Add(c);
                 }
                 if (riga.Contains("point of origin", StringComparison.OrdinalIgnoreCase)) Chiudi(origine: true);
+                // E il raggio chiude un cerchio: l'area dopo, senza «Circular area», non è il suo seguito (in ENR 5.6.1.8
+                // i punti di Magra finivano attaccati al centro dell'ultimo cerchio di pagina 1).
+                else if (riga.Contains("radius", StringComparison.OrdinalIgnoreCase)) Chiudi(origine: false);
             }
         }
         Chiudi(origine: false);

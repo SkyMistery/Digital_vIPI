@@ -185,8 +185,12 @@ public static class AipEspanso
     /// <summary>
     /// Le parti del modello fuori dal file principale (carta «L'AIP intero», D1 «dividiamoli per parti»): ognuna un
     /// documento con le sue liste, accanto a <c>li.json</c> — <c>li-enr3.json</c> (rotte e attese), <c>li-enr4.json</c>
-    /// (radioassistenze, punti, luci), <c>li-ostacoli.json</c>, <c>li-ad2.json</c> (scali, SMAC, procedure). Il principale
-    /// tiene l'intestazione e il resto: le aree di ENR 2 ed ENR 5, le frequenze e le linee degli ACC, i pericoli, i testi.
+    /// (radioassistenze, punti, luci), <c>li-ostacoli.json</c>, <c>li-ad2.json</c> (scali e SMAC),
+    /// <c>li-ad2-procedure.json</c> (le procedure: il committente, 2 novembre, «dividila in due» — da solo
+    /// <c>li-ad2.json</c> era 13 MB). Il principale tiene l'intestazione e il resto: le aree di ENR 2 ed ENR 5, le
+    /// frequenze e le linee degli ACC, i pericoli, i testi.
+    /// <para>Un <c>li-ad2.json</c> di prima, con le procedure dentro, si legge com'è: le sue procedure valgono finché non c'è
+    /// <c>li-ad2-procedure.json</c>, e la prossima lettura scrive le due parti.</para>
     /// </summary>
     private static readonly (string Nome, Func<AipDocument, AipDocument> Prendi, Func<AipDocument, AipDocument, AipDocument> Metti)[] Parti =
     [
@@ -195,8 +199,9 @@ public static class AipEspanso
         ("enr4", d => Testa(d) with { Navaids = d.Navaids, Points = d.Points, Lights = d.Lights },
             (m, p) => m with { Navaids = p.Navaids, Points = p.Points, Lights = p.Lights }),
         ("ostacoli", d => Testa(d) with { Obstacles = d.Obstacles }, (m, p) => m with { Obstacles = p.Obstacles }),
-        ("ad2", d => Testa(d) with { Aerodromes = d.Aerodromes, MinimumAltitudes = d.MinimumAltitudes, Procedures = d.Procedures },
-            (m, p) => m with { Aerodromes = p.Aerodromes, MinimumAltitudes = p.MinimumAltitudes, Procedures = p.Procedures }),
+        ("ad2", d => Testa(d) with { Aerodromes = d.Aerodromes, MinimumAltitudes = d.MinimumAltitudes },
+            (m, p) => m with { Aerodromes = p.Aerodromes, MinimumAltitudes = p.MinimumAltitudes, Procedures = p.Procedures ?? m.Procedures }),
+        ("ad2-procedure", d => Testa(d) with { Procedures = d.Procedures }, (m, p) => m with { Procedures = p.Procedures }),
     ];
 
     private static AipDocument Testa(AipDocument d) =>

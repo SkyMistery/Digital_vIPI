@@ -184,6 +184,43 @@ public sealed class Enr5Tests
         Assert.Null(r.Airspaces[2].Remarks);
     }
 
+    // Magra (ENR 5.6.1.8): due poligoni sotto un nome solo, e il primo si chiude riscrivendo il suo primo punto, senza
+    // «to point of origin». Il committente, 2 novembre: «dividila in due» — due aree, «Magra 1» e «Magra 2», con gli
+    // stessi limiti e le stesse note, e il conto delle coordinate torna (il punto riscritto non è un vertice).
+    [Fact]
+    public void UnParcoConDuePoligoni_DiventaDueAree()
+    {
+        var pagina = new PdfFintoTests.Pagina(Tre,
+        [
+            .. Testata("ENR 5.6.1.8 - 1", "07 AUG 2025", 40, 220, 300),
+            (45, 140, "Area Prova"), (225, 140, "500ft AGL"),
+            (45, 152, "Circular area centered on"), (225, 152, "SFC"),
+            (45, 164, "44°01'40\"N 008°13'40\"E"),
+            (45, 176, "within a 0.5 NM radius."),
+            (45, 200, "Magra"), (225, 200, "1500ft AGL"), (305, 200, "1) Sorvolo vietato"),
+            (45, 212, "44°05'00\"N 009°55'00\"E;"), (225, 212, "SFC"),
+            (45, 224, "44°06'00\"N 009°56'00\"E;"),
+            (45, 236, "44°05'00\"N 009°57'00\"E;"),
+            (45, 248, "44°05'00\"N 009°55'00\"E;"),
+            (45, 260, "44°10'00\"N 009°50'00\"E;"),
+            (45, 272, "44°11'00\"N 009°51'00\"E;"),
+            (45, 284, "44°10'00\"N 009°52'00\"E;"),
+            (45, 296, "to point of origin."),
+        ]);
+        var pagine = PdfText.Read(PdfFintoTests.Pdf(pagina));
+
+        var r = ItalianEnr5.ReadNatureParks(pagine);
+
+        Assert.Empty(r.Issues);
+        Assert.Equal(["Area Prova", "Magra 1", "Magra 2"], r.Airspaces.Select(a => a.Key));
+        var magra = r.Airspaces.Skip(1).ToList();
+        Assert.All(magra, a => Assert.Equal(("1500ft AGL", "SFC", "1) Sorvolo vietato"), (a.Upper.Text, a.Lower.Text, a.Remarks)));
+        Assert.NotEqual(magra[0].Geometry, magra[1].Geometry);
+        // Il centro del cerchio, poi 3 + 3: il cerchio prima si chiude al raggio, non si porta dietro i punti di Magra.
+        Assert.Equal([new ExpectedCount("coordinate", 7)], ItalianExpectedCounts.Of("LI-ENR 5.6.1.8.pdf", pagine));
+        Assert.Equal(7, ItalianExpectedCounts.Read("coordinate", r));
+    }
+
     // Il conto (passo 4): le coordinate della prima colonna, un punto ripetuto di seguito o il primo riscritto alla
     // chiusura una volta sola, quelle delle note no.
     [Fact]

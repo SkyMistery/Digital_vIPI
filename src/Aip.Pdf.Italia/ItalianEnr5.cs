@@ -156,12 +156,17 @@ public static partial class ItalianEnr5
         foreach (var a in aree)
         {
             var pagina = pagine.First(p => p.Number == a.Pagina);
-            if (Area(a, tabella, pagina, problemi) is { } area) lette.Add(area);
+            lette.AddRange(Aree(a, tabella, pagina, problemi));
         }
         return new ImportResult(lette, pagine, problemi);
     }
 
-    private static Airspace? Area(AreaLetta a, Tabella tabella, ImportPage pagina, List<ImportIssue> problemi)
+    /// <summary>
+    /// Le aree di una riga della tabella: una, e più di una solo per un parco con più poligoni sotto un nome solo (Magra,
+    /// ENR 5.6.1.8 — il committente, 2 novembre: «dividila in due»), che diventa «Magra 1», «Magra 2». Nelle altre tabelle
+    /// si tiene il primo poligono e si dice, come in ENR 2, 5.1 e 5.2.
+    /// </summary>
+    private static IEnumerable<Airspace> Aree(AreaLetta a, Tabella tabella, ImportPage pagina, List<ImportIssue> problemi)
     {
         // Il nome e il suo seguito: le righe prima della geometria (il riferimento fra parentesi sotto il nome).
         var geometria = a.Colonne[0].ToList();
@@ -183,9 +188,10 @@ public static partial class ItalianEnr5
         if (letta.Geometries.Count == 0)
         {
             problemi.Add(new ImportIssue(ImportIssueKind.NoGeometry, chiave, pagina.Number));
-            return null;
+            return [];
         }
-        if (letta.Geometries.Count > 1)
+        var divisa = letta.Geometries.Count > 1 && tabella.Tipo == AirspaceType.NaturePark;
+        if (letta.Geometries.Count > 1 && !divisa)
             problemi.Add(new ImportIssue(ImportIssueKind.MoreGeometries, chiave, pagina.Number, letta.Geometries.Count.ToString(CultureInfo.InvariantCulture)));
 
         var limiti = ItalianAip.UnisciLimiti(a.Colonne[1]);
@@ -195,7 +201,7 @@ public static partial class ItalianEnr5
             problemi.Add(new ImportIssue(ImportIssueKind.LimitsExtra, chiave, pagina.Number, string.Join(" | ", limiti.Skip(2))));
 
         var note = SenzaNil(Unisci(a.Colonne[tabella.Colonne - 1])) is { } n ? RxNumeroDellaNota().Replace(n, "\n") : null;
-        return new Airspace
+        var area = new Airspace
         {
             Section = tabella.Sezione,
             Type = tabella.Tipo,
@@ -211,6 +217,9 @@ public static partial class ItalianEnr5
             Geometry = letta.Geometries[0],
             Page = pagina.Reference is null ? null : new AipPage(pagina.Reference, pagina.Effective),
         };
+        return divisa
+            ? letta.Geometries.Select((g, i) => area with { Designator = $"{id} {i + 1}", Geometry = g })
+            : [area];
     }
 
     private static string? Unisci(List<string> righe)

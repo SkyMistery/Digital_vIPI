@@ -4,6 +4,18 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+**2 novembre, A11 e A13 decise** (committente: «A11, dividila in due, A13 dividila in due»). **Magra** (ENR 5.6.1.8), due
+poligoni sotto un nome, ora sono due aree, «Magra 1» e «Magra 2», con gli stessi limiti e le stesse note: lo fa il lettore
+dei parchi (`ItalianEnr5`, solo per ENR 5.6; nelle altre tabelle si tiene il primo poligono e si dice, come prima). Il conto
+delle coordinate stampate aveva due difetti, trovati misurando sul PDF vero: non chiudeva l'anello al raggio di un cerchio
+(i punti di Magra finivano attaccati al centro dell'ultimo cerchio di pagina 1) e prendeva per vertice il primo punto
+riscritto senza «to point of origin», che è come l'AIP chiude il primo poligono di Magra. Misurato sui 23 PDF di ENR 5.5 e
+5.6 del 2611: **5 589 coordinate lette su 5 589** (prima 5 584 su 5 590), 562 aree, nessuna «più geometrie». **AD 2 in due
+file**: `li-ad2.json` tiene scali e SMAC, le 2 300 procedure vanno in `li-ad2-procedure.json` (sul 2611 8,7 MB e 4,1 MB,
+prima 13 MB in uno). Un `li-ad2.json` di prima, con le procedure dentro, si legge com'è finché non c'è la parte nuova; la
+prossima «Rileggi» scrive i due file, e quello nuovo va registrato con «Registra l'AIP». **Codice comune**: `Aip.Pdf.Italia`
+(`ItalianEnr5`, `ItalianExpectedCounts`; lo usa ATCSim). Test: Aip.Pdf 375 (+1), Lab 1 566 (+1). Prova A123.
+
 **1 novembre: la carta «L'editor sulla mappa»** ([`2026-11-01-editor-sulla-mappa.md`](../feature/2026-11-01-editor-sulla-mappa.md)).
 È la F9 del piano («trascinare i vertici sulla mappa»), chiesta dal committente («andiamo con l'editor grafico?»).
 Regole R1-R9: le maniglie sul solo record scelto, e ogni trascinamento è uno dei gesti della Geometria che ci sono già

@@ -309,4 +309,34 @@ public sealed class PdfAipTests : IDisposable
         File.WriteAllText(AipEspanso.File(espanso, "2610"), AipJson.Serialize(modello with { Airac = "2610" }));
         Assert.Equal(modello with { Airac = "2610" }, AipEspanso.Modello(espanso, "2610"));
     }
+
+    // AD 2 in due (il committente, 2 novembre: «dividila in due»): gli scali e gli SMAC in li-ad2.json, le procedure in
+    // li-ad2-procedure.json. Un li-ad2.json di prima, con le procedure dentro, si legge com'è finché la parte nuova non c'è.
+    [Fact]
+    public void Ad2InDueParti_ScaliEProcedure()
+    {
+        var espanso = Cartella("espanso");
+        var scalo = new Aerodrome { Icao = "LIXX", Name = "PROVA", Arp = new Position(42, 13) };
+        var sid = new Procedure { Aerodrome = "LIXX", Kind = ProcedureKind.Sid, Designator = "PROVA 1A", Runways = ["24"], Legs = [] };
+        var modello = new AipDocument { State = "LI", Airac = "2611", Airspaces = [], Aerodromes = [scalo], Procedures = [sid] };
+
+        AipEspanso.Scrivi(espanso, "2611", modello);
+
+        Assert.Equal(modello, AipEspanso.Modello(espanso, "2611"));
+        var ad2 = AipJson.Deserialize(File.ReadAllText(AipEspanso.FileDellaParte(espanso, "2611", "ad2")));
+        Assert.Equal((1, null), (ad2.Aerodromes?.Count, ad2.Procedures));
+        var procedure = AipJson.Deserialize(File.ReadAllText(AipEspanso.FileDellaParte(espanso, "2611", "ad2-procedure")));
+        Assert.Equal((null, 1), (procedure.Aerodromes, procedure.Procedures?.Count));
+        Assert.Null(AipJson.Deserialize(File.ReadAllText(AipEspanso.File(espanso, "2611"))).Procedures);
+
+        // Il li-ad2.json di prima: scali e procedure in un file.
+        File.Delete(AipEspanso.FileDellaParte(espanso, "2611", "ad2-procedure"));
+        File.WriteAllText(AipEspanso.FileDellaParte(espanso, "2611", "ad2"),
+            AipJson.Serialize(new AipDocument { State = "LI", Airac = "2611", Airspaces = [], Aerodromes = [scalo], Procedures = [sid] }));
+        Assert.Equal(modello, AipEspanso.Modello(espanso, "2611"));
+
+        // Senza procedure la loro parte si toglie.
+        AipEspanso.Scrivi(espanso, "2611", modello with { Procedures = null });
+        Assert.False(File.Exists(AipEspanso.FileDellaParte(espanso, "2611", "ad2-procedure")));
+    }
 }
