@@ -92,9 +92,23 @@
         bool ridisegnato = false;
         foreach (string strato in _disegnati.Where(s => Lab.VersioneDelloStrato(s) != _versioni.GetValueOrDefault(s)).ToList())
         {
+            ridisegnato = true;
+            // F9 (R9): se dopo la versione disegnata sono cambiati solo pochi file (un gesto, le sue copie), si riprendono
+            // le loro forme e basta; se è cambiato tutto, o il JavaScript non può, lo strato si riprende intero.
+            int adesso = Lab.VersioneDelloStrato(strato);
+            if (Lab.FileRifattiDa(strato, _versioni.GetValueOrDefault(strato)) is { Count: <= FileDaRifareAlPiu } file)
+            {
+                bool tutti = true;
+                foreach (string uno in file)
+                    tutti &= await Js.InvokeAsync<int>("sectorlab.mappa.rifaiIlFile", strato, uno, Elemento) >= 0;
+                if (tutti)
+                {
+                    _versioni[strato] = adesso;
+                    continue;
+                }
+            }
             await Js.InvokeAsync<int>("sectorlab.mappa.strato", strato, false, Elemento);
             _disegnati.Remove(strato);
-            ridisegnato = true;
         }
 
         var daAccendere = accesi.Where(s => !_disegnati.Contains(s)).ToList();
@@ -221,6 +235,9 @@
             }
         }
     }
+
+    /// <summary>Oltre questi file cambiati dall'ultimo disegno, lo strato intero costa meno di tante richieste.</summary>
+    private const int FileDaRifareAlPiu = 8;
 
     // La firma di «nessuna maniglia»: al primo giro senza maniglie non si chiama niente.
     private string _firmaDelleManiglie = "|";

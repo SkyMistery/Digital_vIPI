@@ -15,6 +15,8 @@ gesto «vertice spostato» al rilascio, la Scheda che segue, Esc. Nessun codice 
 il vertice N»; la Linea di un `.geo` ora sa aggiungere un punto già al suo posto (un gesto solo). Prove A113-A114.
 **Fetta 3** (carta §7): la calamita — entro 8 px un punto o un vertice di un'altra forma, la coordinata esatta del file,
 `Alt` la stacca; il vertice col nome si trascina e va solo su un punto col nome, di cui prende il nome. Prove A115-A116.
+**Fetta 4** (carta §8): dopo un gesto la mappa riprende le sole forme dei file toccati, non lo strato intero — misurato
+sul banco col sector vero, da 504 a 157 ms. Con questa la carta F9 è fatta; D3, D4 e la saldatura (F8) restano aperte.
 
 **31 ottobre: la Scheda per gruppi, seconda parte** (D5 della carta del riordino, ferma «al via» dal 21 ottobre; il
 committente non poteva ancora fare le prove A75-A91 e ha detto «Sì, vai»). La Linea di un `.geo` ha lo stesso editor dei

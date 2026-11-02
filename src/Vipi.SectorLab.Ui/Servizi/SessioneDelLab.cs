@@ -356,6 +356,8 @@ public sealed partial class SessioneDelLab
             ScordaGliUsi();
             IscScelto = isc;
             Strati = strati;
+            // F9 (R9): un sector nuovo è tutto da riprendere — i file rifatti nella sessione di prima non dicono niente.
+            TuttiGliStratiCambiati();
             RifaiIColori();
             Albero = AlberoDaSfogliare.Di(sessione);
             FuoriDaiDati = AlberoDaSfogliare.FuoriDaiDati(sessione);
@@ -3566,6 +3568,44 @@ public sealed partial class SessioneDelLab
         // numero solo la mappa riprendeva solo l'ultimo.
         _versioniDegliStrati[tipo.Id] = ++VersioneDellaGeometria;
         FileRifatto = fileRelativo;
+        // F9 (R9): e quale file, così la mappa riprende solo le sue forme invece dello strato intero.
+        var rifatti = _fileRifatti.TryGetValue(tipo.Id, out var gia) ? gia : _fileRifatti[tipo.Id] = [];
+        rifatti.Add((VersioneDellaGeometria, fileRelativo));
+        if (rifatti.Count > FileRifattiRicordati)
+        {
+            // Una mappa più indietro di così riprende tutto lo strato: lo dice la versione dell'ultimo tolto.
+            _stratoInteroDa[tipo.Id] = rifatti[0].Versione;
+            rifatti.RemoveAt(0);
+        }
+    }
+
+    /// <summary>
+    /// F9 (carta «L'editor sulla mappa», R9): i file dello strato rifatti dopo la versione <paramref name="versione"/> che la
+    /// mappa ha disegnato, o null se da allora lo strato è cambiato tutto (salvataggio, master cambiato, AIP riletto) e va
+    /// ripreso intero. Vuoto: è già quello.
+    /// </summary>
+    public IReadOnlyList<string>? FileRifattiDa(string strato, int versione)
+    {
+        if (versione < _stratoInteroDa.GetValueOrDefault(strato))
+            return null;
+        return _fileRifatti.TryGetValue(strato, out var rifatti)
+            ? [.. rifatti.Where(r => r.Versione > versione).Select(r => r.File).Distinct(StringComparer.Ordinal)]
+            : [];
+    }
+
+    private const int FileRifattiRicordati = 64;
+
+    private readonly Dictionary<string, List<(int Versione, string File)>> _fileRifatti = new(StringComparer.Ordinal);
+
+    /// <summary>Per strato, la versione da cui chi ha disegnato prima deve riprenderlo intero.</summary>
+    private readonly Dictionary<string, int> _stratoInteroDa = new(StringComparer.Ordinal);
+
+    /// <summary>Lo strato è cambiato tutto, alla versione di adesso: i file rifatti prima non bastano più.</summary>
+    private void StratoTuttoCambiato(string strato)
+    {
+        _versioniDegliStrati[strato] = VersioneDellaGeometria;
+        _stratoInteroDa[strato] = VersioneDellaGeometria;
+        _fileRifatti.Remove(strato);
     }
 
     /// <summary>Tutti gli strati sono da riprendere: i cataloghi sono rifatti (salvataggio, rilettura, master cambiato).</summary>
@@ -3573,10 +3613,10 @@ public sealed partial class SessioneDelLab
     {
         VersioneDellaGeometria++;
         foreach (var strato in Strati)
-            _versioniDegliStrati[strato.Tipo.Id] = VersioneDellaGeometria;
+            StratoTuttoCambiato(strato.Tipo.Id);
         // R5: lo strato dell'AIP porta i colori dello schema e i simboli come quelli del sector, e si riprende con loro.
         if (StratoDellAip is not null)
-            _versioniDegliStrati[Core.PdfAip.AipSullaMappa.Tipo.Id] = VersioneDellaGeometria;
+            StratoTuttoCambiato(Core.PdfAip.AipSullaMappa.Tipo.Id);
     }
 
     /// <summary>Quante volte la geometria è cambiata, in tutto.</summary>
@@ -5766,7 +5806,8 @@ public sealed partial class SessioneDelLab
                 VersioneDellaCarta++;
             }
             SceltaDellAip = null;
-            _versioniDegliStrati[id] = ++VersioneDellaGeometria;
+            ++VersioneDellaGeometria;
+            StratoTuttoCambiato(id);
             _mappe[SpazioDiLavoro.Aip].Accesi.Add(id);
             _mappe[SpazioDiLavoro.Confronti].Accesi.Add(id);
             Registro.Scrivi("aip", $"AIP espanso {ciclo} sulla mappa: {StratoDellAip.Strato.Forme.Count} forme");

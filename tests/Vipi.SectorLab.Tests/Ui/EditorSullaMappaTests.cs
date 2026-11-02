@@ -341,6 +341,64 @@ public sealed class EditorSullaMappaTests : IDisposable
         Assert.Equal("N040.38.17.400;E008.17.30.400;", Righe(Settore)[2]);
     }
 
+    // --- fetta 4: dopo un gesto, il solo file (R9) -----------------------------------------------------------------
+
+    [Fact]
+    public async Task DopoUnGestoLoStratoDiceQualeFileERifatto()
+    {
+        await ApriEScegliIlSettore();
+        int prima = _lab.VersioneDelloStrato("settori");
+        Assert.Empty(_lab.FileRifattiDa("settori", prima)!);
+
+        _lab.ModificaSullaMappaDi(true);
+        Assert.True(_lab.VerticeDallaMappa("Vertices", 0, 41.1, 12.1));
+        Assert.True(_lab.VerticeDallaMappa("Vertices", 2, 41.6, 12.6));
+
+        Assert.True(_lab.VersioneDelloStrato("settori") > prima);
+        // Due gesti sullo stesso file: un file solo da riprendere.
+        Assert.Equal([Settore], _lab.FileRifattiDa("settori", prima));
+        Assert.Empty(_lab.FileRifattiDa("settori", _lab.VersioneDelloStrato("settori"))!);
+    }
+
+    [Fact]
+    public async Task DopoUnSalvataggioLoStratoSiRiprendeIntero()
+    {
+        await ApriEScegliIlSettore();
+        int prima = _lab.VersioneDelloStrato("settori");
+        _lab.ModificaSullaMappaDi(true);
+        Assert.True(_lab.VerticeDallaMappa("Vertices", 0, 41.1, 12.1));
+        int dopoIlGesto = _lab.VersioneDelloStrato("settori");
+
+        await _lab.SalvaAsync();
+
+        // Il salvataggio rifà i cataloghi: chi aveva disegnato prima riprende tutto.
+        Assert.Null(_lab.FileRifattiDa("settori", prima));
+        Assert.Null(_lab.FileRifattiDa("settori", dopoIlGesto));
+        Assert.Empty(_lab.FileRifattiDa("settori", _lab.VersioneDelloStrato("settori"))!);
+    }
+
+    [Fact]
+    public async Task LaMappaDopoUnGestoRiprendeIlSoloFileNonLoStrato()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli(Settore, 0));
+        pagina.WaitForAssertion(() => Assert.Contains(_contesto.JSInterop.Invocations["sectorlab.mappa.strato"],
+            c => Equals(c.Arguments[0], "settori") && Equals(c.Arguments[1], true)));
+        int spenti = _contesto.JSInterop.Invocations["sectorlab.mappa.strato"].Count(c => Equals(c.Arguments[1], false));
+
+        await pagina.InvokeAsync(() => _lab.GestoSuiVertici(Settore, 0, "Vertices", GestoDeiVertici.Cambia, 0, "N041.06.00.000 E012.06.00.000"));
+
+        pagina.WaitForAssertion(() =>
+        {
+            var rifatto = Assert.Single(_contesto.JSInterop.Invocations["sectorlab.mappa.rifaiIlFile"]);
+            Assert.Equal("settori", rifatto.Arguments[0]);
+            Assert.Equal(Settore, rifatto.Arguments[1]);
+        });
+        // Lo strato non si è spento per essere ripreso intero.
+        Assert.Equal(spenti, _contesto.JSInterop.Invocations["sectorlab.mappa.strato"].Count(c => Equals(c.Arguments[1], false)));
+    }
+
     [Fact]
     public async Task IlTastoDellaSchedaMandaLeManiglieEIlMouseSulVerticeLIndica()
     {

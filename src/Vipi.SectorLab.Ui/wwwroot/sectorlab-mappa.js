@@ -222,6 +222,31 @@
         stato.inquadrato = true;
     }
 
+    /// Una forma dello strato `id` pronta per il suo gruppo: disegnata, col clic che la sceglie, il suggerimento, e nota
+    /// in stato.forme (per l'evidenza). Null se non ha niente da disegnare.
+    function nuovaForma(stato, id, forma, tinta) {
+        forma.sid = id;
+        var disegnata = disegna(stato, forma, tinta);
+        if (!disegnata) return null;
+        disegnata.sectorlab = forma;
+        disegnata.sectorlabStrato = id;
+        disegnata.sectorlabMappa = stato;
+        disegnata.on('click', function (e) {
+            L.DomEvent.stop(e);
+            // S3: mentre la posa aspetta un punto, il clic dà il posto, non sceglie la voce.
+            if (stato.prende) {
+                if (forma.t === 'p' && forma.c.length && forma.c[0].length >= 2) presa(stato, forma.c[0][0], forma.c[0][1], forma.e);
+                else presa(stato, e.latlng.lat, e.latlng.lng, null);
+                return;
+            }
+            scelta(stato, forma);
+        });
+        disegnata.bindTooltip(suggerimento(forma), { sticky: true });
+        stato.forme[forma.p + '#' + forma.r] = disegnata;
+        disegnata.sectorlabTratti = forma.c.filter(function (t) { return t.length >= 4; }).length;
+        return disegnata;
+    }
+
     function scelta(stato, forma) {
         if (!stato || stato.chiusa || !stato.riferimento) return;
         stato.riferimento.invokeMethodAsync('SceltaDallaMappa', forma.p, forma.r);
@@ -474,29 +499,9 @@
                     var gruppo = L.layerGroup();
                     var tutte = [];
                     for (var i = 0; i < dati.f.length; i++) {
-                        var forma = dati.f[i];
-                        forma.sid = id;
-                        var disegnata = disegna(stato, forma, tinta);
+                        var disegnata = nuovaForma(stato, id, dati.f[i], tinta);
                         if (!disegnata) continue;
-                        disegnata.sectorlab = forma;
-                        disegnata.sectorlabStrato = id;
-                        disegnata.sectorlabMappa = stato;
-                        disegnata.on('click', (function (f) {
-                            return function (e) {
-                                L.DomEvent.stop(e);
-                                // S3: mentre la posa aspetta un punto, il clic dà il posto, non sceglie la voce.
-                                if (stato.prende) {
-                                    if (f.t === 'p' && f.c.length && f.c[0].length >= 2) presa(stato, f.c[0][0], f.c[0][1], f.e);
-                                    else presa(stato, e.latlng.lat, e.latlng.lng, null);
-                                    return;
-                                }
-                                scelta(stato, f);
-                            };
-                        })(forma));
-                        disegnata.bindTooltip(suggerimento(forma), { sticky: true });
                         gruppo.addLayer(disegnata);
-                        stato.forme[forma.p + '#' + forma.r] = disegnata;
-                        disegnata.sectorlabTratti = forma.c.filter(function (t) { return t.length >= 4; }).length;
                         tutte.push(disegnata);
                     }
 
@@ -525,6 +530,45 @@
                 }, function (e) { if (stato.giro[id] === giro) delete stato.inArrivo[id]; throw e; });
             stato.inArrivo[id] = arrivo;
             return arrivo;
+        },
+
+        /// F9 (carta «L'editor sulla mappa», R9): dopo un gesto, le sole forme del file toccato si riprendono e prendono il
+        /// posto delle sue di prima nello strato (stesso posto nell'elenco: l'ordine dei .pol conta), invece di riprendere lo
+        /// strato intero — 8832 forme in ~200 ms per i .geo del sector vero. -1: non si può (strato non disegnato o in
+        /// arrivo, o ripreso intero nel frattempo), e allora il componente riprende lo strato intero come prima.
+        rifaiIlFile: function (id, file, elemento) {
+            var stato = prendi(elemento);
+            if (!stato || !stato.strati[id] || !stato.tutte || !stato.tutte[id] || (stato.inArrivo && stato.inArrivo[id]))
+                return Promise.resolve(-1);
+            var giro = (stato.giro && stato.giro[id]) || 0, tinta = colore(id), partenza = performance.now();
+            return fetch('/mappa/strato/' + encodeURIComponent(id) + '?file=' + encodeURIComponent(file), { credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (dati) {
+                    // Arrivata tardi: lo strato è stato spento o ripreso intero nel frattempo.
+                    if (!dati || stato.chiusa || ((stato.giro && stato.giro[id]) || 0) !== giro || !stato.strati[id]) return -1;
+                    var gruppo = stato.strati[id], tutte = stato.tutte[id], restano = [], dove = -1;
+                    for (var i = 0; i < tutte.length; i++) {
+                        var l = tutte[i], chiave = l.sectorlab.p + '#' + l.sectorlab.r;
+                        if (l.sectorlab.p !== file) { restano.push(l); continue; }
+                        if (dove < 0) dove = restano.length;
+                        gruppo.removeLayer(l);
+                        if (stato.forme[chiave] === l) delete stato.forme[chiave];
+                        if (stato.evidenza === l) stato.evidenza = null;
+                    }
+                    var nuove = [];
+                    for (var j = 0; j < dati.f.length; j++) {
+                        var disegnata = nuovaForma(stato, id, dati.f[j], tinta);
+                        if (disegnata) nuove.push(disegnata);
+                    }
+                    if (dove < 0) dove = restano.length;
+                    stato.tutte[id] = restano.slice(0, dove).concat(nuove, restano.slice(dove));
+                    // Le nuove entrano nel gruppo (o restano fuori, se spente) come al primo disegno.
+                    applicaSpenti(stato, id);
+                    ordina(stato, id);
+                    window.sectorlab.diario('file ' + file + ' nello strato ' + id + ': ' + dati.f.length + ' forme in ' +
+                        Math.round(performance.now() - partenza) + ' ms');
+                    return dati.f.length;
+                }, function () { return -1; });
         },
 
         /// Evidenzia il record scelto (e toglie l'evidenza da quello di prima). Senza file, toglie e basta.

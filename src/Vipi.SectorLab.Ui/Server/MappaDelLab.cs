@@ -43,7 +43,8 @@ public static class MappaDelLab
         rotte.MapGet("/carta/immagine", (SessioneDelLab lab) =>
             lab.Posa?.Immagine.File is { } file && File.Exists(file) ? Results.File(file, "image/png") : Results.NotFound());
 
-        rotte.MapGet("/mappa/strato/{id}", (string id, SessioneDelLab lab, HttpResponse risposta) =>
+        // F9 (carta «L'editor sulla mappa», R9): con ?file= le sole forme di quel file, dopo un gesto che ha toccato lui.
+        rotte.MapGet("/mappa/strato/{id}", (string id, string? file, SessioneDelLab lab, HttpResponse risposta) =>
         {
             // L'AIP espanso (F6): uno strato fuori dal sector, coi colori dei suoi generi; dalla R5 (D16) anche quelli di
             // Aurora e i suoi simboli, dove il genere ha un corrispondente nel sector — un fix dell'AIP come quello del sector.
@@ -56,10 +57,13 @@ public static class MappaDelLab
                 return Results.NotFound();
 
             var strato = lab.Strati.FirstOrDefault(s => s.Id == id);
+            IReadOnlyList<FormaDellaMappa> forme = strato?.Forme ?? [];
+            if (file is not null)
+                forme = [.. forme.Where(f => f.File == file)];
             // Sessione chiusa o strato senza forme: si risponde con l'elenco vuoto, non con un errore — la pagina
             // accende una casella e non deve distinguere «non c'è niente» da «è andata male».
             return Results.Stream(
-                flusso => Scrivi(flusso, id, strato?.Forme ?? [], lab.Colori, lab.Simboli),
+                flusso => Scrivi(flusso, id, forme, lab.Colori, lab.Simboli),
                 contentType: "application/json");
         });
     }

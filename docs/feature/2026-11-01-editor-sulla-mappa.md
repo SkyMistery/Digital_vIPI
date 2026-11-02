@@ -137,3 +137,24 @@ Ogni fetta: test bUnit dei gesti (la mappa vista dal circuito), prova sul banco 
   AMSOR lasciato nel vuoto → torna, con «lascialo su un altro punto col nome…»; con lo strato Punti acceso, lasciato fra
   LUNAR e VEGAN → diventa `VEGAN` (il più vicino), portato anche su LIBB_MIL_CTR. Non provato col mouse: `Alt` (il banco
   non tiene un tasto durante il trascinamento).
+
+## §8 — Fetta 4, fatta (2 novembre): dopo un gesto, il solo file (R9)
+
+- **Misurato prima** (banco, sector vero, «Disegni .geo», Punti e Aeroporti a terra accesi: 4 strati, 17 776 forme): un
+  vertice di `liap.geo` cambiato → la mappa aggiornata **504 ms** dopo il gesto, di cui 195 ms per riprendere lo strato
+  dei `.geo` (8832 forme) e 77 ms quello della terra (4501), dove il gesto ha portato la copia nel `.pol`. Più della
+  metà: valeva la fetta.
+- **Il Lab** ricorda per strato quali file `RifaiLaGeometria` ha rifatto e a che versione (`FileRifattiDa`, gli ultimi 64);
+  quando uno strato cambia tutto (salvataggio, master cambiato, AIP riletto, un sector aperto) lo segna
+  (`StratoTuttoCambiato`) e chi aveva disegnato prima lo riprende intero. All'apertura di un sector le versioni prima non
+  si alzavano: ora sì, perché i file rifatti della sessione di prima non valgono per quella nuova.
+- **La mappa**: `/mappa/strato/{id}?file=` dà le sole forme di quel file; `rifaiIlFile` (JS) le mette al posto delle sue
+  di prima nello stesso punto dell'elenco (l'ordine dei `.pol` conta), con spente, ordine della terra, evidenza e vista
+  rifatti come dopo uno strato intero. `Mappa.razor` lo fa fino a 8 file cambiati dall'ultimo disegno; oltre, o se il
+  JavaScript non può (strato in arrivo, ripreso intero nel frattempo), riprende lo strato intero come prima.
+- **Misurato dopo**, stesso gesto: la mappa aggiornata **157 ms** dopo il gesto («liap.geo: 72 forme in 12 ms», «ap_ad_gnd.pol:
+  13 forme in 11 ms»); annulla 144 ms. La forma scelta resta evidenziata.
+- **Prove**: 3 test (22), suite del Lab 1554. Non visto: un lotto di più di 8 file (va per lo strato intero, come prima).
+
+**Con la fetta 4 la carta è fatta.** Restano, se il committente le vuole, D3 (disegnare una forma nuova a clic) e D4
+(trascinare i record di un punto solo: fix, VOR, VFR coi gemelli), e la saldatura dei bordi della F8.
