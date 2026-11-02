@@ -1167,6 +1167,10 @@ public sealed partial class SessioneDelLab
 
             foreach (var lasciata in fatta.NonToccate)
                 Registro.Scrivi("modifica", $"  non {lasciata.File}#{lasciata.Record}: ha {lasciata.Valore}");
+
+            // D4 (R15): un punto spostato — chi lo cita per nome lo segue sulla mappa.
+            if (campo == CampoDellaPosizione)
+                ChiLoCitaLoSegua(Modifiche.CopieDi(fatta).Select(c => (c.File, c.Record)).Prepend((fileRelativo, record)));
         }
 
         RicontrollaLeModifiche();
@@ -3240,6 +3244,7 @@ public sealed partial class SessioneDelLab
 
         // Con le copie gemelle i file toccati sono più d'uno: si rifà la geometria di tutti quelli che c'erano prima.
         var toccati = Modifiche.FileToccati.ToList();
+        var spostati = PuntiSpostati(Modifiche.CopieDi(modifica).Prepend(modifica)).ToList();
         if (!Modifiche.Annulla(file, modifica, f => Sessione.File.GetValueOrDefault(f)))
             return false;
         Registro.Scrivi("annulla", $"{modifica.File}#{modifica.Record} {modifica.Descrizione}");
@@ -3248,6 +3253,8 @@ public sealed partial class SessioneDelLab
             RifaiICataloghi();
         foreach (string toccato in toccati.Except(Modifiche.FileToccati).Append(modifica.File).Distinct())
             RifaiLaGeometria(toccato);
+        // D4 (R15): un punto tornato al suo posto — chi lo cita torna con lui.
+        ChiLoCitaLoSegua(spostati);
         RicontrollaLeModifiche();
         Avvisa();
         return true;
@@ -3287,11 +3294,15 @@ public sealed partial class SessioneDelLab
             return false;
 
         var toccati = Modifiche.FileToccati.ToList();
+        var spostati = PuntiSpostati(Modifiche.Tutte.Where(m => soloQuesto is null || m.File == soloQuesto)).ToList();
         Registro.Scrivi("annulla", $"tutto ({Modifiche.Quante} modifiche" + (soloQuesto is null ? ")" : $" di {soloQuesto})"));
         Modifiche.AnnullaTutto(f => Sessione.File.GetValueOrDefault(f), soloQuesto);
         Rifiuto = null;
         RifaiICataloghi();
         foreach (string file in toccati)
+            RifaiLaGeometria(file);
+        // D4 (R15): i punti tornati al loro posto — chi li cita torna con loro.
+        foreach (string file in FileCheCitano(spostati))
             RifaiLaGeometria(file);
         RicontrollaLeModifiche();
         RifaiIConfrontiDellAip();
@@ -3507,6 +3518,8 @@ public sealed partial class SessioneDelLab
         var sessione = Sessione!;
         var scelta = Scelta;
         _daRifareDopoIlRigioco.UnionWith(Modifiche.FileToccati);
+        // D4 (R15): i punti spostati prima del rigioco — chi li cita si ridisegna alla fine, coi cataloghi rifatti.
+        var spostatiPrima = PuntiSpostati(Modifiche.Tutte).ToList();
         _rigioco = true;
         try
         {
@@ -3531,6 +3544,7 @@ public sealed partial class SessioneDelLab
         Scelta = scelta is { } s && sessione.File.TryGetValue(s.File, out var file) && s.Record < file.Record ? s : null;
         Rifiuto = null;
         _daRifareDopoIlRigioco.UnionWith(Modifiche.FileToccati);
+        _daRifareDopoIlRigioco.UnionWith(FileCheCitano(spostatiPrima.Concat(PuntiSpostati(Modifiche.Tutte))));
         foreach (string toccato in _daRifareDopoIlRigioco.ToList())
             RifaiLaGeometria(toccato);
         _daRifareDopoIlRigioco.Clear();

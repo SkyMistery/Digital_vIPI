@@ -529,6 +529,72 @@ public sealed class EditorSullaMappaTests : IDisposable
         });
     }
 
+    // --- §11, D4: trascinare i punti (R14-R16) -----------------------------------------------------------------------
+
+    /// <summary>Dove il settore di prova disegna il suo vertice ALB (il secondo): segue il VOR se il catalogo è rifatto.</summary>
+    private Vipi.Sectorfile.Shared.Coordinate DoveIlSettoreVedeAlb()
+        => _lab.Strati.SelectMany(s => s.Forme).Single(f => f.File == Settore && f.Record == 0).Tratti.SelectMany(t => t).ElementAt(1);
+
+    [Fact]
+    public async Task UnFixHaUnaManigliaSolaESpostataScriveLaSuaRiga()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var fix = Forma("BC404");
+        _lab.Scegli(fix.File, fix.Record);
+        _lab.ModificaSullaMappaDi(true);
+
+        var maniglia = Assert.Single(_lab.Maniglie());
+        Assert.True(maniglia.Punto);
+        Assert.Equal(SessioneDelLab.CampoDellaPosizione, maniglia.Campo);
+        Assert.Equal(39.0865, maniglia.Lat, 3);
+
+        Assert.True(_lab.VerticeDallaMappa(SessioneDelLab.CampoDellaPosizione, 0, 41.25, 12.125));
+
+        Assert.Equal(41.25, Assert.Single(_lab.Maniglie()).Lat, 6);
+        // Un punto non si toglie dalla mappa.
+        Assert.False(_lab.VerticeToltoDallaMappa(SessioneDelLab.CampoDellaPosizione, 0));
+        Assert.Contains("Togli questo record", _lab.Rifiuto);
+        await _lab.SalvaAsync();
+        Assert.Contains("BC404;N041.15.00.000;E012.07.30.000;3;", File.ReadAllText(_albero.Percorso(fix.File)));
+    }
+
+    [Fact]
+    public async Task SpostatoUnVorChiLoCitaLoSegueSullaMappaETornaConLAnnulla()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var alb = Forma("ALB");
+        var prima = DoveIlSettoreVedeAlb();
+        Assert.Equal(44.048, prima.LatitudeDeg, 3);
+        _lab.Scegli(alb.File, alb.Record);
+        _lab.ModificaSullaMappaDi(true);
+        Assert.True(_lab.Maniglie()[0].CitatoDa >= 1);
+
+        Assert.True(_lab.VerticeDallaMappa(SessioneDelLab.CampoDellaPosizione, 0, 43.5, 9.0));
+
+        // R15: il settore che cita ALB per nome lo disegna dove è ADESSO, senza salvare.
+        Assert.Equal(43.5, DoveIlSettoreVedeAlb().LatitudeDeg, 6);
+        _lab.Annulla();
+        Assert.Equal(prima, DoveIlSettoreVedeAlb());
+        _lab.Ripeti();
+        Assert.Equal(43.5, DoveIlSettoreVedeAlb().LatitudeDeg, 6);
+        _lab.AnnullaTutte();
+        Assert.Equal(prima, DoveIlSettoreVedeAlb());
+    }
+
+    [Fact]
+    public async Task AncheDalCampoDellaSchedaChiCitaIlPuntoLoSegue()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var alb = Forma("ALB");
+
+        Assert.True(_lab.CambiaCampo(alb.File, alb.Record, SessioneDelLab.CampoDellaPosizione, "N043.30.00.000 E009.00.00.000"));
+
+        Assert.Equal(43.5, DoveIlSettoreVedeAlb().LatitudeDeg, 6);
+        // E la calamita riconosce di nuovo il nome dove il VOR è adesso (il catalogo è rifatto).
+        Assert.Equal("ALB", _lab.Suggerimenti("ALB").First(p => p.Nome == "ALB").Nome);
+        Assert.Equal(43.5, _lab.Suggerimenti("ALB").First(p => p.Nome == "ALB").Posizione.LatitudeDeg, 6);
+    }
+
     [Fact]
     public async Task IlTastoDellaSchedaMandaLeManiglieEIlMouseSulVerticeLIndica()
     {

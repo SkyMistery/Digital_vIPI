@@ -10,7 +10,10 @@ namespace Vipi.SectorLab.Ui.Servizi;
 /// scrivere una coordinata, quindi fra questo vertice e il prossimo c'è la maniglia di mezzo (R3); non nei punti di una
 /// procedura <c>.str</c> né nel tracciato di un'aerovia, che sono solo nomi.
 /// </summary>
-public sealed record ManigliaDelVertice(string Campo, int Posizione, double Lat, double Lon, bool PerNome, bool Aggiungibile);
+/// <param name="Punto">D4 (R14): è la maniglia di un record di un punto solo (fix, VOR, NDB, punto VFR): niente maniglie
+/// di mezzo, niente «togli»; <paramref name="CitatoDa"/> quanti record lo citano per nome (R16).</param>
+public sealed record ManigliaDelVertice(string Campo, int Posizione, double Lat, double Lon, bool PerNome, bool Aggiungibile,
+                                        bool Punto = false, int CitatoDa = 0);
 
 /// <summary>Un disegno a clic in corso (§9, R10): su quale elenco, se la forma si chiude, se si clicca solo sui punti col nome (D7).</summary>
 public sealed record DisegnoSullaMappa(string File, int Record, string Campo, bool Chiudi, bool SoloNomi);
@@ -54,9 +57,13 @@ public sealed partial class SessioneDelLab
         Avvisa();
     }
 
-    /// <summary>Vero se il record ha almeno un elenco di vertici, o è un segmento di una linea di un <c>.geo</c>.</summary>
+    /// <summary>
+    /// Vero se il record ha almeno un elenco di vertici, è un segmento di una linea di un <c>.geo</c>, o è un punto che si
+    /// sposta (D4: fix, VOR, NDB, punto VFR).
+    /// </summary>
     public bool HaVerticiDaMuovere(string fileRelativo, int record)
-        => LineaDi(fileRelativo, record) is not null || ElenchiDiVerticiDi(fileRelativo, record).Any(e => e.Quanti > 0);
+        => LineaDi(fileRelativo, record) is not null || ElenchiDiVerticiDi(fileRelativo, record).Any(e => e.Quanti > 0)
+           || PuntoDelRecord(fileRelativo, record) is not null;
 
     /// <summary>
     /// Le maniglie del record con le maniglie accese, una per vertice che ha una posizione: un nome che il catalogo non
@@ -68,6 +75,11 @@ public sealed partial class SessioneDelLab
         // R10: mentre si disegna le maniglie si tolgono (un clic deve fare un punto, non prendere una maniglia).
         if (!ModificaSullaMappa || Scelta is not { } scelta || Disegno is not null)
             return [];
+
+        // D4 (R14): un fix, un VOR, un NDB o un punto VFR ha una maniglia sola, sul punto.
+        if (PuntoDelRecord(scelta.File, scelta.Record) is { } solo)
+            return [new ManigliaDelVertice(CampoDellaPosizione, 0, solo.Dove.LatitudeDeg, solo.Dove.LongitudeDeg, PerNome: false,
+                                           Aggiungibile: false, Punto: true, CitatoDa: CitatoDa(scelta.File, scelta.Record))];
 
         if (LineaDi(scelta.File, scelta.Record) is { } linea)
         {
@@ -114,6 +126,15 @@ public sealed partial class SessioneDelLab
         var aggancio = suFile is null ? null : AgganciaA(suFile, suRecord, lat, lon);
         if (suFile is not null && aggancio is null)
             return Rifiuta(scelta, campo, posizione, "Il punto a cui l'hai agganciato non c'è più sulla mappa.");
+
+        // D4 (R14): il punto si sposta col gesto del campo «Posizione» della Scheda — storia, gemelli, e chi lo cita
+        // lo segue (R15). Resta una coordinata anche agganciato a un altro punto.
+        if (maniglia.Punto)
+        {
+            string dove = aggancio is { } presa ? CoordinateConverter.ToDottedDms(presa.Dove) : Scritta(lat, lon);
+            return Fatto(scelta, campo, posizione, CambiaCampo(scelta.File, scelta.Record, CampoDellaPosizione, dove));
+        }
+
         bool perNome = maniglia.PerNome || !maniglia.Aggiungibile;
         string? nome = aggancio?.Nome;
         if (perNome && nome is null)
@@ -190,6 +211,8 @@ public sealed partial class SessioneDelLab
             return false;
         if (!Maniglie().Any(m => m.Campo == campo && m.Posizione == posizione))
             return Rifiuta(scelta, campo, posizione, "Quel vertice non c'è più: la forma è cambiata.");
+        if (campo == CampoDellaPosizione)
+            return Rifiuta(scelta, campo, posizione, "Un punto non si toglie dalla mappa: c'è «Togli questo record» nella Scheda.");
 
         // Tolto, il vertice non c'è più: la Scheda segna quello che ha preso il suo posto (o l'ultimo).
         bool fatto = GestoSuiVertici(scelta.File, scelta.Record, campo, GestoDeiVertici.Togli, posizione);

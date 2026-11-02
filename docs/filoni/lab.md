@@ -20,6 +20,10 @@ sul banco col sector vero, da 504 a 157 ms. Con questa la carta F9 è fatta; D3,
 **D3, disegnare a clic** (carta §9-§10, scelta e approvata dal committente il 2 novembre): «✎ Disegna sulla mappa» per
 elenco, clic con la calamita, Invio o doppio clic → un gesto «forma disegnata» al posto dei vertici; un punto sul fix
 diventa il suo nome dove l'elenco li sa scrivere. Motore del solo Lab (`DisegnaIVertici`). Prove A118-A119.
+**D4, trascinare i punti** (carta §11-§12, approvata come proposta): fix, VOR, NDB e punti VFR hanno una maniglia, e il
+rilascio è il gesto del campo Posizione (gemelli compresi). Trovato e corretto insieme un difetto di prima: spostato un
+punto, il catalogo non si rifaceva e chi lo cita per nome restava disegnato al posto vecchio fino al salvataggio; ora lo
+segue, anche dalla Scheda e dopo un annulla. Prove A120-A121.
 
 **31 ottobre: la Scheda per gruppi, seconda parte** (D5 della carta del riordino, ferma «al via» dal 21 ottobre; il
 committente non poteva ancora fare le prove A75-A91 e ha detto «Sì, vai»). La Linea di un `.geo` ha lo stesso editor dei

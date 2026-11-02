@@ -195,7 +195,7 @@
             // Il record va con le maniglie: la calamita non aggancia la forma a sé stessa. Nella firma, perché due copie
             // gemelle hanno le stesse maniglie.
             string? diChi = maniglie.Count > 0 && Lab.Scelta is { } scelta ? $"{scelta.File}#{scelta.Record}" : null;
-            string firma = diChi + "|" + string.Join('|', maniglie.Select(m => FormattableString.Invariant($"{m.Campo}:{m.Posizione}:{m.Lat:R}:{m.Lon:R}:{m.PerNome}:{m.Aggiungibile}")));
+            string firma = diChi + "|" + string.Join('|', maniglie.Select(m => FormattableString.Invariant($"{m.Campo}:{m.Posizione}:{m.Lat:R}:{m.Lon:R}:{m.PerNome}:{m.Aggiungibile}:{m.Punto}:{m.CitatoDa}")));
             bool rimandate = firma != _firmaDelleManiglie;
             if (rimandate)
             {

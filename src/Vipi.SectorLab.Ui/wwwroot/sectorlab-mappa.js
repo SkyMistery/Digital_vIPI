@@ -316,11 +316,15 @@
     /// vista, voci spente già tolte), dentro la vista allargata, tranne il record stesso. Un fix o un VOR è un punto; di una
     /// linea o di un'area ogni vertice. `soloPunti`: per un vertice col nome, che va solo su un punto col nome (R6).
     /// In una griglia sul piano dei layer di Leaflet, che non cambia quando la mappa scorre (autoPan) ma solo con lo zoom.
-    function raccogli(stato, soloPunti, diChi) {
-        var mappa = stato.mappa, bordi = mappa.getBounds().pad(.5), griglia = {};
+    /// `partenza` (facoltativa): dove la maniglia è partita. Quel che sta proprio lì (le copie gemelle del vertice, il fix
+    /// nascosto gemello di un punto VFR) non si aggancia: riporterebbe la maniglia al posto vecchio.
+    function raccogli(stato, soloPunti, diChi, partenza) {
+        var mappa = stato.mappa, bordi = mappa.getBounds().pad(.5), griglia = {},
+            via = partenza ? mappa.latLngToLayerPoint(partenza) : null;
         function metti(lat, lon, f, punto) {
             if (!bordi.contains([lat, lon])) return;
             var lp = mappa.latLngToLayerPoint([lat, lon]), chiave = Math.floor(lp.x / CELLA) + ',' + Math.floor(lp.y / CELLA);
+            if (via && Math.abs(lp.x - via.x) < .5 && Math.abs(lp.y - via.y) < .5) return;
             (griglia[chiave] = griglia[chiave] || []).push({ x: lp.x, y: lp.y, lat: lat, lon: lon, p: f.p, r: f.r, punto: punto });
         }
         mappa.eachLayer(function (l) {
@@ -364,7 +368,7 @@
         var partenza = marcatore.getLatLng(), griglia = null, aggancio = null;
         marcatore.on('dragstart', function () {
             stato.trascina = true;
-            griglia = raccogli(stato, soloPunti, stato.maniglie && stato.maniglie.diChi);
+            griglia = raccogli(stato, soloPunti, stato.maniglie && stato.maniglie.diChi, marcatore.getLatLng());
             aggancio = null;
             // Le maniglie di mezzo dei tratti che si muovono resterebbero a metà del tratto vecchio: si nascondono.
             L.DomUtil.addClass(stato.mappa.getContainer(), 'lab-mappa-trascina');
@@ -855,11 +859,14 @@
                 (function (m) {
                     // R6: un vertice col nome (o di un elenco fatto di nomi) si trascina, ma solo la calamita su un punto lo
                     // sposta: lasciato altrove torna dov'era.
-                    var soloNomi = m.perNome || !m.aggiungibile;
+                    var soloNomi = !m.punto && (m.perNome || !m.aggiungibile);
+                    // D4 (R14, R16): la maniglia di un fix, VOR, NDB o punto VFR — il punto stesso, e chi lo cita.
+                    var titolo = m.punto
+                        ? 'Il punto' + (m.citatoDa ? ' — citato da ' + m.citatoDa + ' record: lo seguono' : '')
+                        : (m.posizione + 1) + (soloNomi ? ' — è il nome di un punto: va solo su un altro punto col nome' : '') + ' (clic destro: togli)';
                     var marcatore = L.marker([m.lat, m.lon], {
-                        icon: icona(m.perNome ? 'lab-maniglia-nome' : null, 12), draggable: true, autoPan: true,
-                        keyboard: false, zIndexOffset: 1000,
-                        title: (m.posizione + 1) + (soloNomi ? ' — è il nome di un punto: va solo su un altro punto col nome' : '') + ' (clic destro: togli)'
+                        icon: icona(m.punto ? 'lab-maniglia-punto' : m.perNome ? 'lab-maniglia-nome' : null, m.punto ? 16 : 12), draggable: true,
+                        autoPan: true, keyboard: false, zIndexOffset: 1000, title: titolo
                     });
                     // Il clic su una maniglia non sceglie la forma che c'è sotto.
                     marcatore.on('click', ferma);
@@ -872,7 +879,9 @@
                         return stato.riferimento.invokeMethodAsync('VerticeDallaMappa', m.campo, m.posizione, dove.lat, dove.lng,
                                                                    preso ? preso.p : null, preso ? preso.r : 0);
                     }, soloNomi);
-                    menuDelVertice(stato, m, marcatore);
+                    // Un punto non si toglie dalla mappa (si toglie il record, dalla Scheda).
+                    if (!m.punto) menuDelVertice(stato, m, marcatore);
+                    else marcatore.on('contextmenu', ferma);
                     (perCampo[m.campo] = perCampo[m.campo] || {})[m.posizione] = { marcatore: marcatore, dati: m };
                     gruppo.addLayer(marcatore);
                 })(elenco[i]);

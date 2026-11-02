@@ -209,7 +209,7 @@ Quello che manca è dare i vertici **cliccandoli** sulla mappa.
   rimette. Backspace ed Esc: niente cambiato. 3 clic con l'ultimo doppio → 4 vertici, niente zoom. Non visti a schermo: un
   elenco di soli nomi e la Linea di un `.geo` (nei test).
 
-## §11 — D4: trascinare i punti (2 novembre, da approvare)
+## §11 — D4: trascinare i punti (2 novembre; approvata come proposta: D8 senza conferma, D9 i quattro tipi)
 
 Il committente ha scelto D4. **Com'è oggi**: un fix, un VOR, un NDB o un punto VFR si sposta cambiando il campo
 «Posizione» nella Scheda (`CambiaCampo`): il gesto va nella storia e porta il cambio sulle copie gemelle (il punto del
@@ -233,3 +233,21 @@ fix dalla Scheda, chi lo cita resta disegnato dov'era finché non si salva, e la
   o chiede conferma quando lo citano?
 - **D9** Quali punti: fix, VOR, NDB e punti VFR coi gemelli (proposta), o anche l'ARP degli scali (`.ap`) e gli altri
   record di un punto solo? Proposta: questi quattro adesso, gli altri dopo.
+
+## §12 — D4, fatto (2 novembre)
+
+- **R15, il difetto** (`SessioneDelLab.Punti.cs`): dopo uno spostamento di un fix, VOR, NDB o punto VFR — dal campo della
+  Scheda, dalla mappa, e dopo annulla, ripeti, «annulla questa voce» e «annulla tutto» — i cataloghi dei punti si rifanno e
+  i file che lo citano per nome («Chi lo usa», `Citano`) si ridisegnano. Nel rigioco della storia i cataloghi si rifanno
+  una volta alla fine (com'era) e i file che citano i punti spostati prima o dopo vanno con quelli da ridisegnare.
+- **R14**: `PuntoDelRecord` riconosce i quattro tipi (`Fix`, `Vor`, `Ndb`, `VfrPoint`); `Maniglie()` dà una maniglia sola
+  (`Punto`), e il suo rilascio fa `CambiaCampo` della Posizione — storia e gemelli di oggi (il punto VFR e il suo fix
+  nascosto). Con la calamita, la coordinata esatta; niente «togli» (si toglie il record dalla Scheda), niente maniglie di
+  mezzo. La calamita non prende più quello che sta proprio sotto la partenza della maniglia: il gemello del punto VFR, o la
+  copia gemella di un vertice, lo riportavano al posto vecchio.
+- **R16**: la maniglia dice «citato da N record: lo seguono».
+- **Prove**: 3 test (32), suite del Lab 1564; i due di R15 provati rossi senza il gancio. Sul banco, col mouse: AMSOR
+  (`itfix.fix`, «citato da 18 record»), trascinato → «AMSOR Posizione: N041.09.26.000 E014.52.09.000 → N041.11.16.584
+  E014.47.30.183», e la mappa ridisegna `itfix.fix` e i 6 file che lo citano (FRA.artcc, libb_es_ctr.tfl, lirr_mil.tfl,
+  lirr_ne_ctr.tfl, libb.hartcc, lirr.hartcc; 3-6 ms ciascuno): i bordi dei settori piegano verso il punto nuovo. Ctrl+Z:
+  tutto torna, bordi compresi. Non visti a schermo: un punto VFR col gemello (coperto dai test dei gemelli di prima).

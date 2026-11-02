@@ -2885,6 +2885,13 @@ body.lab-trascina * {
     cursor: move;
 }
 
+/* D4 (R14): la maniglia di un punto (fix, VOR, NDB, VFR): una sola, più grande, a mirino. */
+.lab-maniglia.lab-maniglia-punto {
+    border-width: 3px;
+    background: transparent;
+    box-shadow: 0 0 0 2px var(--lab-superficie);
+}
+
 .lab-maniglia-nome {
     border-style: dashed;
     background: transparent;
