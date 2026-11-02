@@ -125,3 +125,27 @@ Da sapere: un record di `lirf.geo` che sulla mappa non ha una forma sua (il reco
 inquadra con «⌖ Portami lì», come fuori dal fuoco non si inquadrava scegliendolo. Sul banco: `lirf.geo` aperto sotto LIRF,
 il record 41 scelto con la mappa ferma; «Runway 16L designator» dall'elenco con la mappa ferma, poi «⌖ Portami lì» sulla
 sola designazione. Test: `FuocoTests` (12), Lab 1 578.
+
+**Fetta 3, R6** (2 novembre). Col fuoco, nella pagina Sector, gli Strati stanno sopra la mappa dietro «Strati ▾», come
+nell'Indice dell'AIP (stessa regola di stile): sul banco a 1 400 px la mappa passa da circa 590 a **822 px**. La Scheda a
+striscia (D4) aspetta la prova del committente sulle fette 1-3, come deciso.
+
+**Fetta 4, R8** (2 novembre). In Consegna, col fuoco, in testa «Di LIRF: N modifiche in K file (qui sotto per primi)», e
+i file dello scalo sono i primi dell'elenco. Se ci sono anche modifiche fuori dallo scalo, accanto ad «Annulla tutto»
+c'è «Annulla quelle di LIRF»: un gesto solo, che Ctrl+Z rimette. Due tasti, non una domanda (un `confirm()` del browser
+nel Lab no). Le modifiche dello scalo sono quelle nei **suoi file** (i suoi file e i disegni a terra): le sue righe
+dentro l'`.ap` e il `.rw` restano con le altre, perché annullare quei file interi toccherebbe anche gli altri scali.
+
+**Il salto sull'Italia, trovato davvero.** Dopo la fetta 2 la mappa tornava ancora sull'Italia, a volte da sola e a volte
+al primo clic, e una sonda sui movimenti della mappa non vedeva nessun `setView`. Il motivo è in Leaflet: uno zoom
+animato si mette in coda al fotogramma dopo (`requestAnimationFrame`), mentre un salto di più di 4 livelli si fa subito,
+senza animare. Le coste partivano animate verso l'Italia (zoom 6 → 4), LIRF (zoom 13) si metteva subito, e il fotogramma
+in coda riportava la mappa sull'Italia; nel riquadro del browser, che rallenta i fotogrammi, quasi sempre. Ora
+l'inquadratura di apertura e quella del fuoco sono senza animazione (`animate: false`), e prima di inquadrare si chiude
+un'animazione già partita. Dopo, sul banco, tre giri su tre (carica, cambia misura, clic) sempre su LIRF. Il riquadro del
+fuoco ricordato per mappa (fetta 2) resta: non era la causa, ma non costa niente.
+
+Sul banco: «Di LIRF: 1 modifica in 1 file», `lirf.geo` primo, «Annulla tutto» ha tolto la modifica (non salvata). Test:
+`FuocoTests` (14), Lab 1 580.
+
+**Resta** (§5): R7, il settore — dopo la prova del committente sullo scalo (D3) — e la Scheda a striscia (D4).

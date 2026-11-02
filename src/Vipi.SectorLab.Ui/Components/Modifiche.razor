@@ -23,12 +23,23 @@
                 <button class="lab-tasto" @onclick="() => Lab.SalvaAsync()" disabled="@Lab.StaSalvando"
                         title="@(Lab.StaSalvando ? "Salvataggio in corso" : "Scrive i file nel clone, dopo averne fatto il backup")"
                         data-tasto="salva">@(Lab.StaSalvando ? "Salvo…" : "Salva")</button>
+                @* Il fuoco, R8: se ci sono modifiche dello scalo e anche altre, si annullano anche solo le sue. *@
+                @if (Lab.Fuoco is { } fuoco && Lab.ModificheDelFuoco is > 0 and var delFuoco && delFuoco < Lab.Modifiche.Quante)
+                {
+                    <button class="lab-tasto lab-tasto-tenue" @onclick="Lab.AnnullaQuelleDelFuoco" disabled="@Lab.StaSalvando"
+                            title="Annulla le modifiche nei file di @fuoco; le altre restano"
+                            data-tasto="annulla-del-fuoco">Annulla quelle di @fuoco</button>
+                }
                 <button class="lab-tasto lab-tasto-tenue" @onclick="() => Lab.AnnullaTutte()" disabled="@Lab.StaSalvando"
                         title="@(Lab.StaSalvando ? "Salvataggio in corso" : null)"
                         data-tasto="annulla-tutto">Annulla tutto</button>
             </Accanto>
             <ChildContent>
-        @foreach (string file in Lab.Modifiche.FileToccati)
+        @if (Lab.Fuoco is { } scalo && Lab.FileToccatiDelFuoco is { Count: > 0 } suoi)
+        {
+            <p class="lab-nota" data-modifiche-del-fuoco="@scalo">Di @scalo: @(Lab.ModificheDelFuoco == 1 ? "1 modifica" : $"{Lab.ModificheDelFuoco} modifiche") in @suoi.Count file (qui sotto per primi)</p>
+        }
+        @foreach (string file in FileInOrdine())
         {
             var diff = Lab.DiffDi(file);
             <details class="lab-file-toccato" open data-diff="@file">
@@ -93,4 +104,11 @@
     public void Dispose() => Lab.Cambiata -= Aggiorna;
 
     private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
+
+    /// <summary>I file toccati; col fuoco (R8), prima quelli dello scalo.</summary>
+    private IEnumerable<string> FileInOrdine()
+    {
+        var delFuoco = Lab.FileToccatiDelFuoco;
+        return delFuoco.Concat(Lab.Modifiche.FileToccati.Where(f => !delFuoco.Contains(f)));
+    }
 }

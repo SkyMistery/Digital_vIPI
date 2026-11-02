@@ -351,8 +351,11 @@ else
 
     private void Accendi(string strato, ChangeEventArgs e) => Lab.Accendi(strato, e.Value is true);
 
-    /// <summary>R1 della carta «L'Indice rifatto»: nell'Indice gli Strati sono un pannello sopra la mappa, non una colonna.</summary>
-    private bool StratiSopra => Lab.Pagina is PaginaDelLab.AipIndice;
+    /// <summary>
+    /// R1 della carta «L'Indice rifatto»: nell'Indice gli Strati sono un pannello sopra la mappa, non una colonna. Lo stesso
+    /// col fuoco su uno scalo (carta «Lavorare su uno scalo», R6): la mappa prende la loro colonna, a 1 400 px da 590 a 830.
+    /// </summary>
+    private bool StratiSopra => Lab.Pagina is PaginaDelLab.AipIndice || (Lab.Pagina is PaginaDelLab.Sector && Lab.Fuoco is not null);
 
     private bool _stratiAperti;
 

@@ -239,9 +239,20 @@
         if (!stato || !stato.daInquadrare) return;
         var misura = stato.mappa.getSize();
         if (misura.x <= 0 || misura.y <= 0) return;
-        stato.mappa.fitBounds(stato.daInquadrare);
+        finisciLoZoom(stato.mappa);
+        // 🔴 Senza animazione: Leaflet mette lo zoom animato in coda al fotogramma dopo (requestAnimationFrame), e un salto di
+        // più di 4 livelli lo fa subito, senza animare. Col fuoco (carta «Lavorare su uno scalo», R2) le coste partivano
+        // animate verso l'Italia, LIRF (zoom 13) si metteva subito, e il fotogramma in coda riportava la mappa sull'Italia
+        // — sul banco quasi sempre, nel riquadro del browser che rallenta i fotogrammi. All'apertura non serve animare.
+        stato.mappa.fitBounds(stato.daInquadrare, { animate: false });
         stato.daInquadrare = null;
         stato.inquadrato = true;
+    }
+
+    /// Leaflet, a uno zoom animato in corso, ignora un setView che cambia zoom (_tryAnimatedZoom risponde «fatto»), e a fine
+    /// animazione la mappa va dove puntava la prima. Prima di un'inquadratura l'animazione si chiude al suo punto d'arrivo.
+    function finisciLoZoom(mappa) {
+        if (mappa._animatingZoom && mappa._onZoomTransitionEnd) mappa._onZoomTransitionEnd();
     }
 
     /// Una forma dello strato `id` pronta per il suo gruppo: disegnata, col clic che la sceglie, il suggerimento, e nota
@@ -696,6 +707,7 @@
             if (forma.bringToFront) forma.bringToFront();
             stato.evidenza = forma;
 
+            if (inquadra) finisciLoZoom(stato.mappa);
             if (inquadra && soloSeFuori) {
                 var vista = stato.mappa.getBounds();
                 if (forma.getBounds && forma.getBounds().isValid()) {

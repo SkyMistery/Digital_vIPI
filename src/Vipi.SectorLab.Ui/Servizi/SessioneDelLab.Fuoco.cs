@@ -153,6 +153,29 @@ public sealed partial class SessioneDelLab
         => relativo is not null && ChiaviDelFuoco.Contains(ChiaveDellaVista(relativo, null));
 
     /// <summary>
+    /// R8: i file toccati che sono dello scalo del fuoco, nell'ordine delle modifiche. Le sue righe dentro l'<c>.ap</c> e il
+    /// <c>.rw</c> no: quei file hanno anche gli altri scali, e annullarli interi toccherebbe anche loro.
+    /// </summary>
+    public IReadOnlyList<string> FileToccatiDelFuoco => [.. Modifiche.FileToccati.Where(EDelFuoco)];
+
+    /// <summary>R8: quante modifiche in sospeso stanno nei file dello scalo del fuoco.</summary>
+    public int ModificheDelFuoco => Modifiche.Tutte.Count(m => EDelFuoco(m.File));
+
+    /// <summary>R8: annulla le sole modifiche nei file dello scalo del fuoco, in un gesto solo (un Ctrl+Z le rimette).</summary>
+    public void AnnullaQuelleDelFuoco()
+    {
+        if (Fuoco is not { } scalo || FileToccatiDelFuoco is not { Count: > 0 } file)
+            return;
+        NellaStoria($"annullate le modifiche di {scalo}", () =>
+        {
+            bool almenoUna = false;
+            foreach (string uno in file)
+                almenoUna |= AnnullaTutteAdesso(uno);
+            return almenoUna;
+        });
+    }
+
+    /// <summary>
     /// Il riquadro del fuoco (R2): le forme dello scalo negli strati del ground — disegni a terra, aeroporti a terra, piste.
     /// SID, STAR e rotte VFR dello scalo si vedono, ma vanno lontano: nel riquadro lo scalo diventerebbe un puntino (visto
     /// sul banco con LIRF). Se lo scalo non ha ground, tutte le sue forme. Null senza fuoco o senza niente da disegnare.

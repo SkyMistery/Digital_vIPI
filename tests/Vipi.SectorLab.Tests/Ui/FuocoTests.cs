@@ -211,6 +211,53 @@ public sealed class FuocoTests : IDisposable
         mappa.WaitForAssertion(() => Assert.Equal(2, _contesto.JSInterop.Invocations["sectorlab.mappa.inquadra"].Count));
     }
 
+    // --- fetta 4: R8 ----------------------------------------------------------------------------------------------------
+
+    // R8: in Consegna le modifiche dello scalo stanno in testa, e si annullano anche da sole (in un gesto, che Ctrl+Z
+    // rimette); le altre restano.
+    [Fact]
+    public async Task ASchermo_InConsegnaLeModificheDelloScalo_SiAnnullanoDaSole()
+    {
+        await Apri();
+        _lab.LavoraSu("LIXA");
+        Assert.True(_lab.CambiaCampo(It + "OTHER/prova.frq", 1, "Code", "LIXB_APP"));
+        Assert.True(_lab.CambiaCampo(It + "GEO/lixa.geo", 0, "Color", "TAXIWAY"));
+        var pannello = _contesto.RenderComponent<Vipi.SectorLab.Ui.Components.Modifiche>();
+
+        Assert.Contains("Di LIXA: 1 modifica in 1 file", pannello.Find("[data-modifiche-del-fuoco='LIXA']").TextContent, StringComparison.Ordinal);
+        Assert.Equal(It + "GEO/lixa.geo", pannello.FindAll("[data-diff]").First().GetAttribute("data-diff"));
+
+        pannello.Find("[data-tasto='annulla-del-fuoco']").Click();
+
+        Assert.Equal(0, _lab.ModificheDelFuoco);
+        Assert.Equal([It + "OTHER/prova.frq"], _lab.Modifiche.FileToccati);
+        pannello.WaitForAssertion(() => Assert.Empty(pannello.FindAll("[data-tasto='annulla-del-fuoco']")));
+
+        _lab.Annulla();
+        Assert.Equal(1, _lab.ModificheDelFuoco);
+    }
+
+    // --- fetta 3: R6 ----------------------------------------------------------------------------------------------------
+
+    // R6: col fuoco gli Strati vanno sopra la mappa, dietro il loro tasto, e la mappa prende la loro colonna.
+    [Fact]
+    public async Task ASchermo_ColFuocoGliStratiStannoSopraLaMappa()
+    {
+        await Apri();
+        var pagina = _contesto.RenderComponent<Vipi.SectorLab.Ui.Components.Pages.Home>();
+        Assert.Equal("colonna", pagina.Find("[data-strati]").GetAttribute("data-strati"));
+
+        await pagina.InvokeAsync(() => _lab.LavoraSu("LIXA"));
+        pagina.WaitForAssertion(() => Assert.Equal("chiusi", pagina.Find("[data-strati]").GetAttribute("data-strati")));
+        Assert.Empty(pagina.FindAll("[data-divide='strati']"));
+
+        await pagina.InvokeAsync(() => pagina.Find("[data-tasto=strati]").Click());
+        Assert.Equal("aperti", pagina.Find("[data-strati]").GetAttribute("data-strati"));
+
+        await pagina.InvokeAsync(_lab.EsciDalFuoco);
+        pagina.WaitForAssertion(() => Assert.Equal("colonna", pagina.Find("[data-strati]").GetAttribute("data-strati")));
+    }
+
     // --- fetta 2: R3, R4 ------------------------------------------------------------------------------------------------
 
     // R3: col fuoco un file dello scalo si apre nella linguetta Scali, coi suoi record; non si salta a Sfoglia.
