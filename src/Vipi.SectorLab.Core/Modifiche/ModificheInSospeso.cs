@@ -1972,6 +1972,40 @@ public sealed class ModificheInSospeso
         });
 
     /// <summary>
+    /// La forma disegnata a clic sulla mappa (carta «L'editor sulla mappa», §9, R10-R12): i punti al posto di tutti i
+    /// vertici, ognuno scritto come un campo della Scheda — una coordinata, o il NOME di un punto dove l'elenco lo sa
+    /// scrivere (D5) — e letto con la stessa lettura: un elenco fatto solo di nomi rifiuta le coordinate (D7).
+    /// </summary>
+    /// <param name="chiudi">Se la forma si chiude ripetendo il primo punto in fondo (la casella «Chiudi la forma»).</param>
+    public object DisegnaIVertici(FileAperto file, int indice, string campo, IReadOnlyList<string> punti, bool chiudi, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(punti);
+        return Gesto(file, indice, campo, etichetta, "forma disegnata", vertici =>
+        {
+            int servono = chiudi ? 3 : 2;
+            if (punti.Count < servono)
+                return new ModificaRifiutata(chiudi
+                    ? "Una forma chiusa ha almeno 3 punti: cliccane ancora."
+                    : "Una linea ha almeno 2 punti: cliccane ancora.");
+
+            var letti = new List<Punto>();
+            for (int i = 0; i < punti.Count; i++)
+            {
+                if (!LeggiIlPunto(vertici, punti[i], out Punto punto, out string? perche))
+                    return new ModificaRifiutata($"Il punto {i + 1}: {perche}");
+                letti.Add(punto);
+            }
+
+            vertici.Elenco.Clear();
+            foreach (var punto in letti)
+                vertici.Elenco.Add(vertici.Fabbrica(punto, vecchio: null));
+            if (chiudi && !letti[0].Equals(letti[^1]))
+                vertici.Elenco.Add(vertici.Fabbrica(letti[0], vecchio: null));
+            return null;
+        });
+    }
+
+    /// <summary>
     /// Le voci dell'elenco sostituite tutte (lotto «Subito» slice 8c): la forma portata da una sua copia
     /// (<see cref="Copie.PortaLaForma"/>). Come ogni gesto sui vertici, si annulla all'elenco dell'apertura.
     /// </summary>

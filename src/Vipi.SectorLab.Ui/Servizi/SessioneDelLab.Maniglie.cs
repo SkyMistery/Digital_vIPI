@@ -12,6 +12,12 @@ namespace Vipi.SectorLab.Ui.Servizi;
 /// </summary>
 public sealed record ManigliaDelVertice(string Campo, int Posizione, double Lat, double Lon, bool PerNome, bool Aggiungibile);
 
+/// <summary>Un disegno a clic in corso (§9, R10): su quale elenco, se la forma si chiude, se si clicca solo sui punti col nome (D7).</summary>
+public sealed record DisegnoSullaMappa(string File, int Record, string Campo, bool Chiudi, bool SoloNomi);
+
+/// <summary>Un clic del disegno: dove, e il record a cui la calamita l'ha agganciato (null: nessuno).</summary>
+public sealed record PuntoCliccato(double Lat, double Lon, string? SuFile, int SuRecord);
+
 /// <summary>L'ultimo vertice mosso dalla mappa, col rifiuto che ha avuto (null = fatto): la Scheda lo mostra accanto al suo elenco (R7).</summary>
 public sealed record GestoDallaMappa(string File, int Record, string Campo, int Posizione, string? Rifiuto);
 
@@ -59,7 +65,8 @@ public sealed partial class SessioneDelLab
     /// </summary>
     public IReadOnlyList<ManigliaDelVertice> Maniglie()
     {
-        if (!ModificaSullaMappa || Scelta is not { } scelta)
+        // R10: mentre si disegna le maniglie si tolgono (un clic deve fare un punto, non prendere una maniglia).
+        if (!ModificaSullaMappa || Scelta is not { } scelta || Disegno is not null)
             return [];
 
         if (LineaDi(scelta.File, scelta.Record) is { } linea)
@@ -189,6 +196,86 @@ public sealed partial class SessioneDelLab
         int segnato = fatto ? Math.Min(posizione, Math.Max(0, VerticiDi(scelta.File, scelta.Record, campo).Count - 1)) : posizione;
         return Fatto(scelta, campo, segnato, fatto);
     }
+
+    // --- §9, D3: disegnare a clic ----------------------------------------------------------------------------------
+
+    private DisegnoSullaMappa? _disegno;
+
+    /// <summary>Il disegno a clic in corso sul record scelto (R10), o null. Scegliere un altro record lo lascia.</summary>
+    public DisegnoSullaMappa? Disegno => _disegno is { } d && (d.File, d.Record) == Scelta ? d : null;
+
+    /// <summary>
+    /// Comincia a disegnare l'elenco <paramref name="campo"/> del record scelto (R10): i clic sulla mappa fanno i punti, e
+    /// alla fine (<see cref="FormaDisegnata"/>) prendono il posto dei vertici. Negli elenchi fatti solo di nomi si clicca
+    /// solo sui punti col nome (D7). Le maniglie si tolgono finché si disegna.
+    /// </summary>
+    public void DisegnaSullaMappa(string campo, bool chiudi)
+    {
+        if (Scelta is not { } scelta)
+            return;
+        bool linea = campo == ChiaveDellaLinea;
+        var elenco = linea ? null : ElenchiDiVerticiDi(scelta.File, scelta.Record).FirstOrDefault(e => e.Chiave == campo);
+        if (!linea && elenco is null)
+            return;
+        bool soloNomi = elenco is { AmmetteCoordinate: false };
+        _disegno = new DisegnoSullaMappa(scelta.File, scelta.Record, campo, chiudi, soloNomi);
+        Registro.Scrivi("disegno", $"{scelta.File}#{scelta.Record} {campo}: comincia");
+        Avvisa();
+    }
+
+    /// <summary>La casella «Chiudi la forma» cambiata mentre si disegna (R12): l'anteprima sulla mappa la segue.</summary>
+    public void ChiudiIlDisegno(bool chiudi)
+    {
+        if (Disegno is not { } d || d.Chiudi == chiudi)
+            return;
+        _disegno = d with { Chiudi = chiudi };
+        Avvisa();
+    }
+
+    /// <summary>Esc, o «Lascia stare»: il disegno finisce senza cambiare niente.</summary>
+    public void LasciaIlDisegno()
+    {
+        if (_disegno is null)
+            return;
+        _disegno = null;
+        Avvisa();
+    }
+
+    /// <summary>
+    /// Invio o doppio clic (R11): i punti cliccati diventano i vertici dell'elenco, col gesto «forma disegnata» — un
+    /// annulla, le copie uguali, il diff. Un punto agganciato a un punto col nome, in un elenco che sa scrivere i nomi,
+    /// diventa quel nome (D5); gli altri la coordinata esatta del punto agganciato, o del clic. Rifiutato, il disegno
+    /// resta aperto coi suoi punti (si toglie l'ultimo con Backspace e si riprova).
+    /// </summary>
+    public bool FormaDisegnata(IReadOnlyList<PuntoCliccato> punti)
+    {
+        if (Disegno is not { } d)
+            return false;
+        ArgumentNullException.ThrowIfNull(punti);
+
+        bool nomi = d.Campo != ChiaveDellaLinea
+            && ElenchiDiVerticiDi(d.File, d.Record).FirstOrDefault(e => e.Chiave == d.Campo) is { AmmetteNomi: true };
+        var righe = new List<string>();
+        foreach (var punto in punti)
+        {
+            if (Fuori(punto.Lat, punto.Lon))
+                return Rifiuta((d.File, d.Record), d.Campo, -1, FuoriDalMondo);
+            var aggancio = punto.SuFile is null ? null : AgganciaA(punto.SuFile, punto.SuRecord, punto.Lat, punto.Lon);
+            righe.Add(nomi && aggancio?.Nome is { } nome ? nome
+                : aggancio is { } a ? CoordinateConverter.ToDottedDms(a.Dove)
+                : Scritta(punto.Lat, punto.Lon));
+        }
+
+        bool fatto = GestoSuiVertici(d.File, d.Record, d.Campo, GestoDeiVertici.Disegna, testo: string.Join('\n', righe), chiudi: d.Chiudi);
+        if (fatto)
+            _disegno = null;
+        // Nessun vertice da segnare (-1): è cambiato tutto l'elenco. Il rifiuto va accanto all'elenco, come gli altri.
+        return Fatto((d.File, d.Record), d.Campo, -1, fatto);
+    }
+
+    /// <summary>Il testo di un disegno: un punto per riga.</summary>
+    private static IReadOnlyList<string> RigheDelDisegno(string? testo)
+        => (testo ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private const string FuoriDalMondo = "Lì non c'è una coordinata che il sector sappia scrivere.";
 

@@ -372,6 +372,34 @@
                         title="@(_perQuale != chiave || string.IsNullOrWhiteSpace(_daIncollare) ? "Incolla prima il testo qui sopra" : null)"
                         @onclick="() => Incolla(scheda, chiave)" data-tasto="incolla">Scrivi i vertici</button>
             </details>
+
+            @* §9 (R10-R12): i vertici di questo elenco disegnati cliccando sulla mappa del Sector, in un gesto solo alla fine. *@
+            @if (Lab.Disegno is { } disegno && disegno.Campo == chiave)
+            {
+                <div class="lab-disegno" data-disegno="@chiave">
+                    <p class="lab-nota">
+                        Clicca sulla mappa i punti, uno dopo l'altro (vicino a un punto o a un vertice la calamita lo prende; <kbd>Alt</kbd> la stacca).
+                        <kbd>Invio</kbd> o doppio clic: fatto, prendono il posto dei vertici · <kbd>Backspace</kbd>: togli l'ultimo · <kbd>Esc</kbd>: lascia stare.
+                        @if (disegno.SoloNomi)
+                        {
+                            <br /><span>Qui i punti sono nomi: si clicca solo su un fix, un VOR o un NDB.</span>
+                        }
+                    </p>
+                    <label class="lab-nota lab-chiudi">
+                        <input type="checkbox" checked="@disegno.Chiudi" @onchange="e => Lab.ChiudiIlDisegno(e.Value is true)" data-campo="chiudi-disegno" />
+                        Chiudi la forma (l'ultimo punto ripete il primo)
+                    </label>
+                    <button class="lab-tasto lab-tasto-tenue" @onclick="Lab.LasciaIlDisegno" data-tasto="lascia-il-disegno">Lascia stare</button>
+                </div>
+            }
+            else
+            {
+                <p class="lab-gesti-vertici">
+                    <button class="lab-tasto lab-tasto-tenue" data-disegna="@chiave" disabled="@(Lab.Disegno is not null)"
+                            title="@(Lab.Disegno is not null ? "Stai già disegnando un altro elenco" : "Clicchi i punti sulla mappa: alla fine prendono il posto di questi vertici, in un gesto solo")"
+                            @onclick="() => Lab.DisegnaSullaMappa(chiave, Chiudi(scheda, chiave))">✎ Disegna sulla mappa</button>
+                </p>
+            }
             </ChildContent>
             </Sezione>
         }

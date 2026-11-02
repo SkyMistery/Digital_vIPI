@@ -233,6 +233,11 @@
         disegnata.sectorlabMappa = stato;
         disegnata.on('click', function (e) {
             L.DomEvent.stop(e);
+            // §9: mentre si disegna, il clic su una forma fa un punto (la calamita sceglie dove), non la sceglie.
+            if (stato.disegno) {
+                puntoDelDisegno(stato, e.latlng);
+                return;
+            }
             // S3: mentre la posa aspetta un punto, il clic dà il posto, non sceglie la voce.
             if (stato.prende) {
                 if (forma.t === 'p' && forma.c.length && forma.c[0].length >= 2) presa(stato, forma.c[0][0], forma.c[0][1], forma.e);
@@ -311,8 +316,8 @@
     /// vista, voci spente già tolte), dentro la vista allargata, tranne il record stesso. Un fix o un VOR è un punto; di una
     /// linea o di un'area ogni vertice. `soloPunti`: per un vertice col nome, che va solo su un punto col nome (R6).
     /// In una griglia sul piano dei layer di Leaflet, che non cambia quando la mappa scorre (autoPan) ma solo con lo zoom.
-    function raccogli(stato, soloPunti) {
-        var mappa = stato.mappa, bordi = mappa.getBounds().pad(.5), griglia = {}, diChi = stato.maniglie && stato.maniglie.diChi;
+    function raccogli(stato, soloPunti, diChi) {
+        var mappa = stato.mappa, bordi = mappa.getBounds().pad(.5), griglia = {};
         function metti(lat, lon, f, punto) {
             if (!bordi.contains([lat, lon])) return;
             var lp = mappa.latLngToLayerPoint([lat, lon]), chiave = Math.floor(lp.x / CELLA) + ',' + Math.floor(lp.y / CELLA);
@@ -359,7 +364,7 @@
         var partenza = marcatore.getLatLng(), griglia = null, aggancio = null;
         marcatore.on('dragstart', function () {
             stato.trascina = true;
-            griglia = raccogli(stato, soloPunti);
+            griglia = raccogli(stato, soloPunti, stato.maniglie && stato.maniglie.diChi);
             aggancio = null;
             // Le maniglie di mezzo dei tratti che si muovono resterebbero a metà del tratto vecchio: si nascondono.
             L.DomUtil.addClass(stato.mappa.getContainer(), 'lab-mappa-trascina');
@@ -425,6 +430,74 @@
             L.popup({ closeButton: false, offset: [0, -6], className: 'lab-menu-maniglia' })
                 .setLatLng(marcatore.getLatLng()).setContent(tasto).openOn(stato.mappa);
         });
+    }
+
+    /// §9 (R10-R12): il disegno a clic. Ogni clic (anche sopra una forma) fa un punto, con la calamita; la forma che esce
+    /// si vede tratteggiata, con l'elastico fino al puntatore; Invio o doppio clic la manda al Lab in un gesto solo,
+    /// Backspace toglie l'ultimo punto, Esc lascia stare. `soloNomi` (D7): si clicca solo su un punto col nome.
+    function puntoDelDisegno(stato, latlng) {
+        var d = stato.disegno;
+        if (!d || d.inviando) return;
+        var preso = altTenuto ? null : piuVicino(stato, d.griglia, latlng);
+        if (d.soloNomi && !(preso && preso.punto)) {
+            avvisoSullaMappa(stato, latlng, 'Qui i punti sono nomi: clicca un fix, un VOR o un NDB (anche col suo anello).');
+            return;
+        }
+        var p = preso ? { lat: preso.lat, lon: preso.lon, suFile: preso.p, suRecord: preso.r }
+                      : { lat: latlng.lat, lon: latlng.lng, suFile: null, suRecord: 0 };
+        // Il doppio clic che finisce arriva prima come due clic sullo stesso posto: il secondo non è un punto.
+        var ultimo = d.punti[d.punti.length - 1];
+        if (ultimo && stato.mappa.latLngToLayerPoint([ultimo.lat, ultimo.lon]).distanceTo(stato.mappa.latLngToLayerPoint([p.lat, p.lon])) < 3) return;
+        d.punti.push(p);
+        anteprimaDelDisegno(stato, null);
+    }
+
+    function anteprimaDelDisegno(stato, cursore) {
+        var d = stato.disegno;
+        if (!d) return;
+        var punti = d.punti.map(function (p) { return [p.lat, p.lon]; });
+        d.linea.setLatLngs(d.chiudi && punti.length >= 3 ? punti.concat([punti[0]]) : punti);
+        d.segni.clearLayers();
+        for (var i = 0; i < punti.length; i++) {
+            d.segni.addLayer(L.circleMarker(punti[i], { radius: 4, color: token('--lab-evidenza', '#e26e17'), weight: 2,
+                fillColor: token('--lab-superficie', '#fff'), fillOpacity: 1, interactive: false }));
+        }
+        // L'elastico: dall'ultimo punto al puntatore (e, per una forma chiusa, di nuovo al primo).
+        var elastico = [];
+        if (cursore && punti.length) {
+            elastico.push([punti[punti.length - 1], cursore]);
+            if (d.chiudi && punti.length >= 2) elastico.push([cursore, punti[0]]);
+        }
+        d.elastico.setLatLngs(elastico);
+    }
+
+    function avvisoSullaMappa(stato, latlng, testo) {
+        var riga = L.DomUtil.create('span', 'lab-avviso-sulla-mappa');
+        riga.textContent = testo;
+        var avviso = L.popup({ closeButton: false, className: 'lab-menu-maniglia', autoPan: false })
+            .setLatLng(latlng).setContent(riga).openOn(stato.mappa);
+        setTimeout(function () { stato.mappa.closePopup(avviso); }, 2500);
+    }
+
+    function mandaIlDisegno(stato) {
+        var d = stato.disegno;
+        if (!d || d.inviando || stato.chiusa || !stato.riferimento) return;
+        d.inviando = true;
+        // Fatto: il Lab chiude il disegno (e la mappa lo toglie). Rifiutato: i punti restano, il motivo è nella Scheda.
+        stato.riferimento.invokeMethodAsync('FormaDisegnata', d.punti)
+            .then(function () { d.inviando = false; }, function () { d.inviando = false; });
+    }
+
+    function chiudiIlDisegno(stato) {
+        var d = stato.disegno, mappa = stato.mappa;
+        if (!d) return;
+        mappa.off('click', d.suClic).off('mousemove', d.suMuovi).off('dblclick', d.suDoppio).off('zoomend moveend', d.rifai);
+        document.removeEventListener('keydown', d.suTasto, true);
+        mappa.removeLayer(d.linea).removeLayer(d.elastico).removeLayer(d.segni);
+        if (stato.anello) { mappa.removeLayer(stato.anello); stato.anello = null; }
+        mappa.doubleClickZoom.enable();
+        L.DomUtil.removeClass(mappa.getContainer(), 'lab-mappa-prende');
+        stato.disegno = null;
     }
 
     // Esc spegne le maniglie (R1), come il loro tasto. Un ascoltatore solo, per tutte le mappe.
@@ -832,6 +905,60 @@
             return elenco.length;
         },
 
+        /// §9 (R10): comincia, aggiorna o finisce il disegno a clic. `opzioni` = { chiudi, soloNomi, diChi } o null (finito).
+        disegna: function (opzioni, elemento) {
+            var stato = prendi(elemento);
+            if (!stato) return;
+            if (!opzioni) { chiudiIlDisegno(stato); return; }
+            if (stato.disegno) {
+                // Solo la casella «Chiudi la forma» è cambiata: i punti restano.
+                stato.disegno.chiudi = !!opzioni.chiudi;
+                anteprimaDelDisegno(stato, null);
+                return;
+            }
+            var mappa = stato.mappa, tinta = token('--lab-evidenza', '#e26e17');
+            var d = stato.disegno = {
+                punti: [], chiudi: !!opzioni.chiudi, soloNomi: !!opzioni.soloNomi, diChi: opzioni.diChi || null, griglia: {},
+                linea: L.polyline([], { color: tinta, weight: 2, dashArray: '6,4', interactive: false }).addTo(mappa),
+                elastico: L.polyline([], { color: tinta, weight: 1, dashArray: '2,4', interactive: false }).addTo(mappa),
+                segni: L.layerGroup().addTo(mappa)
+            };
+            // La griglia della calamita si rifà quando la mappa si muove o cambia zoom (il piano dei layer cambia con lo zoom).
+            d.rifai = function () { d.griglia = raccogli(stato, d.soloNomi, d.diChi); };
+            d.rifai();
+            d.suClic = function (e) { puntoDelDisegno(stato, e.latlng); };
+            d.suMuovi = function (e) {
+                var preso = altTenuto ? null : piuVicino(stato, d.griglia, e.latlng), qui = preso ? L.latLng(preso.lat, preso.lon) : e.latlng;
+                if (preso && (!d.soloNomi || preso.punto)) {
+                    if (!stato.anello) stato.anello = L.circleMarker(qui, { radius: 10, color: tinta, weight: 2, fill: false, interactive: false }).addTo(mappa);
+                    stato.anello.setLatLng(qui);
+                } else if (stato.anello) {
+                    mappa.removeLayer(stato.anello);
+                    stato.anello = null;
+                }
+                anteprimaDelDisegno(stato, qui);
+            };
+            d.suDoppio = function (e) { L.DomEvent.stop(e); mandaIlDisegno(stato); };
+            d.suTasto = function (e) {
+                var t = e.target, scrive = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    if (stato.riferimento) stato.riferimento.invokeMethodAsync('DisegnoLasciato').catch(function () { /* il circuito se n'è andato */ });
+                } else if (e.key === 'Enter' && !scrive) {
+                    e.preventDefault();
+                    mandaIlDisegno(stato);
+                } else if (e.key === 'Backspace' && !scrive) {
+                    e.preventDefault();
+                    d.punti.pop();
+                    anteprimaDelDisegno(stato, null);
+                }
+            };
+            mappa.on('click', d.suClic).on('mousemove', d.suMuovi).on('dblclick', d.suDoppio).on('zoomend moveend', d.rifai);
+            document.addEventListener('keydown', d.suTasto, true);
+            mappa.doubleClickZoom.disable();
+            L.DomUtil.addClass(mappa.getContainer(), 'lab-mappa-prende');
+        },
+
         /// R7: la maniglia del vertice che il mouse indica nella Scheda (campo null: nessuna).
         indica: function (campo, posizione, elemento) {
             var stato = prendi(elemento);
@@ -879,6 +1006,8 @@
             var stato = prendi(elemento);
             if (!stato) return;
             if (stato.osservatore) stato.osservatore.disconnect();
+            // Il disegno ha un ascoltatore sul documento: va tolto, la mappa no.
+            chiudiIlDisegno(stato);
             stato.mappa.remove();
             // Una fetch ancora in viaggio la trova chiusa e non disegna niente.
             stato.chiusa = true;

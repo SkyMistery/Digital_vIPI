@@ -399,6 +399,136 @@ public sealed class EditorSullaMappaTests : IDisposable
         Assert.Equal(spenti, _contesto.JSInterop.Invocations["sectorlab.mappa.strato"].Count(c => Equals(c.Arguments[1], false)));
     }
 
+    // --- §9, D3: disegnare a clic (R10-R13, D5-D7) ----------------------------------------------------------------
+
+    private static PuntoCliccato Clic(double lat, double lon) => new(lat, lon, null, 0);
+
+    [Fact]
+    public async Task IlDisegnoPrendeIlPostoDeiVerticiInUnGestoSolo()
+    {
+        await ApriEScegliIlSettore();
+        _lab.ModificaSullaMappaDi(true);
+        _lab.DisegnaSullaMappa("Vertices", chiudi: false);
+        Assert.NotNull(_lab.Disegno);
+        // R10: mentre si disegna le maniglie si tolgono.
+        Assert.Empty(_lab.Maniglie());
+
+        Assert.True(_lab.FormaDisegnata([Clic(42.0, 12.0), Clic(42.5, 12.5), Clic(42.0, 13.0), Clic(41.5, 12.5)]));
+
+        Assert.Null(_lab.Disegno);
+        Assert.Equal(4, _lab.VerticiDi(Settore, 0, "Vertices").Count);
+        Assert.Contains("forma disegnata", _lab.Modifiche.Tutte.Single().Descrizione);
+        _lab.Annulla();
+        Assert.False(_lab.Modifiche.CEQualcosa);
+        _lab.Ripeti();
+        await _lab.SalvaAsync();
+        Assert.Equal(["N042.00.00.000;E012.00.00.000;", "N042.30.00.000;E012.30.00.000;", "N042.00.00.000;E013.00.00.000;",
+                      "N041.30.00.000;E012.30.00.000;"], Righe(Settore).Skip(1));
+    }
+
+    [Fact]
+    public async Task UnaFormaChiusaRipeteIlPrimoPuntoEUnPuntoSulFixNePrendeIlNome()
+    {
+        await ApriEScegliIlSettore();
+        var aea = Forma("AEA");
+        _lab.DisegnaSullaMappa("Vertices", chiudi: true);
+
+        // D5: il secondo clic agganciato al VOR AEA, in un .tfl che sa scrivere i nomi.
+        Assert.True(_lab.FormaDisegnata([Clic(42.0, 12.0), new PuntoCliccato(40.638, 8.292, aea.File, aea.Record), Clic(41.0, 13.0)]));
+
+        await _lab.SalvaAsync();
+        Assert.Equal(["N042.00.00.000;E012.00.00.000;", "AEA;AEA;", "N041.00.00.000;E013.00.00.000;", "N042.00.00.000;E012.00.00.000;"],
+                     Righe(Settore).Skip(1));
+    }
+
+    [Fact]
+    public async Task ConTroppoPochiPuntiSiRifiutaEIlDisegnoResta()
+    {
+        await ApriEScegliIlSettore();
+        _lab.DisegnaSullaMappa("Vertices", chiudi: true);
+
+        Assert.False(_lab.FormaDisegnata([Clic(42.0, 12.0), Clic(42.5, 12.5)]));
+
+        Assert.NotNull(_lab.Disegno);
+        Assert.Contains("almeno 3 punti", _lab.Rifiuto);
+        Assert.False(_lab.Modifiche.CEQualcosa);
+        _lab.LasciaIlDisegno();
+        Assert.Null(_lab.Disegno);
+    }
+
+    [Fact]
+    public async Task InUnElencoDiSoliNomiSiDisegnaSoloSuiPuntiColNome()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        const string Str = "SectorFiles/Include/IT/lirf.str";
+        int record = Enumerable.Range(0, 400).First(r => _lab.ElenchiDiVerticiDi(Str, r).Any(e => e.Quanti > 0 && !e.AmmetteCoordinate));
+        string campo = _lab.ElenchiDiVerticiDi(Str, record).First(e => e.Quanti > 0 && !e.AmmetteCoordinate).Chiave;
+        _lab.Scegli(Str, record);
+        _lab.DisegnaSullaMappa(campo, chiudi: false);
+        Assert.True(_lab.Disegno!.SoloNomi);
+        var aea = Forma("AEA");
+        var alb = Forma("ALB");
+
+        Assert.False(_lab.FormaDisegnata([new PuntoCliccato(40.638, 8.292, aea.File, aea.Record), Clic(42.0, 12.0)]));
+        Assert.Contains("Il punto 2", _lab.Rifiuto);
+
+        Assert.True(_lab.FormaDisegnata([new PuntoCliccato(40.638, 8.292, aea.File, aea.Record), new PuntoCliccato(44.05, 8.13, alb.File, alb.Record)]));
+        Assert.Equal(["AEA", "ALB"], _lab.VerticiDi(Str, record, campo));
+    }
+
+    [Fact]
+    public async Task NellaLineaDiUnGeoIlDisegnoRifaLaLinea()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        int primo = Enumerable.Range(0, 200).First(r => _lab.LineaDi(Geo, r) is not null);
+        _lab.Scegli(Geo, primo);
+        _lab.DisegnaSullaMappa(SessioneDelLab.ChiaveDellaLinea, chiudi: false);
+
+        Assert.True(_lab.FormaDisegnata([Clic(42.0, 13.0), Clic(42.1, 13.1), Clic(42.2, 13.0)]));
+
+        var linea = _lab.LineaDi(Geo, primo)!;
+        Assert.Equal(3, linea.Punti.Count);
+        Assert.Equal(42.1, linea.Punti[1].LatitudeDeg, 6);
+    }
+
+    [Fact]
+    public async Task ScegliereUnAltroRecordLasciaIlDisegno()
+    {
+        await ApriEScegliIlSettore();
+        _lab.DisegnaSullaMappa("Vertices", chiudi: false);
+
+        var altra = _lab.Strati.Single(s => s.Id == "settori").Forme.First(f => f.File != Settore);
+        _lab.Scegli(altra.File, altra.Record);
+
+        Assert.Null(_lab.Disegno);
+        Assert.False(_lab.FormaDisegnata([Clic(42.0, 12.0), Clic(42.5, 12.5)]));
+    }
+
+    [Fact]
+    public async Task IlTastoDisegnaMandaIlDisegnoAllaMappaELasciaStareLoToglie()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli(Settore, 0));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-disegna='Vertices']")));
+
+        pagina.Find("[data-disegna='Vertices']").Click();
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.NotNull(pagina.Find("[data-disegno='Vertices']"));
+            Assert.NotNull(_contesto.JSInterop.Invocations["sectorlab.mappa.disegna"].Last().Arguments[0]);
+        });
+
+        pagina.Find("[data-tasto='lascia-il-disegno']").Click();
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Empty(pagina.FindAll("[data-disegno]"));
+            Assert.Null(_contesto.JSInterop.Invocations["sectorlab.mappa.disegna"].Last().Arguments[0]);
+        });
+    }
+
     [Fact]
     public async Task IlTastoDellaSchedaMandaLeManiglieEIlMouseSulVerticeLIndica()
     {

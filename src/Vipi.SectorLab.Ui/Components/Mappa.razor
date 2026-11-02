@@ -207,6 +207,15 @@
                 _indicato = Lab.VerticeIndicato;
                 await Js.InvokeVoidAsync("sectorlab.mappa.indica", _indicato?.Campo, _indicato?.Posizione ?? 0, Elemento);
             }
+
+            // §9 (R10): il disegno a clic. Si manda quando comincia, finisce o cambia la casella «Chiudi».
+            if (_disegno != Lab.Disegno)
+            {
+                _disegno = Lab.Disegno;
+                await Js.InvokeVoidAsync("sectorlab.mappa.disegna", _disegno is { } d
+                    ? new { chiudi = d.Chiudi, soloNomi = d.SoloNomi, diChi = $"{d.File}#{d.Record}" }
+                    : null, Elemento);
+            }
         }
 
         // S3 (carta «Gli aeroporti nel Lab»): la carta posata e il punto della posa da prendere, solo sulla mappa dell'AIP.
@@ -257,6 +266,16 @@
     /// <summary>F9 (R4): «Togli questo vertice» dal clic destro su una maniglia.</summary>
     [JSInvokable]
     public bool VerticeToltoDallaMappa(string campo, int posizione) => Lab.VerticeToltoDallaMappa(campo, posizione);
+
+    private DisegnoSullaMappa? _disegno;
+
+    /// <summary>§9 (R11): Invio o doppio clic alla fine del disegno. Falso = rifiutato, il disegno resta coi suoi punti.</summary>
+    [JSInvokable]
+    public bool FormaDisegnata(PuntoCliccato[] punti) => Lab.FormaDisegnata(punti);
+
+    /// <summary>§9 (R11): Esc durante il disegno.</summary>
+    [JSInvokable]
+    public void DisegnoLasciato() => Lab.LasciaIlDisegno();
 
     /// <summary>F9 (R1): Esc con le maniglie accese.</summary>
     [JSInvokable]

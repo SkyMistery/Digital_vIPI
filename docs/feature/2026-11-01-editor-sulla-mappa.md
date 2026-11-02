@@ -159,7 +159,7 @@ Ogni fetta: test bUnit dei gesti (la mappa vista dal circuito), prova sul banco 
 **Con la fetta 4 la carta è fatta.** Restano, se il committente le vuole, D3 (disegnare una forma nuova a clic) e D4
 (trascinare i record di un punto solo: fix, VOR, VFR coi gemelli), e la saldatura dei bordi della F8.
 
-## §9 — D3: disegnare una forma a clic (2 novembre, da approvare)
+## §9 — D3: disegnare una forma a clic (2 novembre; approvata come proposta: D5 sì, D6 al posto, D7 sì)
 
 Il committente ha scelto D3. **Com'è oggi**: un record nuovo nasce sempre come copia di un modello («+ Record come
 questo» copia il record scelto, «+ Nuovo record» il vicino, slice 8), coi vertici del modello; per dargli la sua forma
@@ -186,3 +186,25 @@ Quello che manca è dare i vertici **cliccandoli** sulla mappa.
   cliccati vanno **in coda** a quelli che ci sono (una linea da allungare)?
 - **D7** Negli elenchi fatti solo di nomi (punti di una procedura `.str`, tracciato di un'aerovia) si disegna cliccando
   solo sui punti col nome (proposta: sì, gli altri clic non mettono niente e lo dicono), o lì il disegno non c'è?
+
+## §10 — D3, fatto (2 novembre)
+
+- **Motore** (`ModificheInSospeso.DisegnaIVertici`, del solo Lab): i punti al posto di tutti i vertici, ognuno letto come
+  un campo della Scheda (`LeggiIlPunto`: coordinata, o nome dove l'elenco lo sa scrivere) — così D5 e D7 vengono dalla
+  stessa regola dei campi: un elenco di soli nomi rifiuta una coordinata, dicendo quale punto. Chiusa: il primo ripetuto
+  in fondo. Almeno 2 punti, 3 se chiusa.
+- **Servizio**: il gesto `Disegna` nel giro dei gesti sui vertici (storia, copie uguali, chiusura fissata al gesto);
+  `DisegnaSullaMappa` / `ChiudiIlDisegno` / `LasciaIlDisegno` / `FormaDisegnata` (`SessioneDelLab.Maniglie.cs`). Un punto
+  agganciato a un punto col nome, in un elenco che sa scrivere i nomi, diventa il nome (D5); gli altri la coordinata esatta
+  del punto agganciato, o del clic. Rifiutato, il disegno resta aperto coi suoi punti. La Linea di un `.geo` si rifà col
+  gesto «incolla» della linea (solo coordinate). Mentre si disegna le maniglie si tolgono; un altro record lascia il disegno.
+- **Mappa**: `disegna` (JS) — croce, clic anche sopra una forma (non la sceglie), calamita con l'anello (`Alt` la stacca;
+  in un elenco di soli nomi solo i punti, e un clic altrove lo dice in un riquadrino), anteprima tratteggiata con
+  l'elastico fino al puntatore, Invio o doppio clic (lo zoom del doppio clic si spegne; il suo secondo clic non è un punto),
+  Backspace, Esc.
+- **Scheda**: «✎ Disegna sulla mappa» sotto «Incolla da testo»; acceso, un riquadro con le istruzioni, «Chiudi la forma»
+  e «Lascia stare».
+- **Prove**: 7 test (29), suite del Lab 1561. Sul banco, col mouse, LIBB_FSS: 4 clic e Invio → «forma disegnata (48 → 5
+  vertici)», chiusa, portata sulle due copie uguali; due punti agganciati a vertici vicini (coordinate tonde); Ctrl+Z la
+  rimette. Backspace ed Esc: niente cambiato. 3 clic con l'ultimo doppio → 4 vertici, niente zoom. Non visti a schermo: un
+  elenco di soli nomi e la Linea di un `.geo` (nei test).

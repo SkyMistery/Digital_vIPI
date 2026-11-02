@@ -17,6 +17,9 @@ il vertice N»; la Linea di un `.geo` ora sa aggiungere un punto già al suo pos
 `Alt` la stacca; il vertice col nome si trascina e va solo su un punto col nome, di cui prende il nome. Prove A115-A116.
 **Fetta 4** (carta §8): dopo un gesto la mappa riprende le sole forme dei file toccati, non lo strato intero — misurato
 sul banco col sector vero, da 504 a 157 ms. Con questa la carta F9 è fatta; D3, D4 e la saldatura (F8) restano aperte.
+**D3, disegnare a clic** (carta §9-§10, scelta e approvata dal committente il 2 novembre): «✎ Disegna sulla mappa» per
+elenco, clic con la calamita, Invio o doppio clic → un gesto «forma disegnata» al posto dei vertici; un punto sul fix
+diventa il suo nome dove l'elenco li sa scrivere. Motore del solo Lab (`DisegnaIVertici`). Prove A118-A119.
 
 **31 ottobre: la Scheda per gruppi, seconda parte** (D5 della carta del riordino, ferma «al via» dal 21 ottobre; il
 committente non poteva ancora fare le prove A75-A91 e ha detto «Sì, vai»). La Linea di un `.geo` ha lo stesso editor dei

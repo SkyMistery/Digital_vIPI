@@ -2916,6 +2916,23 @@ body.lab-trascina * {
     outline: 3px solid color-mix(in srgb, var(--lab-evidenza) 35%, transparent);
 }
 
+/* §9 (R10): il riquadro del disegno a clic, sotto l'elenco che si sta disegnando. */
+.lab-disegno {
+    margin: .3rem 0;
+    padding: .3rem .5rem;
+    border-left: 3px solid var(--lab-evidenza);
+    background: var(--lab-superficie);
+}
+
+.lab-disegno kbd {
+    font: 11px/1.3 var(--lab-mono);
+    padding: 0 .25rem;
+    border: 1px solid var(--lab-linea-forte);
+    border-radius: 3px;
+}
+
+.lab-avviso-sulla-mappa { white-space: normal; }
+
 /* R7: nell'elenco della Geometria, il vertice appena mosso dalla mappa. */
 .lab-vertice-dalla-mappa .lab-numero {
     color: var(--lab-evidenza);

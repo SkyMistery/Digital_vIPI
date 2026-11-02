@@ -20,6 +20,9 @@ public enum GestoDeiVertici
     Togli,
     Incolla,
     Inverti,
+
+    /// <summary>F9, §9: la forma disegnata a clic — il testo ha un punto per riga (coordinata o nome).</summary>
+    Disegna,
 }
 
 /// <summary>L'anteprima di «incolla da testo»: per quale elenco, con che densità, e che cosa ne esce.</summary>
@@ -1517,7 +1520,7 @@ public sealed partial class SessioneDelLab
         // La densità si fissa ADESSO: rigiocato più tardi, il gesto deve dare gli stessi punti anche se la stima è cambiata.
         double? densita = gesto == GestoDeiVertici.Incolla ? puntiPerGrado ?? DensitaDiBase : null;
         // Anche la chiusura si fissa adesso: rigiocato dopo altri gesti, l'elenco di partenza potrebbe essere un altro.
-        if (gesto == GestoDeiVertici.Incolla)
+        if (gesto is GestoDeiVertici.Incolla or GestoDeiVertici.Disegna)
             chiudi ??= ElencoChiuso(fileRelativo, record, campo);
         string cosa = gesto switch
         {
@@ -1525,6 +1528,7 @@ public sealed partial class SessioneDelLab
             GestoDeiVertici.Aggiungi => "vertice aggiunto",
             GestoDeiVertici.Togli => "vertice tolto",
             GestoDeiVertici.Inverti => "ordine invertito",
+            GestoDeiVertici.Disegna => "forma disegnata",
             _ => "vertici incollati",
         };
         // Slice 8c: le copie della stessa forma si fissano ADESSO, come la densità: rigiocato più tardi (annulla, ripeti)
@@ -1557,11 +1561,12 @@ public sealed partial class SessioneDelLab
             GestoDeiVertici.Aggiungi => Modifiche.AggiungiVertice(file, record, campo, posizione, testo, etichetta),
             GestoDeiVertici.Togli => Modifiche.TogliVertice(file, record, campo, posizione, etichetta),
             GestoDeiVertici.Inverti => Modifiche.InvertiVertici(file, record, campo, etichetta),
+            GestoDeiVertici.Disegna => Modifiche.DisegnaIVertici(file, record, campo, RigheDelDisegno(testo), chiudi ?? false, etichetta),
             _ => Modifiche.IncollaVertici(file, record, campo, testo, etichetta,
                                           puntiPerGrado ?? DensitaDiBase, chiudi),
         };
         Registro.Scrivi("vertici", $"{fileRelativo}#{record} {campo} {gesto} {posizione}"
-                                   + (gesto == GestoDeiVertici.Incolla ? $" ({testo?.Length ?? 0} caratteri)" : $" «{testo}»")
+                                   + (gesto is GestoDeiVertici.Incolla or GestoDeiVertici.Disegna ? $" ({testo?.Length ?? 0} caratteri)" : $" «{testo}»")
                                    + $": {Descrivi(esito)}");
 
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
@@ -2792,6 +2797,7 @@ public sealed partial class SessioneDelLab
             GestoDeiVertici.Aggiungi => "punto aggiunto alla linea",
             GestoDeiVertici.Togli => $"punto {posizione + 1} tolto dalla linea",
             GestoDeiVertici.Inverti => "linea invertita",
+            GestoDeiVertici.Disegna => "linea disegnata",
             _ => "punti incollati nella linea",
         };
         var copie = CopieDellaLinea(fileRelativo, record);
@@ -2821,6 +2827,28 @@ public sealed partial class SessioneDelLab
                 ? new ModificaRifiutata(rifiuto)
                 : Modifiche.GestoSullaLinea(file, record, Core.Modifiche.GestoSullaLinea.Incolla,
                     incollati: [.. letto.Punti.Select(p => new Coordinate(p.Lat, p.Lon))], etichetta: etichetta);
+        }
+        else if (gesto == GestoDeiVertici.Disegna)
+        {
+            // F9, §9: la linea disegnata a clic. Una linea di un .geo è fatta di coordinate: i punti lo sono già.
+            var righe = RigheDelDisegno(testo);
+            var punti = new List<Coordinate>();
+            foreach (string riga in righe)
+            {
+                if (!PuntoDelTesto(riga, out var dove))
+                    break;
+                punti.Add(dove);
+            }
+            if (punti.Count < righe.Count)
+                esito = new ModificaRifiutata("Una linea di un .geo si scrive per coordinate: un punto col nome non ci va.");
+            else if (righe.Count < (chiudi ? 3 : 2))
+                esito = new ModificaRifiutata(chiudi ? "Una forma chiusa ha almeno 3 punti: cliccane ancora." : "Una linea ha almeno 2 punti: cliccane ancora.");
+            else
+            {
+                if (chiudi && punti[0] != punti[^1])
+                    punti.Add(punti[0]);
+                esito = Modifiche.GestoSullaLinea(file, record, Core.Modifiche.GestoSullaLinea.Incolla, incollati: punti, etichetta: etichetta);
+            }
         }
         else if (gesto == GestoDeiVertici.Aggiungi && testo is not null && !PuntoDelTesto(testo, out _))
         {
