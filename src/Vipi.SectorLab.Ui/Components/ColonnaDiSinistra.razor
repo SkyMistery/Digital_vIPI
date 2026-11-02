@@ -6,6 +6,24 @@
     in quella dei pannelli: lo stesso componente, così le due non si separano. Si iscrive da sé a Cambiata (vedi Mappa.razor).
 *@
 <aside class="lab-colonna lab-colonna-sfoglia">
+    @* Il fuoco (carta «Lavorare su uno scalo», R1, D1): finché c'è, lo dice in testa, con l'uscita. *@
+    @if (Lab.Fuoco is { } fuoco)
+    {
+        <div class="lab-fuoco" data-fuoco="@fuoco">
+            <p class="lab-fuoco-titolo">
+                <span title="Lavori su questo scalo: la mappa mostra solo i suoi file">◎ @fuoco <span class="lab-nota">@NomeDelloScalo(fuoco)</span></span>
+                <button type="button" class="lab-annulla" data-tasto="inquadra-il-fuoco" @onclick="Lab.InquadraIlFuoco"
+                        title="Riporta la mappa sullo scalo intero">⌖ Lo scalo</button>
+                <button type="button" class="lab-annulla" data-tasto="esci-dal-fuoco" @onclick="Lab.EsciDalFuoco"
+                        title="Torna al sector intero">esci</button>
+            </p>
+            <label class="lab-strato">
+                <input type="checkbox" checked="@Lab.RestoInGrigio" data-tasto="resto-in-grigio"
+                       @onchange="e => Lab.MostraIlRestoInGrigio(e.Value is true)" />
+                <span>il resto del sector in grigio</span>
+            </label>
+        </div>
+    }
     <nav class="lab-linguette" role="tablist">
         <button role="tab" aria-selected="@(_linguetta == Linguetta.Sfoglia)" class="@(_linguetta == Linguetta.Sfoglia ? "lab-linguetta-scelta" : null)"
                 @onclick="() => _linguetta = Linguetta.Sfoglia" data-linguetta="sfoglia">Sfoglia</button>
@@ -54,6 +72,8 @@
 
     /// <summary>Che cosa mostra la colonna: l'albero (slice 5), la vista per scalo (12d) o i problemi (10).</summary>
     private Linguetta _linguetta;
+
+    private string NomeDelloScalo(string icao) => Lab.ScaliDellaVista().FirstOrDefault(s => s.Icao == icao)?.Nome ?? "";
 
     private int Errori => Lab.ProblemiDellAlbero.Count(p => p.Gravita == Gravita.Errore);
 

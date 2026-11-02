@@ -91,7 +91,7 @@
                         <Titolo>In vista <span class="lab-nota">@Lab.InVista.Count</span></Titolo>
                         <Accanto>
                             <button class="lab-annulla" @onclick="Lab.SvuotaLaVista" data-tasto="vista-tutto"
-                                    title="La mappa torna a mostrare tutti gli strati accesi">mostra tutto</button>
+                                    title="@(Lab.Fuoco is { } fuoco && Lab.SpazioAttivo is SpazioDiLavoro.Sector ? $"La mappa torna a mostrare tutto {fuoco}" : "La mappa torna a mostrare tutti gli strati accesi")">@(Lab.Fuoco is not null && Lab.SpazioAttivo is SpazioDiLavoro.Sector ? "torna allo scalo" : "mostra tutto")</button>
                         </Accanto>
                         <ChildContent>
                         @foreach (string chiave in Lab.InVista)
@@ -373,7 +373,8 @@ else
             <span class="lab-pallino" data-strato-colore="@strato.Id"></span>
             @* Nel gruppo del ground «Piste» è anche un genere dei .geo: lo strato dice da che file viene. *@
             <span>@(DelGround(strato) && strato.Id == "piste" ? $"{strato.Tipo.Nome} (.rw)" : strato.Tipo.Nome)</span>
-            <span class="lab-nota">@strato.Forme.Count.ToString("N0")</span>
+            @* Col fuoco (R2) lo strato conta le forme dello scalo, non quelle dell'Italia. *@
+            <span class="lab-nota" data-forme-dello-strato="@strato.Id">@((Lab.SpazioAttivo is SpazioDiLavoro.Sector ? Lab.FormeNelFuoco(strato) : strato.Forme.Count).ToString("N0"))</span>
         </label>
         @* Slice 12c (H1): i generi dello strato acceso — assi, bordi, edifici, marcature… — uno per casella. *@
         @if (Lab.Accesi.Contains(strato.Id) && Lab.GeneriDi(strato.Id) is { Count: > 0 } generi)

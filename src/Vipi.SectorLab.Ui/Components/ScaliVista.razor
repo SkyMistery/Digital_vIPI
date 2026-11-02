@@ -16,6 +16,13 @@
         }
     </select>
 
+    @* Il fuoco (carta «Lavorare su uno scalo», R1): da qui si lavora su questo scalo, finché non si esce. *@
+    @if (Lab.ScaloScelto is { } scelto && Lab.Fuoco != scelto)
+    {
+        <button type="button" class="lab-tasto" data-tasto="lavora-su" @onclick="() => Lab.LavoraSu(scelto)"
+                title="La mappa va sullo scalo e mostra solo i suoi file, finché non esci">◎ Lavora su @scelto</button>
+    }
+
     @if (Lab.ScaloScelto is null)
     {
         <p class="lab-nota">Scegli uno scalo: qui compare tutto quello che lo riguarda — la riga dell'.ap, le piste, le

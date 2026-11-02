@@ -1,6 +1,6 @@
 # Lavorare su uno scalo o su un settore (2 novembre 2026)
 
-Filone Sector Lab. **Da approvare** (proposta, §3; le scelte del committente in §4).
+Filone Sector Lab. **Approvata** il 2 novembre («Sì, vai»: R1-R8 e le scelte proposte in §4, D1-D4). Le fette fatte in §6.
 
 ## §0 — La domanda
 
@@ -84,3 +84,24 @@ Fuori dal fuoco il Lab resta com'è oggi.
 5. R7: il settore.
 
 Ogni fetta con i suoi test (bUnit e motore), provata sul banco col sector vero, e le sue prove a mano in `PROVE.md`.
+
+## §6 — Fatto
+
+**Fetta 1, R1 + R2 + D1** (2 novembre). Nella linguetta Scali, scelto lo scalo, «◎ Lavora su LIRF». Il fuoco sta in
+`SessioneDelLab.Fuoco.cs`: le sue chiavi sono le righe dello scalo in `.ap` e `.rw` (`file#3`) e i suoi file e disegni a
+terra interi (`file#*`), presi dalla vista per scalo; le posizioni no (il `.frq` non si disegna). La mappa del Sector
+mostra la vista a mano se c'è, se no il fuoco (`VistaDaMostrare`): dentro il fuoco «Solo questo sulla mappa» stringe
+ancora, e «torna allo scalo» (era «mostra tutto») svuota la vista a mano. In testa alla colonna di sinistra la striscia
+«◎ LIRF FIUMICINO · ⌖ Lo scalo · esci» e la casella «il resto del sector in grigio» (D1): in grigio le forme fuori dal
+fuoco restano sulla mappa, grigie, al 30%, senza simbolo e senza clic (`options.interactive`, che sulla tela vale anche per
+il suggerimento). Il fuoco si ricorda in `fuoco.txt` dei dati del Lab e torna all'apertura del sector, se lo scalo c'è.
+Gli Strati e i loro generi contano le forme dello scalo (le coste restano intere).
+
+La mappa va sul riquadro del **ground** dello scalo (disegni, aeroporti a terra, piste), non di tutte le sue forme: al
+primo giro sul banco ci entravano SID, STAR e rotte VFR di LIRF, e lo scalo diventava un puntino. Solo attenuate, le
+forme in grigio tenevano i loro colori: le SID di tutta Italia restavano un groviglio verde; ora sono grigie.
+
+Sul banco col sector vero (1 400 px): LIRF con la mappa sul sedime, «Disegni .geo 522» (Moli 149, Edifici 50…), «Aeroporti
+a terra 325»; riavviato il banco il fuoco è tornato; in grigio Ciampino e gli altri scali grigi e tenui, un clic lì non
+sceglie niente; un clic su una taxiway di LIRF la sceglie e la mappa resta ferma. Si vede ancora il difetto di R3: scelta
+la taxiway, la colonna salta a Sfoglia, nella cartella GEO di tutta Italia (fetta 2). Test: `FuocoTests` (9), Lab 1 575.

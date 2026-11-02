@@ -33,6 +33,8 @@
     private readonly Dictionary<string, int> _versioni = new(StringComparer.Ordinal);
     private int _versioneDellAnteprima;
     private int _versioneDellaVista;
+    private int _versioneDelFuoco;
+    private int _inquadratureDelFuoco;
     private int _versioneDeiSpenti;
     private int _versioneDeiColori = -1;
     private int _inquadrature;
@@ -145,10 +147,21 @@
 
         // La vista: solo gli elementi scelti (e le coste). Si riprende anche quando gli strati cambiano: le forme di
         // uno strato ridisegnato sono oggetti nuovi, e uno strato acceso adesso non deve comparire tutto.
-        if (_versioneDellaVista != Stato.VersioneDellaVista || ridisegnato || spento || daAccendere.Count > 0)
+        // Il fuoco (carta «Lavorare su uno scalo», R2): senza una vista a mano, la mappa del Sector mostra lo scalo, e
+        // col resto in grigio (D1) le altre forme restano, attenuate e senza clic.
+        if (_versioneDellaVista != Stato.VersioneDellaVista || _versioneDelFuoco != Lab.VersioneDelFuoco || ridisegnato || spento || daAccendere.Count > 0)
         {
             _versioneDellaVista = Stato.VersioneDellaVista;
-            await Js.InvokeVoidAsync("sectorlab.mappa.vista", Lab.InVistaDi(Spazio).ToArray(), Elemento);
+            _versioneDelFuoco = Lab.VersioneDelFuoco;
+            await Js.InvokeVoidAsync("sectorlab.mappa.vista", Lab.VistaDaMostrare(Spazio).ToArray(), Elemento, Lab.RestoInGrigioDi(Spazio));
+        }
+
+        // R2: all'accensione del fuoco (e da «⌖ Lo scalo») la mappa va sullo scalo intero.
+        if (Spazio is SpazioDiLavoro.Sector && _inquadratureDelFuoco != Lab.InquadratureDelFuoco)
+        {
+            _inquadratureDelFuoco = Lab.InquadratureDelFuoco;
+            if (Lab.Riquadro() is { } r)
+                await Js.InvokeVoidAsync("sectorlab.mappa.inquadra", r.Sud, r.Ovest, r.Nord, r.Est, Elemento);
         }
 
         // Slice 6: le voci e le parti spente dall'albero del file. Gli strati che arrivano dopo le spengono da sé.

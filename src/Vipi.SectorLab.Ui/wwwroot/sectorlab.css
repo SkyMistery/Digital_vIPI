@@ -1068,6 +1068,32 @@ body.lab-trascina * {
     font-weight: 700;
 }
 
+.lab-scali > .lab-tasto {
+    margin-bottom: .5rem;
+}
+
+/* Il fuoco (carta «Lavorare su uno scalo», R1): in testa alla colonna, come la vista — lo scalo, «⌖ Lo scalo», «esci». */
+.lab-fuoco {
+    margin-bottom: .5rem;
+    padding: .35rem .5rem;
+    border-left: 4px solid var(--lab-accento);
+    background: var(--lab-superficie-2);
+}
+
+.lab-fuoco-titolo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .2rem .5rem;
+    align-items: baseline;
+    margin: 0 0 .2rem;
+    font-weight: 700;
+}
+
+.lab-fuoco-titolo > span:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 /* Slice 12c: i generi di uno strato acceso, rientrati sotto la sua casella. */
 .lab-generi {
     margin: 0 0 .25rem 1.1rem;

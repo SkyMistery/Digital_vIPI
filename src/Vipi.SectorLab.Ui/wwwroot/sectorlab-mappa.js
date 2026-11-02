@@ -153,7 +153,27 @@
     /// Rimette a una forma lo stile del modo di adesso (dopo l'evidenza, dopo un cambio di tema o di modo).
     function applica(l) {
         if (!l.setStyle || !l.sectorlab || !l.sectorlabMappa) return;
-        l.setStyle(stile(l.sectorlabMappa, l.sectorlab, colore(l.sectorlabStrato)));
+        var suo = stile(l.sectorlabMappa, l.sectorlab, colore(l.sectorlabStrato));
+        // Il fuoco col resto in grigio (carta «Lavorare su uno scalo», D1): la forma fuori dal fuoco è grigia e si vede
+        // appena. Solo attenuate, le SID di tutta Italia restavano un groviglio verde (visto sul banco).
+        if (l.sectorlabInGrigio) {
+            var grigio = token('--lab-in-grigio', '#80868f');
+            suo.color = grigio;
+            suo.fillColor = grigio;
+            suo.opacity = Math.min(suo.opacity || 0, .3);
+            suo.fillOpacity = Math.min(suo.fillOpacity || 0, .1);
+            suo.sectorlabSimbolo = null;
+        }
+        l.setStyle(suo);
+    }
+
+    /// D1: mette in grigio (o toglie dal grigio) una forma fuori dal fuoco. In grigio non prende il clic: sulla tela
+    /// (canvas) il clic e il suggerimento guardano options.interactive.
+    function inGrigio(l, si) {
+        if (!!l.sectorlabInGrigio === !!si) return;
+        l.sectorlabInGrigio = !!si;
+        l.options.interactive = !si;
+        applica(l);
     }
 
     /// Il fondo della mappa: quello dello schermo radar coi colori di Aurora, quello del foglio coi colori del Lab.
@@ -765,15 +785,19 @@
             for (var i = 0; i < (chiavi || []).length; i++) stato.spenti[chiavi[i]] = true;
             var ids = Object.keys(stato.strati);
             for (var j = 0; j < ids.length; j++) applicaSpenti(stato, ids[j]);
-            if (stato.vistaVoluta && stato.vistaVoluta.length) this.vista(stato.vistaVoluta, elemento);
+            if (stato.vistaVoluta && stato.vistaVoluta.length) this.vista(stato.vistaVoluta, elemento, stato.vistaInGrigio);
         },
 
-        vista: function (chiavi, elemento) {
+        /// `grigio` (il fuoco, D1): le forme fuori dalla vista restano sulla mappa in grigio e senza clic, invece di sparire.
+        vista: function (chiavi, elemento, grigio) {
             var stato = prendi(elemento);
             if (!stato) return 0;
             stato.vistaVoluta = chiavi;
+            stato.vistaInGrigio = !!grigio;
             if (stato.gruppoDellaVista) { stato.mappa.removeLayer(stato.gruppoDellaVista); stato.gruppoDellaVista = null; }
             var ids = Object.keys(stato.strati);
+            // Il grigio di prima si toglie a tutte: si rimette sotto, solo dove serve.
+            for (var g = 0; g < ids.length; g++) stato.strati[ids[g]].eachLayer(function (l) { inGrigio(l, false); });
 
             if (!chiavi || !chiavi.length) {
                 for (var i = 0; i < ids.length; i++) {
@@ -788,15 +812,41 @@
             for (var j = 0; j < ids.length; j++) {
                 var strato = stato.strati[ids[j]];
                 if (ids[j] === 'sfondo') { if (!stato.mappa.hasLayer(strato)) strato.addTo(stato.mappa); continue; }
+                if (grigio) {
+                    // Lo strato resta intero; le forme fuori dalla vista vanno in grigio.
+                    if (!stato.mappa.hasLayer(strato)) strato.addTo(stato.mappa);
+                    strato.eachLayer(function (l) {
+                        var f = l.sectorlab;
+                        var dentro = f && (volute[f.p + '#' + f.r] || volute[f.p + '#*']);
+                        if (dentro) gruppo.addLayer(l);
+                        else inGrigio(l, true);
+                    });
+                    continue;
+                }
                 stato.mappa.removeLayer(strato);
                 strato.eachLayer(function (l) {
                     var f = l.sectorlab;
                     if (f && (volute[f.p + '#' + f.r] || volute[f.p + '#*'])) gruppo.addLayer(l);
                 });
             }
-            gruppo.addTo(stato.mappa);
-            stato.gruppoDellaVista = gruppo;
+            if (!grigio) {
+                gruppo.addTo(stato.mappa);
+                stato.gruppoDellaVista = gruppo;
+            }
             return gruppo.getLayers().length;
+        },
+
+        /// Il fuoco (carta «Lavorare su uno scalo», R2): la mappa va sul riquadro dello scalo. Come l'inquadratura sulle coste,
+        /// aspetta che la mappa abbia una misura (nascosta, la fa il ResizeObserver quando compare).
+        inquadra: function (sud, ovest, nord, est, elemento) {
+            var stato = prendi(elemento);
+            if (!stato) return;
+            var bordi = L.latLngBounds([sud, ovest], [nord, est]);
+            if (!bordi.isValid()) return;
+            stato.daInquadrare = bordi.pad(.1);
+            // Le coste che arrivano dopo non riportano la mappa sull'Italia.
+            stato.inquadrato = true;
+            inquadraSeAspetta(stato);
         },
 
         /// S3: la carta posata ('/carta/immagine?v=…'), i tre angoli [[lat,lon] in alto a sinistra, in alto a destra, in

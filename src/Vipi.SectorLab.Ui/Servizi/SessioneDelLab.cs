@@ -386,6 +386,8 @@ public sealed partial class SessioneDelLab
             Registro.Scrivi("apertura", $"{cartella.Radice}: {sessione.File.Count} file, {sessione.RecordTotali} record, "
                                         + $"{strati.Sum(s => s.Forme.Count)} forme, {orologio.ElapsedMilliseconds} ms");
             Ricorda(cartella.Radice);
+            // R1 del fuoco: si riprende a lavorare sullo scalo di prima, se questo sector lo ha.
+            RiprendiIlFuoco();
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -596,6 +598,10 @@ public sealed partial class SessioneDelLab
         ScaloScelto = null;
         _scali = null;
         _vista = null;
+        // Il fuoco era di quell'albero; il file che lo ricorda resta, per quando il sector si riapre.
+        Fuoco = null;
+        _chiaviDelFuoco = null;
+        VersioneDelFuoco++;
         ScordaIProblemi();
         Avvisa();
     }
@@ -2548,7 +2554,9 @@ public sealed partial class SessioneDelLab
     /// con le loro forme; vuoto se lo strato ne ha meno di due.
     /// </summary>
     public IReadOnlyList<GenereDelloStrato> GeneriDi(string strato)
-        => StratiDaMostrare.FirstOrDefault(s => s.Id == strato) is { } suo ? GeneriDellaMappa.Di(suo) : [];
+        => StratiDaMostrare.FirstOrDefault(s => s.Id == strato) is { } suo
+            ? SpazioAttivo is SpazioDiLavoro.Sector && Fuoco is not null ? GeneriDelFuoco(suo) : GeneriDellaMappa.Di(suo)
+            : [];
 
     /// <summary>Vero se il genere di quello strato si vede (di base sì: si spegne, non si accende).</summary>
     public bool GenereAcceso(string strato, string genere) => !_spenti.Contains(ChiaveDelGenere(strato, genere));
