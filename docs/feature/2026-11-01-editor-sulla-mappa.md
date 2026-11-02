@@ -158,3 +158,31 @@ Ogni fetta: test bUnit dei gesti (la mappa vista dal circuito), prova sul banco 
 
 **Con la fetta 4 la carta è fatta.** Restano, se il committente le vuole, D3 (disegnare una forma nuova a clic) e D4
 (trascinare i record di un punto solo: fix, VOR, VFR coi gemelli), e la saldatura dei bordi della F8.
+
+## §9 — D3: disegnare una forma a clic (2 novembre, da approvare)
+
+Il committente ha scelto D3. **Com'è oggi**: un record nuovo nasce sempre come copia di un modello («+ Record come
+questo» copia il record scelto, «+ Nuovo record» il vicino, slice 8), coi vertici del modello; per dargli la sua forma
+c'è «Incolla da testo» (un gesto solo che mette i vertici al posto di tutti, con «Chiudi la forma»), o le maniglie.
+Quello che manca è dare i vertici **cliccandoli** sulla mappa.
+
+- **R10 — «✎ Disegna sulla mappa», per elenco.** Accanto a «Incolla da testo» di ogni elenco della Geometria (anche la
+  Linea di un `.geo`). Acceso, il puntatore della mappa è una croce; ogni clic mette un punto, con la calamita di R5
+  (anello, `Alt` la stacca); la forma che esce si vede tratteggiata, come l'anteprima di «Incolla». Le maniglie del
+  record, se accese, si nascondono finché si disegna.
+- **R11 — Un gesto solo, alla fine.** **Invio** o **doppio clic** finisce: i punti cliccati diventano i vertici
+  dell'elenco al posto di quelli di prima, col gesto «vertici incollati» che c'è già (un annulla, copie uguali, diff).
+  **Backspace** toglie l'ultimo punto; **Esc** lascia stare e non cambia niente. Servono almeno 2 punti (3 per una
+  forma chiusa).
+- **R12 — Chiusa o aperta** come «Incolla»: la casella «Chiudi la forma», che parte da com'è l'elenco di oggi.
+- **R13 — Un record del tutto nuovo** si fa come oggi: «+ Record come questo» (o «+ Nuovo record»), poi «✎ Disegna
+  sulla mappa» sul suo elenco. Niente modo nuovo di creare record.
+
+**Domande**
+- **D5** Un punto agganciato a un fix in un elenco che sa scrivere i nomi (`.tfl`, `.sid`, `.vrt`): si scrive il
+  **nome** del fix (proposta: sì, come fa l'AOD a mano nei settori; in un elenco solo di coordinate resta coordinata), o
+  sempre la coordinata?
+- **D6** Il disegno prende il posto dei vertici di prima (proposta, come «Incolla»), o serve anche «continua»: i punti
+  cliccati vanno **in coda** a quelli che ci sono (una linea da allungare)?
+- **D7** Negli elenchi fatti solo di nomi (punti di una procedura `.str`, tracciato di un'aerovia) si disegna cliccando
+  solo sui punti col nome (proposta: sì, gli altri clic non mettono niente e lo dicono), o lì il disegno non c'è?
