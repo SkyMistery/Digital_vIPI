@@ -86,27 +86,65 @@ public sealed partial class SessioneDelLab
     }
 
     /// <summary>
-    /// Un vertice lasciato sulla mappa (R2): il gesto «vertice spostato» della Scheda, con la coordinata del rilascio. Un
-    /// vertice scritto col nome non si sposta così (R6: lo porta solo la calamita su un altro nome). Falso = rifiutato,
-    /// e il motivo sta in <see cref="Rifiuto"/>.
+    /// Un vertice lasciato sulla mappa (R2): il gesto «vertice spostato» della Scheda, con la coordinata del rilascio, o
+    /// del punto a cui la calamita l'ha agganciato (<paramref name="suFile"/>#<paramref name="suRecord"/>, R5). Un vertice
+    /// scritto col nome si sposta solo così, su un altro punto col nome (R6). Falso = rifiutato, e il motivo sta in
+    /// <see cref="Rifiuto"/>.
     /// </summary>
-    public bool VerticeDallaMappa(string campo, int posizione, double lat, double lon)
+    public bool VerticeDallaMappa(string campo, int posizione, double lat, double lon, string? suFile = null, int suRecord = 0)
     {
         if (!ModificaSullaMappa || Scelta is not { } scelta)
             return false;
 
         if (Maniglie().FirstOrDefault(m => m.Campo == campo && m.Posizione == posizione) is not { } maniglia)
             return Rifiuta(scelta, campo, posizione, "Quel vertice non c'è più: la forma è cambiata.");
-        if (maniglia.PerNome)
-            return Rifiuta(scelta, campo, posizione, "Questo vertice è il nome di un punto: sulla mappa si sposta solo su un altro punto col nome.");
-        if (!maniglia.Aggiungibile)
-            return Rifiuta(scelta, campo, posizione, "Qui un punto si scrive per nome: sulla mappa si sposta solo su un altro punto col nome.");
-
         if (Fuori(lat, lon))
             return Rifiuta(scelta, campo, posizione, FuoriDalMondo);
 
+        // R5: agganciato a un punto o a un vertice di un'altra forma, prende la sua coordinata ESATTA (quella del file,
+        // non quella arrotondata che la mappa ha disegnato). R6: un vertice col nome (o un elenco fatto di nomi) prende il
+        // nome del punto, e senza un punto col nome non si sposta.
+        var aggancio = suFile is null ? null : AgganciaA(suFile, suRecord, lat, lon);
+        if (suFile is not null && aggancio is null)
+            return Rifiuta(scelta, campo, posizione, "Il punto a cui l'hai agganciato non c'è più sulla mappa.");
+        bool perNome = maniglia.PerNome || !maniglia.Aggiungibile;
+        string? nome = aggancio?.Nome;
+        if (perNome && nome is null)
+            return Rifiuta(scelta, campo, posizione, aggancio is null
+                ? "Questo vertice è il nome di un punto: lascialo su un altro punto col nome (un fix, un VOR…), e la calamita lo prende."
+                : "Lì non c'è un punto col nome che il master conosca: questo vertice è un nome, e resta un nome.");
+
+        string testo = perNome ? nome! : aggancio is { } a ? CoordinateConverter.ToDottedDms(a.Dove) : Scritta(lat, lon);
         return Fatto(scelta, campo, posizione,
-            GestoSuiVertici(scelta.File, scelta.Record, campo, GestoDeiVertici.Cambia, posizione, Scritta(lat, lon)));
+            GestoSuiVertici(scelta.File, scelta.Record, campo, GestoDeiVertici.Cambia, posizione, testo));
+    }
+
+    /// <summary>Dove si aggancia un vertice (R5): la coordinata esatta e, se è un punto che il master conosce, il suo nome.</summary>
+    private sealed record Aggancio(Coordinate Dove, string? Nome);
+
+    /// <summary>
+    /// Il punto del record <paramref name="file"/>#<paramref name="record"/> a cui la mappa ha agganciato il rilascio: il punto
+    /// stesso per un fix o un VOR, il vertice più vicino a (<paramref name="lat"/>, <paramref name="lon"/>) per una linea o
+    /// un'area. Il nome solo se il catalogo del master scelto lo risolve proprio lì: un nome che Aurora risolverebbe altrove
+    /// sposterebbe il vertice in un altro posto.
+    /// </summary>
+    private Aggancio? AgganciaA(string file, int record, double lat, double lon)
+    {
+        var forme = Core.PdfAip.AipSullaMappa.EDellAip(file) ? StratoDellAip?.Strato.Forme ?? [] : Strati.SelectMany(s => s.Forme);
+        if (forme.FirstOrDefault(f => f.File == file && f.Record == record) is not { } forma)
+            return null;
+        var punti = forma.Tratti.SelectMany(t => t).ToList();
+        if (punti.Count == 0)
+            return null;
+
+        // Il più vicino sul piano (la longitudine accorciata dalla latitudine): fra vertici a pochi pixel basta.
+        double coseno = Math.Cos(lat * Math.PI / 180);
+        var dove = punti.MinBy(p => Math.Pow(p.LatitudeDeg - lat, 2) + Math.Pow((p.LongitudeDeg - lon) * coseno, 2));
+        string? nome = forma.Tipo is Core.Mappa.TipoDiForma.Punto && forma.Etichetta.Length > 0
+            && CatalogoScelto?.Cerca(forma.Etichetta) is { } conosciuto && conosciuto.Posizione == dove
+                ? conosciuto.Nome
+                : null;
+        return new Aggancio(dove, nome);
     }
 
     /// <summary>
@@ -114,7 +152,7 @@ public sealed partial class SessioneDelLab
     /// <paramref name="primaDi"/>, con la coordinata del rilascio. Le maniglie dei due vertici che lo stringono devono
     /// esserci: una maniglia vecchia (la forma è cambiata nel frattempo) si rifiuta.
     /// </summary>
-    public bool VerticeAggiuntoDallaMappa(string campo, int primaDi, double lat, double lon)
+    public bool VerticeAggiuntoDallaMappa(string campo, int primaDi, double lat, double lon, string? suFile = null, int suRecord = 0)
     {
         if (!ModificaSullaMappa || Scelta is not { } scelta)
             return false;
@@ -126,8 +164,13 @@ public sealed partial class SessioneDelLab
         if (Fuori(lat, lon))
             return Rifiuta(scelta, campo, primaDi, FuoriDalMondo);
 
+        // R5: il vertice nuovo agganciato prende la coordinata esatta; resta una coordinata (l'elenco la sa scrivere).
+        var aggancio = suFile is null ? null : AgganciaA(suFile, suRecord, lat, lon);
+        if (suFile is not null && aggancio is null)
+            return Rifiuta(scelta, campo, primaDi, "Il punto a cui l'hai agganciato non c'è più sulla mappa.");
+        string testo = aggancio is { } a ? CoordinateConverter.ToDottedDms(a.Dove) : Scritta(lat, lon);
         return Fatto(scelta, campo, primaDi,
-            GestoSuiVertici(scelta.File, scelta.Record, campo, GestoDeiVertici.Aggiungi, primaDi, Scritta(lat, lon)));
+            GestoSuiVertici(scelta.File, scelta.Record, campo, GestoDeiVertici.Aggiungi, primaDi, testo));
     }
 
     /// <summary>

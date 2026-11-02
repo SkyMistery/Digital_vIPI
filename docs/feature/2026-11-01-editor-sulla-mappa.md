@@ -115,3 +115,25 @@ Ogni fetta: test bUnit dei gesti (la mappa vista dal circuito), prova sul banco 
   e 47 di mezzo; trascinata quella fra il 23 e il 24 → «vertice aggiunto (48 → 49)» e la forma portata sulle due copie
   uguali; clic destro sul vertice nuovo → «Togli il vertice 24» → la forma torna com'era e le Modifiche si svuotano.
   Non visto a schermo: la Linea di un `.geo` (solo nei test).
+
+## §7 — Fetta 3, fatta (2 novembre)
+
+- **La calamita** (R5) in due metà. Nella pagina (`sectorlab-mappa.js`): all'inizio del trascinamento si raccolgono i
+  punti delle forme che sono sulla mappa adesso (strati accesi, vista, voci spente già tolte), dentro la vista allargata,
+  tranne il record stesso — un fix o un VOR è un punto, di una linea o di un'area ogni vertice — in una griglia di celle
+  da 16 px sul piano dei layer di Leaflet (non cambia quando la mappa scorre); a ogni movimento il più vicino entro 8 px
+  (a pari distanza un punto vince sul vertice di una forma) ha un anello, e i tratti tratteggiati vanno lì. `Alt` tenuto
+  la stacca. Nel Lab (`AgganciaA`): la pagina manda solo il record agganciato, e la coordinata si prende dalla forma
+  **esatta** (`FormaDellaMappa`, quella del file), non da quella arrotondata che la mappa ha disegnato: così due forme che
+  si toccano hanno la stessa riga. Anche la maniglia di mezzo si aggancia.
+- **Il vertice col nome** (R6, D1): ora si trascina, ma lo sposta solo la calamita su un **punto** (non un vertice di
+  un'altra forma), e diventa il nome di quel punto se il catalogo del master scelto lo risolve proprio lì; lasciato
+  altrove torna dov'era e la Scheda dice perché. Lo stesso per gli elenchi fatti solo di nomi (punti di una procedura
+  `.str`, tracciato di un'aerovia). Un vertice per coordinate agganciato a un fix resta una coordinata (R5: ne prende le
+  coordinate).
+- **Prove**: 6 test nuovi (19), suite del Lab 1551; i due della coordinata esatta falliscono se si scrive il punto del
+  rilascio. Sul banco, col mouse: LIBB_FSS, il vertice 20 lasciato a 3 px dalla maniglia del 26 → prende
+  `N039.17.36.000 E019.00.00.000`, quella del 26, dalla copia gemella (il record stesso non si aggancia); LIBB_ES_CTR,
+  AMSOR lasciato nel vuoto → torna, con «lascialo su un altro punto col nome…»; con lo strato Punti acceso, lasciato fra
+  LUNAR e VEGAN → diventa `VEGAN` (il più vicino), portato anche su LIBB_MIL_CTR. Non provato col mouse: `Alt` (il banco
+  non tiene un tasto durante il trascinamento).

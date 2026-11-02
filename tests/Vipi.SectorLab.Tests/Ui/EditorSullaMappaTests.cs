@@ -255,6 +255,92 @@ public sealed class EditorSullaMappaTests : IDisposable
         Assert.Equal(dopo.Punti[2], dopo.Punti[3]);
     }
 
+    // --- fetta 3: la calamita (R5, R6) ---------------------------------------------------------------------------
+
+    private Vipi.SectorLab.Core.Mappa.FormaDellaMappa Forma(string etichetta)
+        => _lab.Strati.SelectMany(s => s.Forme).First(f => f.Etichetta == etichetta);
+
+    [Fact]
+    public async Task AgganciatoAUnVorIlVerticePrendeLaSuaCoordinataEsattaNonQuellaDelRilascio()
+    {
+        await ApriEScegliIlSettore();
+        _lab.ModificaSullaMappaDi(true);
+        var aea = Forma("AEA");
+
+        // Rilasciato un po' accanto (come fa la calamita entro 8 px): conta il punto, non il rilascio.
+        Assert.True(_lab.VerticeDallaMappa("Vertices", 0, 40.6381, 8.2918, aea.File, aea.Record));
+
+        await _lab.SalvaAsync();
+        // AEA è N040.38.17.400 E008.17.30.400; il vertice resta una coordinata (R5: ne prende le coordinate).
+        Assert.Equal("N040.38.17.400;E008.17.30.400;", Righe(Settore)[1]);
+    }
+
+    [Fact]
+    public async Task UnVerticeDiUnaFormaVicinaSiPrendeComeIlFileLoScrive()
+    {
+        await ApriEScegliIlSettore();
+        _lab.ModificaSullaMappaDi(true);
+        var vicina = _lab.Strati.SelectMany(s => s.Forme).First(f => f.File.EndsWith("libb_es_ctr.tfl", StringComparison.Ordinal) && f.Record == 0);
+
+        // Il primo vertice di LIBB_ES_CTR è N041.13.55.000 E014.47.19.000: rilasciato a qualche metro.
+        Assert.True(_lab.VerticeDallaMappa("Vertices", 2, 41.23195, 14.78862, vicina.File, vicina.Record));
+
+        await _lab.SalvaAsync();
+        Assert.Equal("N041.13.55.000;E014.47.19.000;", Righe(Settore)[3]);
+    }
+
+    [Fact]
+    public async Task IlVerticeColNomeAgganciatoAUnAltroPuntoDiventaIlSuoNome()
+    {
+        await ApriEScegliIlSettore();
+        _lab.ModificaSullaMappaDi(true);
+        var aea = Forma("AEA");
+
+        Assert.True(_lab.VerticeDallaMappa("Vertices", 1, 40.638, 8.292, aea.File, aea.Record));
+
+        Assert.True(_lab.Maniglie()[1].PerNome);
+        await _lab.SalvaAsync();
+        Assert.Equal("AEA;AEA;", Righe(Settore)[2]);
+    }
+
+    [Fact]
+    public async Task IlVerticeColNomeSuUnVerticeSenzaNomeSiRifiuta()
+    {
+        await ApriEScegliIlSettore();
+        _lab.ModificaSullaMappaDi(true);
+        var vicina = _lab.Strati.SelectMany(s => s.Forme).First(f => f.File.EndsWith("libb_es_ctr.tfl", StringComparison.Ordinal) && f.Record == 0);
+
+        Assert.False(_lab.VerticeDallaMappa("Vertices", 1, 41.23195, 14.78862, vicina.File, vicina.Record));
+
+        Assert.False(_lab.Modifiche.CEQualcosa);
+        Assert.Contains("resta un nome", _lab.Rifiuto);
+    }
+
+    [Fact]
+    public async Task UnaFormaCheNonCePiuNonSiAggancia()
+    {
+        await ApriEScegliIlSettore();
+        _lab.ModificaSullaMappaDi(true);
+
+        Assert.False(_lab.VerticeDallaMappa("Vertices", 0, 41.0, 12.0, "SectorFiles/non-c-e.fix", 3));
+
+        Assert.False(_lab.Modifiche.CEQualcosa);
+        Assert.Contains("non c'è più", _lab.Rifiuto);
+    }
+
+    [Fact]
+    public async Task LaManigliaDiMezzoAgganciataAggiungeLaCoordinataEsatta()
+    {
+        await ApriEScegliIlSettore();
+        _lab.ModificaSullaMappaDi(true);
+        var aea = Forma("AEA");
+
+        Assert.True(_lab.VerticeAggiuntoDallaMappa("Vertices", 1, 40.6381, 8.2918, aea.File, aea.Record));
+
+        await _lab.SalvaAsync();
+        Assert.Equal("N040.38.17.400;E008.17.30.400;", Righe(Settore)[2]);
+    }
+
     [Fact]
     public async Task IlTastoDellaSchedaMandaLeManiglieEIlMouseSulVerticeLIndica()
     {

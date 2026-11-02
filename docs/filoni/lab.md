@@ -13,6 +13,8 @@ D4 dopo). **Fetta 1 fatta** (carta §5): il tasto «✎ Modifica sulla mappa» n
 gesto «vertice spostato» al rilascio, la Scheda che segue, Esc. Nessun codice comune. Prove A110-A112.
 **2 novembre, fetta 2** (carta §6): la maniglia di mezzo aggiunge un vertice dove la lasci, il clic destro apre «Togli
 il vertice N»; la Linea di un `.geo` ora sa aggiungere un punto già al suo posto (un gesto solo). Prove A113-A114.
+**Fetta 3** (carta §7): la calamita — entro 8 px un punto o un vertice di un'altra forma, la coordinata esatta del file,
+`Alt` la stacca; il vertice col nome si trascina e va solo su un punto col nome, di cui prende il nome. Prove A115-A116.
 
 **31 ottobre: la Scheda per gruppi, seconda parte** (D5 della carta del riordino, ferma «al via» dal 21 ottobre; il
 committente non poteva ancora fare le prove A75-A91 e ha detto «Sì, vai»). La Linea di un `.geo` ha lo stesso editor dei

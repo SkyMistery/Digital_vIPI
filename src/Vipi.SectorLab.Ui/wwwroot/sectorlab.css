@@ -2874,8 +2874,9 @@ body.lab-trascina * {
     cursor: crosshair !important;
 }
 
-/* F9 (carta «L'editor sulla mappa»): le maniglie dei vertici del record scelto. Piene si trascinano; vuote e tratteggiate
-   sono i vertici scritti col nome di un punto (R6). Quella che il mouse indica nella Scheda si vede di più (R7). */
+/* F9 (carta «L'editor sulla mappa»): le maniglie dei vertici del record scelto. Vuote e tratteggiate sono i vertici
+   scritti col nome di un punto: vanno solo su un altro punto col nome (R6). Quella che il mouse indica nella Scheda si vede
+   di più (R7). */
 .lab-maniglia {
     box-sizing: border-box;
     border: 2px solid var(--lab-evidenza);
@@ -2887,7 +2888,6 @@ body.lab-trascina * {
 .lab-maniglia-nome {
     border-style: dashed;
     background: transparent;
-    cursor: not-allowed;
 }
 
 /* R3: la maniglia di mezzo, fra due vertici: più piccola e tenue, si trascina per aggiungere un vertice. Mentre si

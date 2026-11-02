@@ -265,6 +265,7 @@
         if (stato.maniglie) { stato.mappa.removeLayer(stato.maniglie.gruppo); stato.maniglie = null; }
         stato.indicata = null;
         if (stato.traccia) { stato.mappa.removeLayer(stato.traccia); stato.traccia = null; }
+        if (stato.anello) { stato.mappa.removeLayer(stato.anello); stato.anello = null; }
         stato.mappa.closePopup();
     }
 
@@ -272,12 +273,69 @@
         return L.divIcon({ className: 'lab-maniglia' + (classe ? ' ' + classe : ''), iconSize: [lato, lato] });
     }
 
+    /// R5: la calamita. Raggio in pixel dello schermo, e lato delle celle della griglia (≥ raggio: bastano le 9 celle intorno).
+    var RAGGIO_DELLA_CALAMITA = 8, CELLA = 16;
+
+    // Alt tenuto stacca la calamita. Lo dice ogni movimento del mouse (anche durante il trascinamento di Leaflet).
+    var altTenuto = false;
+    document.addEventListener('mousemove', function (e) { altTenuto = e.altKey; }, true);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Alt') altTenuto = true; }, true);
+    document.addEventListener('keyup', function (e) { if (e.key === 'Alt') altTenuto = false; }, true);
+
+    /// I punti a cui agganciarsi, presi una volta all'inizio del trascinamento: le forme sulla mappa ADESSO (strati accesi,
+    /// vista, voci spente già tolte), dentro la vista allargata, tranne il record stesso. Un fix o un VOR è un punto; di una
+    /// linea o di un'area ogni vertice. `soloPunti`: per un vertice col nome, che va solo su un punto col nome (R6).
+    /// In una griglia sul piano dei layer di Leaflet, che non cambia quando la mappa scorre (autoPan) ma solo con lo zoom.
+    function raccogli(stato, soloPunti) {
+        var mappa = stato.mappa, bordi = mappa.getBounds().pad(.5), griglia = {}, diChi = stato.maniglie && stato.maniglie.diChi;
+        function metti(lat, lon, f, punto) {
+            if (!bordi.contains([lat, lon])) return;
+            var lp = mappa.latLngToLayerPoint([lat, lon]), chiave = Math.floor(lp.x / CELLA) + ',' + Math.floor(lp.y / CELLA);
+            (griglia[chiave] = griglia[chiave] || []).push({ x: lp.x, y: lp.y, lat: lat, lon: lon, p: f.p, r: f.r, punto: punto });
+        }
+        mappa.eachLayer(function (l) {
+            var f = l.sectorlab;
+            if (!f || !f.c || (f.p + '#' + f.r) === diChi) return;
+            if (f.t === 'p') {
+                if (f.c.length && f.c[0].length >= 2) metti(f.c[0][0], f.c[0][1], f, true);
+                return;
+            }
+            if (soloPunti) return;
+            for (var t = 0; t < f.c.length; t++) {
+                for (var i = 0; i + 1 < f.c[t].length; i += 2) metti(f.c[t][i], f.c[t][i + 1], f, false);
+            }
+        });
+        return griglia;
+    }
+
+    /// Il punto della griglia più vicino a `qui` entro il raggio, o null. A pari distanza (±2 px) vince un punto (un fix)
+    /// sul vertice di una forma: è lì che di solito si vuole andare.
+    function piuVicino(stato, griglia, qui) {
+        var lp = stato.mappa.latLngToLayerPoint(qui), cx = Math.floor(lp.x / CELLA), cy = Math.floor(lp.y / CELLA), meglio = null, voto = Infinity;
+        for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
+                var cella = griglia[(cx + dx) + ',' + (cy + dy)];
+                if (!cella) continue;
+                for (var i = 0; i < cella.length; i++) {
+                    var c = cella[i], d = Math.sqrt((c.x - lp.x) * (c.x - lp.x) + (c.y - lp.y) * (c.y - lp.y));
+                    if (d > RAGGIO_DELLA_CALAMITA) continue;
+                    var v = d - (c.punto ? 2 : 0);
+                    if (v < voto) { voto = v; meglio = c; }
+                }
+            }
+        }
+        return meglio;
+    }
+
     /// Una maniglia che si trascina: mentre la tieni, `tratti(qui)` dice i tratti tratteggiati da mostrare (R2: i due che
-    /// toccano il vertice; R3: i due che il vertice nuovo farebbe); al rilascio `gesto(dove)` chiede il gesto al Lab.
-    function trascinabile(stato, marcatore, tratti, gesto) {
-        var partenza = marcatore.getLatLng();
+    /// toccano il vertice; R3: i due che il vertice nuovo farebbe); al rilascio `gesto(dove, aggancio)` chiede il gesto al
+    /// Lab, con il punto a cui la calamita l'ha agganciato (R5) o null. `soloPunti`: la calamita prende solo i punti (R6).
+    function trascinabile(stato, marcatore, tratti, gesto, soloPunti) {
+        var partenza = marcatore.getLatLng(), griglia = null, aggancio = null;
         marcatore.on('dragstart', function () {
             stato.trascina = true;
+            griglia = raccogli(stato, soloPunti);
+            aggancio = null;
             // Le maniglie di mezzo dei tratti che si muovono resterebbero a metà del tratto vecchio: si nascondono.
             L.DomUtil.addClass(stato.mappa.getContainer(), 'lab-mappa-trascina');
             if (stato.traccia) stato.mappa.removeLayer(stato.traccia);
@@ -285,25 +343,42 @@
                 .addTo(stato.mappa);
         });
         marcatore.on('drag', function () {
-            if (stato.traccia) stato.traccia.setLatLngs(tratti(marcatore.getLatLng()));
+            var qui = marcatore.getLatLng();
+            aggancio = altTenuto ? null : piuVicino(stato, griglia, qui);
+            // Agganciato: un anello sul punto, e i tratti tratteggiati vanno lì (è lì che andrà il vertice).
+            if (aggancio) {
+                qui = L.latLng(aggancio.lat, aggancio.lon);
+                if (!stato.anello) {
+                    stato.anello = L.circleMarker(qui, { radius: 10, color: token('--lab-evidenza', '#e26e17'), weight: 2, fill: false, interactive: false })
+                        .addTo(stato.mappa);
+                }
+                stato.anello.setLatLng(qui);
+            } else if (stato.anello) {
+                stato.mappa.removeLayer(stato.anello);
+                stato.anello = null;
+            }
+            if (stato.traccia) stato.traccia.setLatLngs(tratti(qui));
         });
         marcatore.on('dragend', function () {
             stato.trascina = false;
+            griglia = null;
             L.DomUtil.removeClass(stato.mappa.getContainer(), 'lab-mappa-trascina');
             if (stato.traccia) { stato.mappa.removeLayer(stato.traccia); stato.traccia = null; }
-            var dove = marcatore.getLatLng();
+            if (stato.anello) { stato.mappa.removeLayer(stato.anello); stato.anello = null; }
+            var dove = aggancio ? L.latLng(aggancio.lat, aggancio.lon) : marcatore.getLatLng(), preso = aggancio;
             if (stato.chiusa || !stato.riferimento) return;
             // Maniglie nuove arrivate durante il trascinamento (un gesto dall'altra finestra): adesso si mettono, e il
             // gesto parte lo stesso — il Lab lo rifiuta se quel vertice non c'è più.
             if (stato.maniglieInAttesa) {
                 var attese = stato.maniglieInAttesa;
                 stato.maniglieInAttesa = null;
-                window.sectorlab.mappa.maniglie(attese, stato.id);
+                window.sectorlab.mappa.maniglie(attese.elenco, stato.id, attese.diChi);
             }
+            if (preso) marcatore.setLatLng(dove);
             // Un gesto solo, al rilascio. Fatto: il Lab rimanda le maniglie dove sono adesso. Rifiutato: la maniglia torna
             // dov'era, e il motivo sta nella Scheda accanto all'elenco.
-            gesto(dove).then(function (fatto) { if (!fatto) marcatore.setLatLng(partenza); },
-                             function () { marcatore.setLatLng(partenza); });
+            gesto(dove, preso).then(function (fatto) { if (!fatto) marcatore.setLatLng(partenza); },
+                                    function () { marcatore.setLatLng(partenza); });
         });
     }
 
@@ -646,37 +721,40 @@
             }
         },
 
-        /// F9 (R1-R4): le maniglie dei vertici del record scelto — [{ campo, posizione, lat, lon, perNome, aggiungibile }],
-        /// vuoto le toglie. Un vertice scritto col nome ha una maniglia vuota che non si trascina (R6: lo sposta solo la
-        /// calamita). Fra due vertici di fila di un elenco che sa scrivere coordinate, una maniglia di mezzo più piccola:
-        /// trascinata, aggiunge lì un vertice (R3). Il clic destro su una maniglia la toglie (R4).
-        maniglie: function (elenco, elemento) {
+        /// F9 (R1-R6): le maniglie dei vertici del record scelto — [{ campo, posizione, lat, lon, perNome, aggiungibile }],
+        /// vuoto le toglie; `diChi` è il record ('file#3'), che la calamita non prende. Un vertice scritto col nome ha una
+        /// maniglia vuota e si sposta solo sulla calamita di un punto (R6). Fra due vertici di fila di un elenco che sa
+        /// scrivere coordinate, una maniglia di mezzo più piccola: trascinata, aggiunge lì un vertice (R3). Il clic destro
+        /// su una maniglia la toglie (R4).
+        maniglie: function (elenco, elemento, diChi) {
             var stato = prendi(elemento);
             if (!stato) return 0;
             // 🔴 Mai sotto il dito: rifatte a metà trascinamento, la maniglia presa sparirebbe e il gesto con lei.
-            if (stato.trascina) { stato.maniglieInAttesa = elenco || []; return 0; }
+            if (stato.trascina) { stato.maniglieInAttesa = { elenco: elenco || [], diChi: diChi }; return 0; }
             togliLeManiglie(stato);
             if (!elenco || !elenco.length) return 0;
             var gruppo = L.layerGroup(), perCampo = {}, ferma = function (e) { L.DomEvent.stop(e); };
             for (var i = 0; i < elenco.length; i++) {
                 (function (m) {
+                    // R6: un vertice col nome (o di un elenco fatto di nomi) si trascina, ma solo la calamita su un punto lo
+                    // sposta: lasciato altrove torna dov'era.
+                    var soloNomi = m.perNome || !m.aggiungibile;
                     var marcatore = L.marker([m.lat, m.lon], {
-                        icon: icona(m.perNome ? 'lab-maniglia-nome' : null, 12), draggable: !m.perNome, autoPan: true,
+                        icon: icona(m.perNome ? 'lab-maniglia-nome' : null, 12), draggable: true, autoPan: true,
                         keyboard: false, zIndexOffset: 1000,
-                        title: (m.posizione + 1) + (m.perNome ? ' — è il nome di un punto: non si trascina' : '') + ' (clic destro: togli)'
+                        title: (m.posizione + 1) + (soloNomi ? ' — è il nome di un punto: va solo su un altro punto col nome' : '') + ' (clic destro: togli)'
                     });
                     // Il clic su una maniglia non sceglie la forma che c'è sotto.
                     marcatore.on('click', ferma);
-                    if (!m.perNome) {
-                        trascinabile(stato, marcatore, function (qui) {
-                            var suoi = stato.maniglie.perCampo[m.campo] || {}, prima = suoi[m.posizione - 1], dopo = suoi[m.posizione + 1], tratti = [];
-                            if (prima) tratti.push([prima.getLatLng(), qui]);
-                            if (dopo) tratti.push([qui, dopo.getLatLng()]);
-                            return tratti;
-                        }, function (dove) {
-                            return stato.riferimento.invokeMethodAsync('VerticeDallaMappa', m.campo, m.posizione, dove.lat, dove.lng);
-                        });
-                    }
+                    trascinabile(stato, marcatore, function (qui) {
+                        var suoi = stato.maniglie.perCampo[m.campo] || {}, prima = suoi[m.posizione - 1], dopo = suoi[m.posizione + 1], tratti = [];
+                        if (prima) tratti.push([prima.getLatLng(), qui]);
+                        if (dopo) tratti.push([qui, dopo.getLatLng()]);
+                        return tratti;
+                    }, function (dove, preso) {
+                        return stato.riferimento.invokeMethodAsync('VerticeDallaMappa', m.campo, m.posizione, dove.lat, dove.lng,
+                                                                   preso ? preso.p : null, preso ? preso.r : 0);
+                    }, soloNomi);
                     menuDelVertice(stato, m, marcatore);
                     (perCampo[m.campo] = perCampo[m.campo] || {})[m.posizione] = { marcatore: marcatore, dati: m };
                     gruppo.addLayer(marcatore);
@@ -694,9 +772,10 @@
                     });
                     mezzo.on('click', ferma);
                     mezzo.on('contextmenu', ferma);
-                    trascinabile(stato, mezzo, function (qui) { return [[a, qui], [qui, b]]; }, function (dove) {
-                        return stato.riferimento.invokeMethodAsync('VerticeAggiuntoDallaMappa', m.campo, m.posizione + 1, dove.lat, dove.lng);
-                    });
+                    trascinabile(stato, mezzo, function (qui) { return [[a, qui], [qui, b]]; }, function (dove, preso) {
+                        return stato.riferimento.invokeMethodAsync('VerticeAggiuntoDallaMappa', m.campo, m.posizione + 1, dove.lat, dove.lng,
+                                                                   preso ? preso.p : null, preso ? preso.r : 0);
+                    }, false);
                     gruppo.addLayer(mezzo);
                 })(elenco[j]);
             }
@@ -705,7 +784,7 @@
                 for (var posizione in perCampo[campo]) perCampo[campo][posizione] = perCampo[campo][posizione].marcatore;
             }
             gruppo.addTo(stato.mappa);
-            stato.maniglie = { gruppo: gruppo, perCampo: perCampo };
+            stato.maniglie = { gruppo: gruppo, perCampo: perCampo, diChi: diChi || null };
             return elenco.length;
         },
 

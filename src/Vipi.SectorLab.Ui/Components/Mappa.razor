@@ -178,12 +178,15 @@
         if (Spazio is SpazioDiLavoro.Sector)
         {
             var maniglie = Lab.Maniglie();
-            string firma = string.Join('|', maniglie.Select(m => FormattableString.Invariant($"{m.Campo}:{m.Posizione}:{m.Lat:R}:{m.Lon:R}:{m.PerNome}:{m.Aggiungibile}")));
+            // Il record va con le maniglie: la calamita non aggancia la forma a sé stessa. Nella firma, perché due copie
+            // gemelle hanno le stesse maniglie.
+            string? diChi = maniglie.Count > 0 && Lab.Scelta is { } scelta ? $"{scelta.File}#{scelta.Record}" : null;
+            string firma = diChi + "|" + string.Join('|', maniglie.Select(m => FormattableString.Invariant($"{m.Campo}:{m.Posizione}:{m.Lat:R}:{m.Lon:R}:{m.PerNome}:{m.Aggiungibile}")));
             bool rimandate = firma != _firmaDelleManiglie;
             if (rimandate)
             {
                 _firmaDelleManiglie = firma;
-                await Js.InvokeAsync<int>("sectorlab.mappa.maniglie", maniglie, Elemento);
+                await Js.InvokeAsync<int>("sectorlab.mappa.maniglie", maniglie, Elemento, diChi);
             }
             if (rimandate || _indicato != Lab.VerticeIndicato)
             {
@@ -219,18 +222,20 @@
         }
     }
 
-    private string _firmaDelleManiglie = "";
+    // La firma di «nessuna maniglia»: al primo giro senza maniglie non si chiama niente.
+    private string _firmaDelleManiglie = "|";
     private (string Campo, int Posizione)? _indicato;
 
     /// <summary>F9 (R2): una maniglia lasciata sulla mappa. Falso = rifiutato (la maniglia torna dov'era).</summary>
+    /// <param name="suFile">Il record a cui la calamita l'ha agganciato (R5), o null.</param>
     [JSInvokable]
-    public bool VerticeDallaMappa(string campo, int posizione, double lat, double lon)
-        => Lab.VerticeDallaMappa(campo, posizione, lat, lon);
+    public bool VerticeDallaMappa(string campo, int posizione, double lat, double lon, string? suFile, int suRecord)
+        => Lab.VerticeDallaMappa(campo, posizione, lat, lon, suFile, suRecord);
 
     /// <summary>F9 (R3): la maniglia di mezzo lasciata sulla mappa. Falso = rifiutato.</summary>
     [JSInvokable]
-    public bool VerticeAggiuntoDallaMappa(string campo, int primaDi, double lat, double lon)
-        => Lab.VerticeAggiuntoDallaMappa(campo, primaDi, lat, lon);
+    public bool VerticeAggiuntoDallaMappa(string campo, int primaDi, double lat, double lon, string? suFile, int suRecord)
+        => Lab.VerticeAggiuntoDallaMappa(campo, primaDi, lat, lon, suFile, suRecord);
 
     /// <summary>F9 (R4): «Togli questo vertice» dal clic destro su una maniglia.</summary>
     [JSInvokable]
