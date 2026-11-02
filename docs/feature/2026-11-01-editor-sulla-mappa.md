@@ -208,3 +208,28 @@ Quello che manca è dare i vertici **cliccandoli** sulla mappa.
   vertici)», chiusa, portata sulle due copie uguali; due punti agganciati a vertici vicini (coordinate tonde); Ctrl+Z la
   rimette. Backspace ed Esc: niente cambiato. 3 clic con l'ultimo doppio → 4 vertici, niente zoom. Non visti a schermo: un
   elenco di soli nomi e la Linea di un `.geo` (nei test).
+
+## §11 — D4: trascinare i punti (2 novembre, da approvare)
+
+Il committente ha scelto D4. **Com'è oggi**: un fix, un VOR, un NDB o un punto VFR si sposta cambiando il campo
+«Posizione» nella Scheda (`CambiaCampo`): il gesto va nella storia e porta il cambio sulle copie gemelle (il punto del
+`.vfi` e il suo fix nascosto in `VFR_NASCOSTI.fix`, F3-bis e slice 8e). Ma dopo lo spostamento si ridisegna solo il file
+del punto. **Trovato guardando**: i settori, le procedure e le aerovie che lo citano **per nome** si risolvono nel catalogo
+dei punti del master, che si rifà solo dopo una rinomina, un annulla di testo o un salvataggio. Quindi oggi, spostato un
+fix dalla Scheda, chi lo cita resta disegnato dov'era finché non si salva, e la calamita non riconosce più il suo nome.
+
+- **R14 — La maniglia del punto.** Con «✎ Modifica sulla mappa» acceso su un fix, un VOR, un NDB o un punto VFR, una
+  maniglia sola sul punto. Trascinata e lasciata, fa il gesto di oggi della Scheda (`CambiaCampo` della Posizione): storia,
+  annulla, gemelli. Con la calamita (R5: la coordinata esatta di un altro punto o vertice; `Alt` la stacca).
+- **R15 — Chi lo cita lo segue, anche dalla Scheda.** Dopo lo spostamento di un punto (dalla mappa o dal campo della
+  Scheda, e dopo annulla e ripeti) il Lab rifà il catalogo dei punti e ridisegna i file che lo citano per nome («Chi lo
+  usa»): sulla mappa i settori e le procedure si piegano subito verso il punto nuovo. Il ridisegno per file della fetta 4
+  lo tiene svelto (oltre 8 file, lo strato intero).
+- **R16 — Si vede chi lo cita.** La maniglia dice, al passaggio del mouse, «citato da N record»; la voce nelle Modifiche
+  lo dice dopo lo spostamento.
+
+**Domande**
+- **D8** Un punto citato da altri record: si sposta senza chiedere (proposta: sì, un annulla lo rimette, e R16 lo dice)
+  o chiede conferma quando lo citano?
+- **D9** Quali punti: fix, VOR, NDB e punti VFR coi gemelli (proposta), o anche l'ARP degli scali (`.ap`) e gli altri
+  record di un punto solo? Proposta: questi quattro adesso, gli altri dopo.
