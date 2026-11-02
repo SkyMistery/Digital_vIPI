@@ -1072,6 +1072,13 @@ body.lab-trascina * {
     margin-bottom: .5rem;
 }
 
+/* R3: un file aperto sotto lo scalo porta i suoi record (anche 200): l'elenco della sezione perde il suo tetto di altezza,
+   se no i record restavano chiusi in 224 px che scorrono (visto sul banco con lirf.geo). Scorre la colonna. */
+.lab-scali .lab-stessa-forma ul:has(.lab-record) {
+    max-height: none;
+    overflow: visible;
+}
+
 /* Il fuoco (carta «Lavorare su uno scalo», R1): in testa alla colonna, come la vista — lo scalo, «⌖ Lo scalo», «esci». */
 .lab-fuoco {
     margin-bottom: .5rem;

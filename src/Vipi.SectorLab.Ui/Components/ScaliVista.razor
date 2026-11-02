@@ -3,7 +3,8 @@
 @*
     La vista per scalo (lotto «Subito» slice 12d, «file per file» I6, O1): scelto uno scalo, tutto quello che lo riguarda
     da qualunque file — la sua riga dell'.ap, le piste, le posizioni, i file col suo nome, disegni e riempimenti, e le
-    marcature per pista. Una voce che è un record lo sceglie (scheda e mappa); una che è un file lo apre in Sfoglia.
+    marcature per pista. Una voce che è un record lo sceglie (scheda e mappa); una che è un file lo apre in Sfoglia, o,
+    col fuoco su questo scalo, qui sotto (carta «Lavorare su uno scalo», R3).
     Sta in una linguetta sua (committente, 4 ottobre 2026: «la finestra a parte, poi sulla UI ragioneremo»).
 *@
 <div class="lab-scali" data-scalo="@Lab.ScaloScelto">
@@ -41,11 +42,16 @@
                 {
                     var questa = voce;
                     <li>
-                        <button type="button" class="lab-citazione @(Scelta(questa) ? "lab-voce-scelta" : null)"
+                        <button type="button" class="lab-citazione @(Scelta(questa) || Aperto(questa) ? "lab-voce-scelta" : null)"
                                 data-voce-scalo="@Indirizzo(questa)" @onclick="() => Apri(questa)"
-                                title="@(questa.Record is null ? "Apre il file in Sfoglia" : "Sceglie il record: scheda e mappa")">
-                            @questa.Titolo <span class="lab-nota">@questa.Nota</span>
+                                title="@(questa.Record is not null ? "Sceglie il record: scheda e mappa" : NelFuoco ? "Apre i suoi record qui sotto" : "Apre il file in Sfoglia")">
+                            @(Aperto(questa) ? "▾ " : null)@questa.Titolo <span class="lab-nota">@questa.Nota</span>
                         </button>
+                        @* Il fuoco, R3: i record del file si aprono qui, sotto lo scalo, non in Sfoglia fra i file d'Italia. *@
+                        @if (Aperto(questa))
+                        {
+                            <RecordDelFile Relativo="@questa.File" />
+                        }
                     </li>
                 }
             </ul>
@@ -71,11 +77,27 @@
 
     private bool Scelta(VoceDelloScalo voce) => voce.Record is { } record && Lab.Scelta == (voce.File, record);
 
+    /// <summary>Si lavora sullo scalo che la linguetta mostra (R1): i suoi file si aprono qui (R3).</summary>
+    private bool NelFuoco => Lab.Fuoco is { } fuoco && fuoco == Lab.ScaloScelto;
+
+    /// <summary>
+    /// Il file della voce è aperto qui sotto: col fuoco, è il file aperto del Lab. Anche quando lo apre la mappa — un clic
+    /// su un edificio di LIRF apre lirf.geo, e la colonna lo mostra qui, col record scelto.
+    /// </summary>
+    private bool Aperto(VoceDelloScalo voce) => NelFuoco && voce.Record is null && Lab.FileScelto == voce.File;
+
     private async Task Apri(VoceDelloScalo voce)
     {
         if (voce.Record is { } record)
         {
             Lab.Scegli(voce.File, record);
+            return;
+        }
+
+        if (NelFuoco)
+        {
+            // Un secondo clic lo chiude (ApriFile scambia).
+            Lab.ApriFile(voce.File);
             return;
         }
 

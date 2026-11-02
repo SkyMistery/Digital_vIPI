@@ -46,6 +46,12 @@
                         title="@(Lab.EInVista(scheda.File, scheda.Indice) ? "Toglilo da quel che la mappa mostra" : "Sulla mappa solo questo (e quel che aggiungi alla vista)")">
                     @(Lab.EInVista(scheda.File, scheda.Indice) ? "◉ In vista" : "◎ Solo questo sulla mappa")
                 </button>
+                @* Il fuoco, R4: la scelta non sposta la mappa; questo sì. *@
+                @if (Lab.SceltaSenzaZoom)
+                {
+                    <button class="lab-tasto lab-tasto-tenue" data-tasto="portami-li" @onclick="Lab.PortamiLi"
+                            title="Porta la mappa su questo record, per intero">⌖ Portami lì</button>
+                }
             </p>
             @if (scheda.Forma is { NomiNonRisolti.Count: > 0 } forma)
             {

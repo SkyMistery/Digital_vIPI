@@ -40,6 +40,8 @@
 
     /// Le mappe vive, per id dell'elemento.
     var mappe = {};
+    // Il riquadro del fuoco per mappa (carta «Lavorare su uno scalo», R2): le coste che arrivano ci portano qui, non sull'Italia.
+    var fuochi = {};
 
     function prendi(elemento) {
         return mappe[elemento || 'lab-mappa'] || null;
@@ -610,11 +612,14 @@
                     applicaSpenti(stato, id);
                     gruppo.addTo(stato.mappa);
                     ordina(stato, id);
-                    // Lo sfondo decide l'inquadratura: la prima volta che arriva, la mappa si mette sull'Italia vera.
+                    // Lo sfondo decide l'inquadratura: la prima volta che arriva, la mappa si mette sull'Italia vera — o sullo
+                    // scalo del fuoco, se c'è (carta «Lavorare su uno scalo», R2): sul banco, due volte su sei, le coste
+                    // arrivavano dopo lo scalo e riportavano la mappa sull'Italia.
                     if (id === 'sfondo' && !stato.inquadrato) {
                         var bordi = L.latLngBounds([]);
                         gruppo.eachLayer(function (l) { if (l.getBounds) bordi.extend(l.getBounds()); });
-                        if (bordi.isValid()) { stato.daInquadrare = bordi.pad(.02); inquadraSeAspetta(stato); }
+                        if (fuochi[stato.id]) { stato.daInquadrare = fuochi[stato.id]; inquadraSeAspetta(stato); }
+                        else if (bordi.isValid()) { stato.daInquadrare = bordi.pad(.02); inquadraSeAspetta(stato); }
                     }
 
                     // Il tempo del primo disegno di ogni strato finisce nel diario d'avvio: è la misura della slice 4,
@@ -669,7 +674,9 @@
         },
 
         /// Evidenzia il record scelto (e toglie l'evidenza da quello di prima). Senza file, toglie e basta.
-        evidenzia: function (file, record, inquadra, elemento) {
+        /// `soloSeFuori` (il fuoco, R4): si lavora sullo scalo e la mappa non salta a ogni scelta — si muove solo se il record
+        /// non si vede, e allora ci si porta senza cambiare zoom se ci sta, se no lo inquadra.
+        evidenzia: function (file, record, inquadra, elemento, soloSeFuori) {
             var stato = prendi(elemento);
             if (!stato) return false;
             if (stato.evidenza) {
@@ -689,7 +696,20 @@
             if (forma.bringToFront) forma.bringToFront();
             stato.evidenza = forma;
 
-            if (inquadra) {
+            if (inquadra && soloSeFuori) {
+                var vista = stato.mappa.getBounds();
+                if (forma.getBounds && forma.getBounds().isValid()) {
+                    var suoi = forma.getBounds();
+                    if (!vista.contains(suoi)) {
+                        var ci = vista.getNorthEast().lat - vista.getSouthWest().lat >= suoi.getNorthEast().lat - suoi.getSouthWest().lat
+                              && vista.getNorthEast().lng - vista.getSouthWest().lng >= suoi.getNorthEast().lng - suoi.getSouthWest().lng;
+                        if (ci) stato.mappa.panTo(suoi.getCenter());
+                        else stato.mappa.fitBounds(suoi.pad(.3));
+                    }
+                }
+                else if (forma.getLatLng && !vista.contains(forma.getLatLng())) stato.mappa.panTo(forma.getLatLng());
+            }
+            else if (inquadra) {
                 if (forma.getBounds && forma.getBounds().isValid()) stato.mappa.fitBounds(forma.getBounds().pad(.3));
                 else if (forma.getLatLng) stato.mappa.setView(forma.getLatLng(), Math.max(stato.mappa.getZoom(), 10));
             }
@@ -843,10 +863,17 @@
             if (!stato) return;
             var bordi = L.latLngBounds([sud, ovest], [nord, est]);
             if (!bordi.isValid()) return;
+            // Si ricorda fuori dallo stato della mappa: una mappa rifatta (crea) che riceve le coste dopo ci torna.
+            fuochi[elemento] = bordi.pad(.1);
             stato.daInquadrare = bordi.pad(.1);
             // Le coste che arrivano dopo non riportano la mappa sull'Italia.
             stato.inquadrato = true;
             inquadraSeAspetta(stato);
+        },
+
+        /// Uscendo dal fuoco: una mappa rifatta torna a mettersi sull'Italia.
+        scordaIlFuoco: function (elemento) {
+            delete fuochi[elemento];
         },
 
         /// S3: la carta posata ('/carta/immagine?v=…'), i tre angoli [[lat,lon] in alto a sinistra, in alto a destra, in

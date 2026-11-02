@@ -81,8 +81,31 @@
 
     protected override void OnInitialized()
     {
+        // Il fuoco (R3): si lavora sullo scalo, e la colonna parte dal suo elenco.
+        if (Lab.Fuoco is not null)
+            _linguetta = Linguetta.Scali;
+        _sceltaVista = Lab.Scelta;
         SeguiLaBarra();
         Lab.Cambiata += Aggiorna;
+    }
+
+    private (string File, int Record)? _sceltaVista;
+
+    /// <summary>
+    /// R3: col fuoco, una scelta nuova in un file dello scalo (dalla mappa, dalla ricerca) porta la colonna sullo scalo, dove
+    /// il file si apre coi suoi record. Solo a una scelta nuova: chi passa a Sfoglia da sé ci resta.
+    /// </summary>
+    private void SeguiIlFuoco()
+    {
+        if (Lab.Scelta == _sceltaVista)
+            return;
+        _sceltaVista = Lab.Scelta;
+        if (Lab.Fuoco is not null && Lab.Scelta is { } scelta && Lab.EDelFuoco(scelta.File))
+        {
+            if (Lab.ScaloScelto != Lab.Fuoco)
+                Lab.ScegliLoScalo(Lab.Fuoco);
+            _linguetta = Linguetta.Scali;
+        }
     }
 
     /// <summary>Riordino R1: il tasto «errori · avvisi» della barra porta qui, sulla linguetta dei Problemi.</summary>
@@ -95,6 +118,7 @@
     private void Aggiorna() => InvokeAsync(() =>
     {
         SeguiLaBarra();
+        SeguiIlFuoco();
         StateHasChanged();
     });
 

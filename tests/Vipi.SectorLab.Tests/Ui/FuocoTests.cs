@@ -210,4 +210,80 @@ public sealed class FuocoTests : IDisposable
         _lab.InquadraIlFuoco();
         mappa.WaitForAssertion(() => Assert.Equal(2, _contesto.JSInterop.Invocations["sectorlab.mappa.inquadra"].Count));
     }
+
+    // --- fetta 2: R3, R4 ------------------------------------------------------------------------------------------------
+
+    // R3: col fuoco un file dello scalo si apre nella linguetta Scali, coi suoi record; non si salta a Sfoglia.
+    [Fact]
+    public async Task ASchermo_ColFuocoIlFileSiApreSottoLoScalo()
+    {
+        await Apri();
+        _lab.LavoraSu("LIXA");
+        var colonna = _contesto.RenderComponent<ColonnaDiSinistra>();
+
+        // La colonna parte dallo scalo.
+        Assert.Contains("lab-linguetta-scelta", colonna.Find("[data-linguetta='scali']").ClassName ?? "", StringComparison.Ordinal);
+        colonna.Find($"[data-voce-scalo='{It}GEO/lixa.geo']").Click();
+
+        colonna.WaitForAssertion(() => Assert.NotEmpty(colonna.FindAll($".lab-scali [data-file-aperto='{It}GEO/lixa.geo']")));
+        Assert.Contains("lab-linguetta-scelta", colonna.Find("[data-linguetta='scali']").ClassName ?? "", StringComparison.Ordinal);
+
+        // Un record dell'elenco si sceglie, e il file resta aperto lì.
+        colonna.Find(".lab-scali [data-record='0']").Click();
+        Assert.Equal((It + "GEO/lixa.geo", 0), _lab.Scelta);
+        colonna.WaitForAssertion(() => Assert.NotEmpty(colonna.FindAll($".lab-scali [data-file-aperto='{It}GEO/lixa.geo']")));
+
+        // Un secondo clic sul file lo chiude.
+        colonna.Find($"[data-voce-scalo='{It}GEO/lixa.geo']").Click();
+        colonna.WaitForAssertion(() => Assert.Empty(colonna.FindAll("[data-file-aperto]")));
+    }
+
+    // R3: una scelta nuova in un file dello scalo (dalla mappa) riporta la colonna sullo scalo, col file aperto. Fuori dal
+    // fuoco la colonna non si muove.
+    [Fact]
+    public async Task ASchermo_UnaSceltaDallaMappaRiportaLaColonnaSulloScalo()
+    {
+        await Apri();
+        _lab.LavoraSu("LIXA");
+        var colonna = _contesto.RenderComponent<ColonnaDiSinistra>();
+        colonna.Find("[data-linguetta='sfoglia']").Click();
+
+        _lab.Scegli(It + "GND_LAYOUT/xa_ad_gnd.pol", 0);
+
+        colonna.WaitForAssertion(() => Assert.NotEmpty(colonna.FindAll($".lab-scali [data-file-aperto='{It}GND_LAYOUT/xa_ad_gnd.pol']")));
+
+        // Un record di LIXB (fuori dal fuoco): la colonna resta dov'è.
+        colonna.Find("[data-linguetta='sfoglia']").Click();
+        _lab.Scegli(It + "RW_MARKINGS/xb_mark.geo", 0);
+        colonna.WaitForAssertion(() => Assert.Contains("lab-linguetta-scelta", colonna.Find("[data-linguetta='sfoglia']").ClassName ?? "", StringComparison.Ordinal));
+    }
+
+    // R4: col fuoco la scelta chiede alla mappa di muoversi solo se il record è fuori vista; «⌖ Portami lì» lo inquadra.
+    [Fact]
+    public async Task ASchermo_ColFuocoLaSceltaNonSpostaLaMappa_PortamiLiSi()
+    {
+        await Apri();
+        var mappa = _contesto.RenderComponent<Vipi.SectorLab.Ui.Components.Mappa>(p => p.Add(m => m.Spazio, SpazioDiLavoro.Sector));
+        mappa.WaitForAssertion(() => Assert.NotEmpty(_contesto.JSInterop.Invocations["sectorlab.mappa.crea"]));
+
+        // Fuori dal fuoco: inquadra, come sempre.
+        _lab.Scegli(It + "GEO/lixa.geo", 0);
+        mappa.WaitForAssertion(() => Assert.NotEmpty(_contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"]));
+        var fuori = _contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"][^1];
+        Assert.Equal((true, false), ((bool)fuori.Arguments[2]!, (bool)fuori.Arguments[4]!));
+
+        _lab.LavoraSu("LIXA");
+        Assert.True(_lab.SceltaSenzaZoom);
+        int prima = _contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"].Count;
+        _lab.Scegli(It + "GND_LAYOUT/xa_ad_gnd.pol", 0);
+        mappa.WaitForAssertion(() => Assert.True(_contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"].Count > prima));
+        var dentro = _contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"][^1];
+        Assert.Equal((true, true), ((bool)dentro.Arguments[2]!, (bool)dentro.Arguments[4]!));
+
+        prima = _contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"].Count;
+        _lab.PortamiLi();
+        mappa.WaitForAssertion(() => Assert.True(_contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"].Count > prima));
+        var portami = _contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"][^1];
+        Assert.Equal((true, false), ((bool)portami.Arguments[2]!, (bool)portami.Arguments[4]!));
+    }
 }

@@ -130,6 +130,29 @@ public sealed partial class SessioneDelLab
     }
 
     /// <summary>
+    /// R4: col fuoco scegliere un record dell'elenco non sposta la mappa — si lavora sullo scalo, e ogni salto costava una
+    /// rotella per tornare a vedere il piazzale. La mappa si muove solo se il record è fuori vista (e allora ci si porta
+    /// senza cambiare zoom, se ci sta), o con «⌖ Portami lì».
+    /// </summary>
+    public bool SceltaSenzaZoom => Fuoco is not null && SpazioAttivo is SpazioDiLavoro.Sector;
+
+    /// <summary>Quante volte si è chiesto «⌖ Portami lì»: la mappa inquadra il record scelto per intero.</summary>
+    public int PortamiLiChiesti { get; private set; }
+
+    /// <summary>«⌖ Portami lì»: la mappa va sul record scelto, come fuori dal fuoco.</summary>
+    public void PortamiLi()
+    {
+        if (Scelta is null)
+            return;
+        PortamiLiChiesti++;
+        Avvisa();
+    }
+
+    /// <summary>R3: se il file è dello scalo del fuoco (uno dei suoi file o dei suoi disegni a terra): si apre nella linguetta Scali.</summary>
+    public bool EDelFuoco(string? relativo)
+        => relativo is not null && ChiaviDelFuoco.Contains(ChiaveDellaVista(relativo, null));
+
+    /// <summary>
     /// Il riquadro del fuoco (R2): le forme dello scalo negli strati del ground — disegni a terra, aeroporti a terra, piste.
     /// SID, STAR e rotte VFR dello scalo si vedono, ma vanno lontano: nel riquadro lo scalo diventerebbe un puntino (visto
     /// sul banco con LIRF). Se lo scalo non ha ground, tutte le sue forme. Null senza fuoco o senza niente da disegnare.

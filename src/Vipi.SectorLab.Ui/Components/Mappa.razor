@@ -35,6 +35,7 @@
     private int _versioneDellaVista;
     private int _versioneDelFuoco;
     private int _inquadratureDelFuoco;
+    private int _portamiLi;
     private int _versioneDeiSpenti;
     private int _versioneDeiColori = -1;
     private int _inquadrature;
@@ -151,9 +152,12 @@
         // col resto in grigio (D1) le altre forme restano, attenuate e senza clic.
         if (_versioneDellaVista != Stato.VersioneDellaVista || _versioneDelFuoco != Lab.VersioneDelFuoco || ridisegnato || spento || daAccendere.Count > 0)
         {
+            bool fuocoCambiato = _versioneDelFuoco != Lab.VersioneDelFuoco;
             _versioneDellaVista = Stato.VersioneDellaVista;
             _versioneDelFuoco = Lab.VersioneDelFuoco;
             await Js.InvokeVoidAsync("sectorlab.mappa.vista", Lab.VistaDaMostrare(Spazio).ToArray(), Elemento, Lab.RestoInGrigioDi(Spazio));
+            if (fuocoCambiato && Spazio is SpazioDiLavoro.Sector && Lab.Fuoco is null)
+                await Js.InvokeVoidAsync("sectorlab.mappa.scordaIlFuoco", Elemento);
         }
 
         // R2: all'accensione del fuoco (e da «⌖ Lo scalo») la mappa va sullo scalo intero.
@@ -174,17 +178,22 @@
         // Si rievidenzia quando cambia la scelta, quando si chiede di nuovo lo stesso record (il secondo clic
         // sull'elenco), e quando lo strato è stato ridisegnato: la forma evidenziata di prima non c'è più.
         bool richiesta = _inquadrature != Lab.Inquadrature;
+        // Il fuoco, R4: «⌖ Portami lì» inquadra il record per intero, anche quando la scelta da sola non sposta la mappa.
+        bool portamiLi = Spazio is SpazioDiLavoro.Sector && _portamiLi != Lab.PortamiLiChiesti;
         var sceltaQui = Lab.SceltaDi(Spazio);
-        if (_evidenziata != sceltaQui || richiesta || ridisegnato)
+        if (_evidenziata != sceltaQui || richiesta || ridisegnato || portamiLi)
         {
             _evidenziata = sceltaQui;
             _inquadrature = Lab.Inquadrature;
+            _portamiLi = Lab.PortamiLiChiesti;
             _evidenziataRifatta = true;
             // Si inquadra solo se la scelta NON viene dalla mappa: chi ha appena cliccato una forma non vuole che
             // la mappa gli salti sotto il dito. Dopo una modifica del record scelto la mappa lo segue dov'è ora.
             bool segue = ridisegnato && _evidenziata is { } scelta && scelta.File == Lab.FileRifatto;
+            // Col fuoco (R4) la mappa si muove solo se il record è fuori vista.
+            bool soloSeFuori = Spazio is SpazioDiLavoro.Sector && Lab.SceltaSenzaZoom && !portamiLi;
             await Js.InvokeAsync<bool>("sectorlab.mappa.evidenzia", _evidenziata?.File, _evidenziata?.Record ?? 0,
-                                       !_dalClic && (richiesta || segue), Elemento);
+                                       portamiLi || (!_dalClic && (richiesta || segue)), Elemento, soloSeFuori);
             _dalClic = false;
         }
 

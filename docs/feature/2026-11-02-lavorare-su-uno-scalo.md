@@ -105,3 +105,23 @@ Sul banco col sector vero (1 400 px): LIRF con la mappa sul sedime, «Disegni .g
 a terra 325»; riavviato il banco il fuoco è tornato; in grigio Ciampino e gli altri scali grigi e tenui, un clic lì non
 sceglie niente; un clic su una taxiway di LIRF la sceglie e la mappa resta ferma. Si vede ancora il difetto di R3: scelta
 la taxiway, la colonna salta a Sfoglia, nella cartella GEO di tutta Italia (fetta 2). Test: `FuocoTests` (9), Lab 1 575.
+
+**Fetta 2, R3 + R4 (+ R5)** (2 novembre). Col fuoco la colonna parte dalla linguetta Scali, e un file dello scalo si apre
+lì, sotto la sua voce, coi suoi record (lo stesso `RecordDelFile` di Sfoglia: voci, filtro, «Solo questo file sulla
+mappa»); un secondo clic lo chiude. Una scelta nuova in un file dello scalo, dalla mappa o dalla ricerca, riporta la
+colonna sullo scalo col file aperto; chi passa a Sfoglia da sé ci resta fino alla scelta dopo, e una scelta fuori dallo
+scalo non la muove. R4: col fuoco scegliere un record non sposta la mappa; si muove solo se il record è fuori vista (ci si
+porta senza cambiare zoom, se ci sta) — e nella Scheda c'è «⌖ Portami lì», che lo inquadra per intero. R5 era già vero
+con la fetta 1: fuori dal fuoco le forme sono nascoste o grigie senza clic.
+
+Trovato sul banco: l'elenco di una sezione dello scalo è alto al più 224 px e scorre da sé; il file aperto ci restava
+chiuso dentro (i 200 record di `lirf.geo` non si vedevano). Con un file aperto la sezione perde il tetto (`:has`), e
+scorre la colonna. E due volte su sei, ricaricata la pagina, la mappa finiva sull'Italia: l'unica inquadratura
+sull'Italia è quella delle coste quando arrivano, la prima volta, su una mappa nuova. Ora il riquadro del fuoco si ricorda
+per mappa nel JavaScript, e le coste che arrivano ci portano lì; uscendo dal fuoco si scorda. Dopo, in quattro
+ricariche, sempre su LIRF.
+
+Da sapere: un record di `lirf.geo` che sulla mappa non ha una forma sua (il record 41, un pezzo di AD_BOUNDARY) non si
+inquadra con «⌖ Portami lì», come fuori dal fuoco non si inquadrava scegliendolo. Sul banco: `lirf.geo` aperto sotto LIRF,
+il record 41 scelto con la mappa ferma; «Runway 16L designator» dall'elenco con la mappa ferma, poi «⌖ Portami lì» sulla
+sola designazione. Test: `FuocoTests` (12), Lab 1 578.
