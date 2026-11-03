@@ -60,6 +60,14 @@ lungo non lo legge nessuno, e le domande tornerebbero al committente.
   prima di mandare (il primo compito è scriverlo).
 - **K9 — Il committente**: attiva le Issues sul fork di prova e invita gli AOD sui due repo di prova (l'AIP espanso è
   privato). Sono clic suoi (impostazioni del repository); il LEGGIMI dice all'AOD di accettare l'invito.
+- **K10 — Lo zip si dà con una release** (committente, 3 novembre: «non gli possiamo fornire lo zip via release di
+  github?»): una **pre-release** sul fork di prova `SkyMistery/it-aurora-sector-test`, tag `lab-prova-<sha>`, lo zip
+  come allegato e il testo della pagina dal `tools/kit-aod/RELEASE.md` (le istruzioni del LEGGIMI, per chi arriva dal
+  link). Sul fork perché gli AOD ci sono già invitati e lì mandano PR ed esiti; non su `Digital_vIPI`, dove le release
+  sono le versioni del sito. La release crea un tag: la pubblica il committente (o la chat Master), mai il Lab;
+  `prepara-kit.ps1` scrive accanto allo zip il testo (`note-della-release-<sha>.md`) e il comando
+  (`pubblica-la-release-<sha>.txt`). Una versione nuova è una release nuova; si estrae sopra la vecchia, e `dati` e
+  `lavoro` restano.
 
 ## §4 — I compiti (G1-G12)
 
@@ -81,7 +89,7 @@ lungo non lo legge nessuno, e le domande tornerebbero al committente.
 ## §5 — Le fette
 
 1. **Primo avvio dal kit** (K1-K3): `--lavoro-proposto`, `--giro-di-prova`, ricordato nei dati.
-2. **Il Giro** (K4-K7): `GiroDiProva` nel Core (compiti, esiti, file), il pannello e il tasto nella barra.
+2. **Il Giro** (K4-K7): `GiroDiProva` (compiti, esiti, file), il pannello e il tasto nella barra.
 3. **Manda gli esiti** (K8): il testo, il link della issue, il file.
 4. **Lo zip**: `tools/kit-aod/prepara-kit.ps1` (dal commit registrato) pubblica il Lab in `app\`, mette accanto
    `Avvia il Lab.cmd` e il `LEGGIMI.txt` (in `tools/kit-aod/`, con a capo di Windows e l'impronta), fa l'autoprova e lo
@@ -95,3 +103,4 @@ lungo non lo legge nessuno, e le domande tornerebbero al committente.
          LEGGIMI.txt          cosa installare (GitHub e i due inviti, Git for Windows, Aurora), come si avvia
          app\                 il Lab completo, win-x64, self-contained
          dati\  lavoro\       nascono al primo avvio
+5. **La release** (K10): `RELEASE.md`, e `prepara-kit.ps1` che ne scrive il testo e il comando accanto allo zip.

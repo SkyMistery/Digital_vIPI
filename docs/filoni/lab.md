@@ -18,6 +18,9 @@ e invitare gli AOD sui due repo di prova (l'AIP espanso è privato). Visto sul b
 più larga dello schermo (1 597 px) prima del tasto del giro; resta così. Provato da zero sul banco (dati vuoti, «Prepara
 tutto» coi repo di prova veri): l'Indice dell'AIP chiede prima il ciclo («Lavora su questo», la scelta del 26 ottobre), e
 G7 ora lo dice. Nessun codice comune. Lab 1 602 (+9).
+Lo zip si dà con una **pre-release sul fork di prova** (committente: «non gli possiamo fornire lo zip via release di
+github?»; K10): `tools/kit-aod/RELEASE.md` è il testo della pagina, e `prepara-kit.ps1` scrive accanto allo zip le note e
+il comando `gh release create`. La pubblica il committente, o la chat Master: crea un tag.
 
 **2 novembre, sera: lavorare su un settore** (R7 della carta [`2026-11-02-lavorare-su-uno-scalo.md`](../feature/2026-11-02-lavorare-su-uno-scalo.md);
 il committente: «Comincia R7», prima delle prove sullo scalo). Il fuoco anche su una **posizione** ATC (D2): linguetta

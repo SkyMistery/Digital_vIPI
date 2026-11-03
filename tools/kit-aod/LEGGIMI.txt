@@ -8,7 +8,7 @@ che ti portano in giro per il programma. Qui sotto solo come farlo partire.
 PRIMA, UNA VOLTA SOLA
 1. GitHub. Ti servono un account GitHub (gratis, github.com) e due inviti, che arrivano per email:
    it-aurora-sector-test e it-aip-espanso-test. Accettali tutti e due. Se non ti sono arrivati,
-   manda il tuo nome GitHub a chi ti ha dato questo zip.
+   manda il tuo nome GitHub a Carmine (SkyMistery).
 2. Git for Windows: https://git-scm.com/download/win  (installazione con le scelte proposte).
 3. Aurora installata su questo PC: il Lab ne legge i colori e i profili.
 Serve Windows 10 o 11 a 64 bit.
