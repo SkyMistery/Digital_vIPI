@@ -3154,3 +3154,18 @@ body.lab-trascina * {
     padding-top: .45rem;
     border-top: 1px solid var(--lab-linea);
 }
+
+/* I giri di prova dal fork (P4): la scelta del giro in testa, e il piede che va a capo coi suoi quattro tasti. */
+.lab-giro-scelta {
+    flex: 1 1 auto;
+    min-width: 0;
+    font: inherit;
+}
+
+.lab-giro-sotto {
+    margin: .3rem 0 0;
+}
+
+.lab-giro-piede {
+    flex-wrap: wrap;
+}

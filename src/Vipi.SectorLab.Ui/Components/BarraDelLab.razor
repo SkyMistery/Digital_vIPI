@@ -51,8 +51,8 @@
     @if (Principale && Lab.GiroAcceso)
     {
         <button class="lab-tasto lab-tasto-tenue" data-tasto="giro" aria-pressed="@(Lab.GiroAperto ? "true" : "false")"
-                title="@(Lab.GiroAperto ? "Chiude il pannello del Giro di prova" : "Apre il Giro di prova: i compiti da provare, uno alla volta")"
-                @onclick="Lab.ApriOChiudiIlGiro">🧪 Giro @Lab.CompitiFatti/@GiroDiProva.Compiti.Count</button>
+                title="@(Lab.GiroAperto ? "Chiude il pannello dei giri di prova" : $"Apre i giri di prova: «{Lab.GiroScelto.Titolo}», un compito alla volta")"
+                @onclick="Lab.ApriOChiudiIlGiro">🧪 @Lab.CompitiFatti/@Lab.GiroScelto.Compiti.Count@(Lab.GiriNuovi > 0 ? $" · {Lab.GiriNuovi} {(Lab.GiriNuovi == 1 ? "nuovo" : "nuovi")}" : "")</button>
     }
     <Storia />
     <button class="lab-tasto" disabled="@(Lab.Modifiche.Quante == 0 || Lab.StaSalvando)" @onclick="() => Lab.SalvaAsync()"

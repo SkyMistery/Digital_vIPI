@@ -1,6 +1,7 @@
 # I giri di prova dal fork (3 novembre 2026)
 
-Filone Sector Lab. **Da approvare.** Segue [«Il kit di prova per gli AOD»](2026-11-03-kit-di-prova-per-gli-aod.md)
+Filone Sector Lab. **Approvata** il 3 novembre come proposta («Sì, vai»: §6 come proposto — i sei giri, `giri/` sul
+`master` del fork, niente giri per qualcuno). Le fette fatte in §7. Segue [«Il kit di prova per gli AOD»](2026-11-03-kit-di-prova-per-gli-aod.md)
 (fatto, release `lab-prova-f61cec43` pubblicata dal committente il 3 novembre). Scelte proposte in §3 (P1-P9), domande
 al committente in §6.
 
@@ -91,3 +92,20 @@ l'ultimo una domanda («che cosa ti è mancato?»).
 2. I giri stanno sul fork `master` (P1): va bene che sul fork ci sia una cartella `giri/` che il sector vero non ha?
 3. Un giro è per tutti gli AOD, o ne vuoi anche **per qualcuno** (per esempio solo per chi ha uno scalo)? La carta oggi
    non lo prevede: ogni AOD vede tutti i giri e sceglie lui.
+
+## §7 — Fatto
+
+- **Fette 1-3** (3 novembre). Il formato e il lettore (`GiroDiProva.Leggi`, P3), «Primi passi» come giro
+  (`GiroDiProva.PrimiPassi`, P8); la lettura dal fork (`Core.Git.GiriDalServer`: `ls-tree` e `show` di
+  `origin/<predefinito>:giri/`, dopo il `fetch`) all'apertura col giro acceso e con «↻ giri nuovi?» nel pannello; la copia
+  nei dati (`giri/`, uguale ai file del fork: uno tolto dal fork si toglie anche lì; un fork che non risponde la lascia
+  com'è). Nel pannello la tendina dei giri («Il ground dello scalo · 0/10 · nuovo»), per chi è, «Ricomincia» con la domanda
+  in due tasti; nella barra «🧪 1/12 · 1 nuovo». Il file degli esiti ora è per giro (`Giri`, con `Aperto`), e quello di
+  prima diventa «Primi passi» alla prima lettura. Issue «Giro «…» v1 · VID … · data».
+- **Fetta 5, il primo giro**: `tools/kit-aod/giri/02-ground.json` (dieci compiti dalle prove A110-A132) e il suo LEGGIMI;
+  `GiriDelKitTests` li legge prima che vadano sul fork. Sul banco (un albero di prova fuori da git, la copia dei giri nei
+  dati): la tendina, il passaggio del file di stamattina (G1 tenuto), «nuovo» che sparisce aperto il giro, e i nomi del
+  compito 1 uguali all'app («◎ Lavora su LIRF», «⌖ Lo scalo», «esci», «il resto del sector in grigio»).
+- Test: `GiriDalForkTests` (15), `GiriDelKitTests` (1). Lab 1 618.
+- Restano: la release col Lab nuovo (fetta 4, la pubblica il committente), la PR del giro sul fork (la fonde il
+  committente), poi gli altri quattro giri di §4, uno per PR.

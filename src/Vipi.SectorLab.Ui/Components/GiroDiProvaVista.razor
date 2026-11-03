@@ -2,21 +2,46 @@
 @inject SessioneDelLab Lab
 
 @*
-    Il Giro di prova del kit per gli AOD (carta «Il kit di prova per gli AOD», K5-K8): un compito alla volta, sopra la
-    pagina; i tre esiti e la nota; i pallini per saltare; «Manda gli esiti» apre la issue già scritta su GitHub.
+    I giri di prova (carte «Il kit di prova per gli AOD», K5-K8, e «I giri di prova dal fork», P4-P7): il giro scelto in
+    testa, un compito alla volta, sopra la pagina; i tre esiti e la nota; i pallini per saltare; «Manda gli esiti» apre la
+    issue già scritta su GitHub; «Ricomincia» svuota gli esiti del giro.
 *@
 @{
-    var compiti = GiroDiProva.Compiti;
-    var compito = compiti[Lab.CompitoAperto];
+    var giro = Lab.GiroScelto;
+    var compiti = giro.Compiti;
+    var compito = compiti[Math.Min(Lab.CompitoAperto, compiti.Count - 1)];
     var esito = Lab.EsitiDelGiro.GetValueOrDefault(compito.Id);
 }
-<aside class="lab-giro" data-giro aria-label="Giro di prova">
+<aside class="lab-giro" data-giro="@giro.Id" aria-label="Giro di prova">
     <header class="lab-giro-testa">
-        <strong>🧪 Giro di prova</strong>
-        <span class="lab-nota" data-giro-fatti>@Lab.CompitiFatti di @compiti.Count fatti</span>
-        <button type="button" class="lab-annulla" data-tasto="giro-chiudi" title="Chiude il pannello: il tasto «Giro di prova» in alto lo riapre"
+        <strong aria-hidden="true">🧪</strong>
+        <select class="lab-giro-scelta" data-campo="giro-scelto" title="I giri di prova: ognuno coi suoi compiti e i suoi esiti"
+                @onchange="ScegliIlGiro">
+            @foreach (var uno in Lab.Giri)
+            {
+                <option value="@uno.Id" selected="@(uno.Id == giro.Id)">@($"{uno.Titolo} · {Lab.FattiDi(uno)}/{uno.Compiti.Count}{(Lab.GiroNuovo(uno) ? " · nuovo" : "")}")</option>
+            }
+        </select>
+        <button type="button" class="lab-annulla" data-tasto="giro-chiudi" title="Chiude il pannello: il tasto «🧪» in alto lo riapre"
                 @onclick="Lab.ApriOChiudiIlGiro">×</button>
     </header>
+    <p class="lab-nota lab-giro-sotto">
+        @if (giro.PerChi is { } perChi)
+        {
+            <span data-giro-per-chi>@perChi · </span>
+        }
+        <span data-giro-fatti>@Lab.CompitiFatti di @compiti.Count fatti</span> ·
+        <button type="button" class="lab-voce" data-tasto="giro-cerca" disabled="@Lab.StaCercandoIGiri"
+                title="Chiede al repo di prova se ci sono giri nuovi o cambiati" @onclick="() => Lab.CercaIGiriAsync()">@(Lab.StaCercandoIGiri ? "cerco…" : "↻ giri nuovi?")</button>
+    </p>
+    @if (Lab.PercheDeiGiri is { } perDeiGiri)
+    {
+        <p class="lab-nota" data-giri-perche>I giri del repo di prova non sono arrivati (@perDeiGiri): restano quelli di prima.</p>
+    }
+    @foreach (string nonLetto in Lab.GiriNonLetti)
+    {
+        <p class="lab-avviso-breve" data-giro-non-letto>Un giro del repo di prova non si legge: @nonLetto</p>
+    }
 
     <nav class="lab-giro-pallini" aria-label="I compiti">
         @for (int i = 0; i < compiti.Count; i++)
@@ -84,10 +109,23 @@
         <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="giro-dopo" disabled="@(Lab.CompitoAperto == compiti.Count - 1)"
                 @onclick="() => Lab.VaiAlCompito(Lab.CompitoAperto + 1)">Dopo ›</button>
         <span class="lab-barra-spazio"></span>
+        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="giro-ricomincia" disabled="@(Lab.CompitiFatti == 0)"
+                title="Svuota gli esiti di questo giro, per rifarlo (per esempio con una versione nuova del Lab)"
+                @onclick="() => _ricomincia = true">Ricomincia</button>
         <button type="button" class="lab-tasto" data-tasto="giro-manda" disabled="@(Lab.CompitiFatti == 0)"
                 title="Apre GitHub con la issue già scritta (esiti, note, errori del registro): la mandi tu, con «Submit new issue». Si può mandare anche a metà, e di nuovo dopo"
                 @onclick="() => Lab.MandaGliEsiti()">Manda gli esiti</button>
     </footer>
+    @if (_ricomincia)
+    {
+        @* P7: la domanda in due tasti, non confirm(). *@
+        <div class="lab-conferma" data-conferma="giro-ricomincia">
+            <span>Svuoti gli esiti di «@giro.Titolo»?
+                @(Lab.EsitiNonMandati ? "Non li hai ancora mandati: con «Manda gli esiti», prima, restano nella issue." : "Quelli mandati restano nella issue.")</span>
+            <button type="button" class="lab-tasto" data-tasto="giro-ricomincia-si" @onclick="Ricomincia">Svuota e ricomincia</button>
+            <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="giro-ricomincia-no" @onclick="() => _ricomincia = false">Lascia stare</button>
+        </div>
+    }
     @if (Lab.PercheNonMandaGliEsiti is { } perche)
     {
         <p class="lab-avviso-breve" data-giro-rifiuto>@perche</p>
@@ -116,6 +154,20 @@
 
     private string? _nota;
     private string? _notaDel;
+    private bool _ricomincia;
+
+    private void ScegliIlGiro(ChangeEventArgs e)
+    {
+        _ricomincia = false;
+        if (e.Value?.ToString() is { Length: > 0 } id)
+            Lab.ScegliIlGiro(id);
+    }
+
+    private void Ricomincia()
+    {
+        _ricomincia = false;
+        Lab.RicominciaIlGiro();
+    }
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
 
@@ -124,11 +176,14 @@
 
     private void RiprendiLaNota()
     {
-        string id = GiroDiProva.Compiti[Lab.CompitoAperto].Id;
-        if (_notaDel == id)
+        var giro = Lab.GiroScelto;
+        string compito = giro.Compiti[Math.Min(Lab.CompitoAperto, giro.Compiti.Count - 1)].Id;
+        // Anche gli esiti: dopo «Ricomincia» il compito è lo stesso, ma la sua nota non c'è più.
+        string chiave = $"{giro.Id}/{compito}/{Lab.EsitiDelGiro.Count}";
+        if (_notaDel == chiave)
             return;
-        _notaDel = id;
-        _nota = Lab.EsitiDelGiro.GetValueOrDefault(id)?.Nota;
+        _notaDel = chiave;
+        _nota = Lab.EsitiDelGiro.GetValueOrDefault(compito)?.Nota;
     }
 
     private static string DiCheEsito(CompitoDelGiro compito, EsitoDelGiro? esito) =>

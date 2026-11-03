@@ -22,8 +22,15 @@ public sealed record CompitoDelGiro(string Id, string Titolo, PaginaDelLab? Pagi
 public sealed record EsitoDelGiro(string Compito, EsitoDelCompito? Esito, string? Nota, DateTime Quando);
 
 /// <summary>
-/// Il Giro di prova del kit per gli AOD (carta «Il kit di prova per gli AOD», 3 novembre 2026, §4): i compiti, scritti
-/// per chi non ha mai visto il Lab, e il testo della issue che li manda al committente (K8).
+/// Un giro di prova (carta «I giri di prova dal fork», P3): i suoi compiti, la versione (più alta = cambiato: P4), per chi
+/// è. <paramref name="File"/> è il file del fork da cui viene (<c>02-ground.json</c>), null per quello dentro il Lab (P8).
+/// </summary>
+public sealed record Giro(string Id, string Titolo, int Versione, string? PerChi, IReadOnlyList<CompitoDelGiro> Compiti, string? File);
+
+/// <summary>
+/// I giri di prova del kit per gli AOD (carte «Il kit di prova per gli AOD» e «I giri di prova dal fork», 3 novembre
+/// 2026): «Primi passi», scritto per chi non ha mai visto il Lab, il lettore dei giri del fork, e il testo della issue che
+/// manda gli esiti al committente (K8).
 /// </summary>
 public static class GiroDiProva
 {
@@ -36,8 +43,8 @@ public static class GiroDiProva
     /// <summary>Il file con gli esiti interi, nei dati del Lab: si scrive a ogni «Manda gli esiti».</summary>
     public const string FileDegliEsiti = "esiti-del-giro.md";
 
-    /// <summary>I compiti, nell'ordine in cui si fanno (carta §4, G1-G12).</summary>
-    public static IReadOnlyList<CompitoDelGiro> Compiti { get; } =
+    /// <summary>I compiti di «Primi passi», nell'ordine in cui si fanno (carta del kit, §4, G1-G12).</summary>
+    private static readonly IReadOnlyList<CompitoDelGiro> CompitiDeiPrimiPassi =
     [
         new("G1", "Chi sei e che Aurora usi", PaginaDelLab.Impostazioni,
             "Scrivi il tuo VID IVAO. Poi scegli il profilo di Aurora che usi di solito.",
@@ -78,6 +85,89 @@ public static class GiroDiProva
             "Scrivilo qui sotto e premi «Scrivi la nota».", SoloNota: true),
     ];
 
+    /// <summary>L'id di «Primi passi»: anche il giro di prima della carta dei giri, quando ce n'era uno solo.</summary>
+    public const string IdDeiPrimiPassi = "primi-passi";
+
+    /// <summary>
+    /// P8: «Primi passi» dentro il Lab, il ripiego se il fork non ha giri o non risponde. Un <c>primi-passi.json</c> sul
+    /// fork prende il suo posto.
+    /// </summary>
+    public static Giro PrimiPassi { get; } = new(IdDeiPrimiPassi, "Primi passi", 1, "Tutti, per primo", CompitiDeiPrimiPassi, null);
+
+    /// <summary>
+    /// P3: un giro dal testo di un suo file. Null, col perché, se non si legge: JSON rotto, senza <c>id</c> (lettere minuscole,
+    /// cifre e «-») o <c>titolo</c>, senza compiti, un compito senza <c>id</c>, <c>titolo</c> o <c>fai</c>, due compiti con lo
+    /// stesso <c>id</c>. Un campo sconosciuto si ignora (un giro scritto per un Lab più nuovo si legge lo stesso), una
+    /// <c>pagina</c> sconosciuta vale «nessuna pagina».
+    /// </summary>
+    public static Giro? Leggi(string file, string testo, out string? perche)
+    {
+        ArgumentNullException.ThrowIfNull(testo);
+        perche = null;
+        try
+        {
+            using var documento = System.Text.Json.JsonDocument.Parse(testo, new System.Text.Json.JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = System.Text.Json.JsonCommentHandling.Skip,
+            });
+            var radice = documento.RootElement;
+            if (radice.ValueKind != System.Text.Json.JsonValueKind.Object)
+                return Rifiuta("non è un oggetto { … }", out perche);
+            if (Testo(radice, "id") is not { } id || !id.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-'))
+                return Rifiuta("manca «id», o non è fatto di lettere minuscole, cifre e «-»", out perche);
+            if (Testo(radice, "titolo") is not { } titolo)
+                return Rifiuta("manca «titolo»", out perche);
+            int versione = radice.TryGetProperty("versione", out var v) && v.ValueKind == System.Text.Json.JsonValueKind.Number
+                           && v.TryGetInt32(out int numero) && numero > 0 ? numero : 1;
+            if (!radice.TryGetProperty("compiti", out var elenco) || elenco.ValueKind != System.Text.Json.JsonValueKind.Array
+                || elenco.GetArrayLength() == 0)
+                return Rifiuta("manca «compiti», o è vuoto", out perche);
+
+            var compiti = new List<CompitoDelGiro>();
+            int posto = 0;
+            foreach (var compito in elenco.EnumerateArray())
+            {
+                posto++;
+                if (compito.ValueKind != System.Text.Json.JsonValueKind.Object)
+                    return Rifiuta($"il compito {posto} non è un oggetto {{ … }}", out perche);
+                if (Testo(compito, "id") is not { } suo)
+                    return Rifiuta($"il compito {posto} non ha «id»", out perche);
+                if (compiti.Any(c => string.Equals(c.Id, suo, StringComparison.Ordinal)))
+                    return Rifiuta($"due compiti con l'id «{suo}»", out perche);
+                if (Testo(compito, "titolo") is not { } nome || Testo(compito, "fai") is not { } fai)
+                    return Rifiuta($"il compito «{suo}» non ha «titolo» o «fai»", out perche);
+                bool soloNota = compito.TryGetProperty("soloNota", out var s) && s.ValueKind == System.Text.Json.JsonValueKind.True;
+                compiti.Add(new CompitoDelGiro(suo, nome, PaginaDaNome(Testo(compito, "pagina")), fai, Testo(compito, "dovresti") ?? "", soloNota));
+            }
+
+            return new Giro(id, titolo, versione, Testo(radice, "perChi"), compiti, file);
+        }
+        catch (System.Text.Json.JsonException e)
+        {
+            return Rifiuta($"non è un JSON valido ({e.Message})", out perche);
+        }
+    }
+
+    /// <summary>La pagina dal suo nome nel file del giro (<c>Sector</c>, <c>AipIndice</c>…), null se non c'è o non si conosce.</summary>
+    public static PaginaDelLab? PaginaDaNome(string? nome) =>
+        nome is not null && Enum.TryParse<PaginaDelLab>(nome, ignoreCase: false, out var pagina) && Enum.IsDefined(pagina)
+            && !nome.Any(char.IsAsciiDigit)
+            ? pagina
+            : null;
+
+    private static Giro? Rifiuta(string perche, out string? dove)
+    {
+        dove = perche;
+        return null;
+    }
+
+    private static string? Testo(System.Text.Json.JsonElement oggetto, string nome) =>
+        oggetto.TryGetProperty(nome, out var valore) && valore.ValueKind == System.Text.Json.JsonValueKind.String
+        && valore.GetString() is { } testo && !string.IsNullOrWhiteSpace(testo)
+            ? testo.Trim()
+            : null;
+
     /// <summary>Il nome della pagina come lo dice la barra: «Sector · Mappa», «AIP espanso · Indice»…</summary>
     public static string NomeDellaPagina(PaginaDelLab pagina) => pagina switch
     {
@@ -105,22 +195,25 @@ public static class GiroDiProva
     };
 
     /// <summary>
-    /// Il titolo e il testo intero della issue (K8): chi, una riga per compito, gli errori del registro.
+    /// Il titolo e il testo intero della issue (K8, P6): il giro, chi, una riga per compito, gli errori del registro.
     /// </summary>
-    public static (string Titolo, string Testo) Issue(string vid, string versione, string sistema, DateTime quando,
+    public static (string Titolo, string Testo) Issue(Giro giro, string vid, string versione, string sistema, DateTime quando,
         IReadOnlyDictionary<string, EsitoDelGiro> esiti, IReadOnlyList<string> errori)
     {
+        ArgumentNullException.ThrowIfNull(giro);
         ArgumentNullException.ThrowIfNull(esiti);
         ArgumentNullException.ThrowIfNull(errori);
         string giorno = quando.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
         var testo = new StringBuilder();
+        testo.Append(CultureInfo.InvariantCulture,
+            $"**Giro** {giro.Titolo} v{giro.Versione} ({(giro.File is { } file ? $"`{GiriDalServerCartella}/{file}`" : "dentro il Lab")})\n");
         testo.Append(CultureInfo.InvariantCulture, $"**VID** {vid} · **Lab** {versione} · {sistema} · {quando:dd/MM/yyyy HH:mm}\n\n");
 
-        int fatti = Compiti.Count(c => Fatto(c, esiti.GetValueOrDefault(c.Id)));
-        testo.Append(CultureInfo.InvariantCulture, $"{fatti} compiti su {Compiti.Count}: ")
-            .Append(CultureInfo.InvariantCulture, $"✅ {Conta(esiti, EsitoDelCompito.Va)} · ❌ {Conta(esiti, EsitoDelCompito.NonVa)} · ❓ {Conta(esiti, EsitoDelCompito.NonHoCapito)}\n\n");
+        int fatti = giro.Compiti.Count(c => Fatto(c, esiti.GetValueOrDefault(c.Id)));
+        testo.Append(CultureInfo.InvariantCulture, $"{fatti} compiti su {giro.Compiti.Count}: ")
+            .Append(CultureInfo.InvariantCulture, $"✅ {Conta(giro, esiti, EsitoDelCompito.Va)} · ❌ {Conta(giro, esiti, EsitoDelCompito.NonVa)} · ❓ {Conta(giro, esiti, EsitoDelCompito.NonHoCapito)}\n\n");
         testo.Append("| | Compito | Nota |\n|---|---|---|\n");
-        foreach (var compito in Compiti)
+        foreach (var compito in giro.Compiti)
         {
             var esito = esiti.GetValueOrDefault(compito.Id);
             string segno = compito.SoloNota ? (Fatto(compito, esito) ? "📝" : "·") : Segno(esito?.Esito);
@@ -140,8 +233,10 @@ public static class GiroDiProva
             testo.Append("```\n");
         }
 
-        return ($"Giro di prova · VID {vid} · {giorno}", testo.ToString());
+        return ($"Giro «{giro.Titolo}» v{giro.Versione} · VID {vid} · {giorno}", testo.ToString());
     }
+
+    private const string GiriDalServerCartella = Core.Git.GiriDalServer.Cartella;
 
     /// <summary>
     /// La pagina di GitHub «nuova issue» già compilata (K8), sul repo <c>owner/repo</c>. Se il testo non sta nel link
@@ -209,8 +304,8 @@ public static class GiroDiProva
         return errori.Count > ErroriNellIssue ? errori.GetRange(errori.Count - ErroriNellIssue, ErroriNellIssue) : errori;
     }
 
-    private static int Conta(IReadOnlyDictionary<string, EsitoDelGiro> esiti, EsitoDelCompito quale) =>
-        Compiti.Count(c => !c.SoloNota && esiti.GetValueOrDefault(c.Id)?.Esito == quale);
+    private static int Conta(Giro giro, IReadOnlyDictionary<string, EsitoDelGiro> esiti, EsitoDelCompito quale) =>
+        giro.Compiti.Count(c => !c.SoloNota && esiti.GetValueOrDefault(c.Id)?.Esito == quale);
 
     /// <summary>Una cella della tabella markdown: niente «|» e niente a capo.</summary>
     private static string Cella(string? testo) => string.IsNullOrWhiteSpace(testo)

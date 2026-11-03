@@ -404,10 +404,13 @@ public sealed partial class SessioneDelLab
         _ = ValidaLAlberoAsync();
         // Il ramo git (carta F4, slice 1): senza chiedere al server, che può non rispondere; «Prendi» lo chiede.
         _ = RileggiIlRamoAsync();
+        // I giri di prova dal fork (carta del 3 novembre, P2): dopo la lettura del ramo, solo col giro acceso.
+        if (GiroAcceso)
+            _ = CercaIGiriAsync();
         return true;
     }
 
-    // --- git (carta F4) ---------------------------------------------------------------------------------------------
+    // --- git (carta F4)---------------------------------------------------------------------------------------------
 
     /// <summary>Il git dell'AOD (Git for Windows): i test ne passano uno loro solo per dire che non c'è.</summary>
     public Core.Git.Git Git { get; init; } = new();

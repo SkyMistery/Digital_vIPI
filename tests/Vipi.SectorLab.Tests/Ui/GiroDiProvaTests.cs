@@ -119,7 +119,7 @@ public sealed class GiroDiProvaTests : IDisposable
     {
         var lab = NuovoLab();
         lab.AccendiIlGiro();
-        var ultimo = GiroDiProva.Compiti[^1];
+        var ultimo = GiroDiProva.PrimiPassi.Compiti[^1];
         Assert.True(ultimo.SoloNota);
 
         lab.ScriviLaNota(ultimo.Id, "  le aerovie in un altro colore  ");
@@ -148,7 +148,8 @@ public sealed class GiroDiProvaTests : IDisposable
         Assert.StartsWith("https://github.com/SkyMistery/it-aurora-sector-test/issues/new?title=", pagina.AbsoluteUri, StringComparison.Ordinal);
         string titolo = Parametro(pagina, "title");
         string testo = Parametro(pagina, "body");
-        Assert.Equal("Giro di prova · VID 123456 · 03/11/2026", titolo);
+        Assert.Equal("Giro «Primi passi» v1 · VID 123456 · 03/11/2026", titolo);
+        Assert.StartsWith("**Giro** Primi passi v1 (dentro il Lab)\n", testo, StringComparison.Ordinal);
         Assert.Contains("2 compiti su 12: ✅ 1 · ❌ 1 · ❓ 0", testo, StringComparison.Ordinal);
         Assert.Contains("| ✅ | G1 Chi sei e che Aurora usi |  |", testo, StringComparison.Ordinal);
         Assert.Contains("| ❌ | G4 Modificare sulla mappa | lo stand \\| torna indietro<br>al rilascio |", testo, StringComparison.Ordinal);
@@ -160,9 +161,9 @@ public sealed class GiroDiProvaTests : IDisposable
     [Fact]
     public void UnTestoLungoSiTagliaEDiceDoveStaIlFile()
     {
-        var esiti = GiroDiProva.Compiti.ToDictionary(c => c.Id,
+        var esiti = GiroDiProva.PrimiPassi.Compiti.ToDictionary(c => c.Id,
             c => new EsitoDelGiro(c.Id, c.SoloNota ? null : EsitoDelCompito.NonVa, new string('à', 400), DateTime.Now));
-        var (titolo, testo) = GiroDiProva.Issue("123456", "1.0.0", "Windows", DateTime.Now, esiti, ["2026-11-03 10:00:00.000 [  1] ERRORE       x"]);
+        var (titolo, testo) = GiroDiProva.Issue(GiroDiProva.PrimiPassi, "123456", "1.0.0", "Windows", DateTime.Now, esiti, ["2026-11-03 10:00:00.000 [  1] ERRORE       x"]);
 
         var (pagina, tagliato) = GiroDiProva.PaginaDellaIssue("o/r", titolo, testo, @"C:\kit\dati\esiti-del-giro.md");
 
@@ -198,7 +199,7 @@ public sealed class GiroDiProvaTests : IDisposable
     [Fact]
     public void ICompitiHannoUnNomeSoloEUnaPaginaCheCe()
     {
-        var compiti = GiroDiProva.Compiti;
+        var compiti = GiroDiProva.PrimiPassi.Compiti;
         Assert.Equal(compiti.Count, compiti.Select(c => c.Id).Distinct(StringComparer.Ordinal).Count());
         foreach (var compito in compiti.Where(c => c.Pagina is not null))
         {

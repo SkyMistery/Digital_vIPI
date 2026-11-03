@@ -1,0 +1,78 @@
+{
+  "id": "ground",
+  "titolo": "Il ground dello scalo",
+  "versione": 1,
+  "perChi": "Chi ritocca piazzali, taxiway ed edifici. Sono gesti sul sector di prova: alla fine «Annulla tutto», non salvare",
+  "compiti": [
+    {
+      "id": "1",
+      "titolo": "Lavorare sul tuo scalo",
+      "pagina": "Sector",
+      "fai": "Nella colonna di sinistra la linguetta «Scali»: scegli il tuo scalo, poi «◎ Lavora su …».",
+      "dovresti": "La mappa va sul sedime e mostra solo lo scalo; in testa alla colonna il suo nome con «⌖ Lo scalo» ed «esci»; gli strati sono dietro il tasto «Strati ▾», sopra la mappa."
+    },
+    {
+      "id": "2",
+      "titolo": "Il resto in grigio",
+      "pagina": "Sector",
+      "fai": "Spunta «il resto del sector in grigio», allarga la mappa con la rotella e clicca un disegno di un altro scalo; poi togli la spunta.",
+      "dovresti": "Gli altri scali si vedono grigi e tenui, e il clic su di loro non sceglie niente; senza la spunta spariscono."
+    },
+    {
+      "id": "3",
+      "titolo": "Un file dello scalo",
+      "pagina": "Sector",
+      "fai": "Nell'elenco dello scalo apri il file .geo dei disegni e scegli un record; poi clicca una taxiway sulla mappa; poi «⌖ Portami lì» nella Scheda.",
+      "dovresti": "Il file si apre lì sotto, coi suoi record; scegliere un record non sposta la mappa, «⌖ Portami lì» la porta sul record."
+    },
+    {
+      "id": "4",
+      "titolo": "Spostare un vertice",
+      "pagina": "Sector",
+      "fai": "Scegli un edificio o un piazzale; nella Scheda, gruppo Geometria, «✎ Modifica sulla mappa». Trascina una maniglia e lasciala; poi Ctrl+Z.",
+      "dovresti": "Un cerchietto su ogni vertice; la forma va dove lasci la maniglia e nelle Modifiche c'è «vertice spostato»; Ctrl+Z la rimette com'era."
+    },
+    {
+      "id": "5",
+      "titolo": "Aggiungere e togliere un vertice",
+      "pagina": "Sector",
+      "fai": "Con «✎ Modifica sulla mappa» acceso: trascina il cerchietto piccolo che sta fra due maniglie; poi clic destro su una maniglia e «Togli il vertice …».",
+      "dovresti": "Un vertice nuovo dove lasci il cerchietto («vertice aggiunto»); il clic destro apre il tasto che toglie il vertice («vertice tolto»)."
+    },
+    {
+      "id": "6",
+      "titolo": "La calamita",
+      "pagina": "Sector",
+      "fai": "Trascina una maniglia vicino al vertice di un'altra forma, senza lasciarla; poi lasciala. Rifallo tenendo premuto Alt.",
+      "dovresti": "Vicino a un punto compare un anello arancio, e lasciata la maniglia il vertice prende la coordinata esatta di quel punto; con Alt l'anello non c'è e il vertice va dove lo lasci."
+    },
+    {
+      "id": "7",
+      "titolo": "Disegnare a clic",
+      "pagina": "Sector",
+      "fai": "Su un record che vuoi rifare (o su uno nuovo, con «+ Record come questo»): «✎ Disegna sulla mappa», clicca i punti uno dopo l'altro, poi Invio. Esc lascia stare.",
+      "dovresti": "Ogni clic un punto e la forma tratteggiata che segue il mouse; con Invio i punti prendono il posto dei vertici, e Ctrl+Z rimette la forma di prima."
+    },
+    {
+      "id": "8",
+      "titolo": "La Scheda a striscia",
+      "pagina": "Sector",
+      "fai": "Sempre sullo scalo: in testa alla Scheda il tasto «‹»; scegli altri record sulla mappa; poi «‹ Scheda».",
+      "dovresti": "La Scheda diventa una striscia stretta e la mappa si allarga fino a lei; scegliendo altri record resta stretta; «‹ Scheda» la riapre."
+    },
+    {
+      "id": "9",
+      "titolo": "Le modifiche dello scalo",
+      "pagina": "Consegna",
+      "fai": "In Consegna guarda le modifiche fatte; premi «Annulla quelle di …», poi «Annulla tutto». Torna alla Mappa ed «esci» dallo scalo.",
+      "dovresti": "In testa le modifiche dello scalo, per prime; il tasto annulla solo quelle; alla fine nessuna modifica, e fuori dallo scalo la mappa torna al sector intero."
+    },
+    {
+      "id": "10",
+      "titolo": "Che cosa ti è mancato?",
+      "fai": "Per ritoccare il ground del tuo scalo: che cosa non hai trovato, che cosa è scomodo, che cosa faresti diverso?",
+      "dovresti": "Scrivilo qui sotto e premi «Scrivi la nota».",
+      "soloNota": true
+    }
+  ]
+}
