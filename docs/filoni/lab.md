@@ -4,6 +4,19 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+**3 novembre: il kit di prova per gli AOD** (committente: «voglio distribuire il tool agli AOD così loro fanno i test.
+Però non ho il tempo di spiegargli come funziona»; proposta in tre pezzi approvata). Carta
+[`2026-11-03-kit-di-prova-per-gli-aod.md`](../feature/2026-11-03-kit-di-prova-per-gli-aod.md). Il **Giro di prova**:
+acceso dal `.cmd` del kit (`--giro-di-prova`, poi ricordato nei dati), un pannello in basso a destra sopra ogni pagina coi
+dodici compiti G1-G12, uno alla volta (Fai, Dovresti vedere, «Vai a …»), ✅ Va · ❌ Non va · ❓ Non ho capito e una nota,
+i pallini per saltare; «🧪 Giro 3/12» nella barra lo apre e lo chiude. **Manda gli esiti** apre nel browser la issue già
+scritta sul repo del sector (il fork di prova): VID, versione con l'impronta, una riga per compito, gli ultimi 15 errori
+del registro; un testo troppo lungo per il link si taglia e dice di trascinare `esiti-del-giro.md` dai dati. Il primo
+avvio nasce con la cartella di lavoro scritta (`--lavoro-proposto`). Lo zip lo fa `tools/kit-aod/prepara-kit.ps1` (Lab in
+`app\`, `Avvia il Lab.cmd`, LEGGIMI per chi non ha mai visto il Lab). Al committente: accendere le Issues sul fork di prova
+e invitare gli AOD sui due repo di prova (l'AIP espanso è privato). Visto sul banco: la barra in alto a 1 400 px era già
+più larga dello schermo (1 597 px) prima del tasto del giro; resta così. Nessun codice comune. Lab 1 602 (+9).
+
 **2 novembre, sera: lavorare su un settore** (R7 della carta [`2026-11-02-lavorare-su-uno-scalo.md`](../feature/2026-11-02-lavorare-su-uno-scalo.md);
 il committente: «Comincia R7», prima delle prove sullo scalo). Il fuoco anche su una **posizione** ATC (D2): linguetta
 **Settori**, «◎ Lavora su LIRR_NC_CTR», e la mappa mostra solo il suo settore del `.tfl`, il suo bordo (`RR NC` in

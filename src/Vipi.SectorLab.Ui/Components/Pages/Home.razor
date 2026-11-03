@@ -140,6 +140,12 @@
             }
             </div>
         </div>
+
+        @* Il kit di prova per gli AOD (K5): il Giro sta sopra la pagina, anche dove la mappa non c'è. *@
+        @if (Lab.GiroAcceso && Lab.GiroAperto)
+        {
+            <GiroDiProvaVista />
+        }
     </div>
 }
 else
@@ -297,6 +303,9 @@ else
         return Enum.GetValues<SpazioDiLavoro>().Where(_spaziVisti.Contains);
     }
     private string? _lavoro;
+
+    // K2 del kit per gli AOD: la cartella di lavoro proposta (--lavoro-proposto) nasce scritta.
+    protected override void OnParametersSet() => _lavoro ??= Lab.LavoroProposto;
 
     private Task PrendiUnAltro() => Lab.PrendiUnAltroSectorAsync(_nomeDelSector);
 

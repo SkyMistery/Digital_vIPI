@@ -1,0 +1,156 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Il Giro di prova del kit per gli AOD (carta «Il kit di prova per gli AOD», K5-K8): un compito alla volta, sopra la
+    pagina; i tre esiti e la nota; i pallini per saltare; «Manda gli esiti» apre la issue già scritta su GitHub.
+*@
+@{
+    var compiti = GiroDiProva.Compiti;
+    var compito = compiti[Lab.CompitoAperto];
+    var esito = Lab.EsitiDelGiro.GetValueOrDefault(compito.Id);
+}
+<aside class="lab-giro" data-giro aria-label="Giro di prova">
+    <header class="lab-giro-testa">
+        <strong>🧪 Giro di prova</strong>
+        <span class="lab-nota" data-giro-fatti>@Lab.CompitiFatti di @compiti.Count fatti</span>
+        <button type="button" class="lab-annulla" data-tasto="giro-chiudi" title="Chiude il pannello: il tasto «Giro di prova» in alto lo riapre"
+                @onclick="Lab.ApriOChiudiIlGiro">×</button>
+    </header>
+
+    <nav class="lab-giro-pallini" aria-label="I compiti">
+        @for (int i = 0; i < compiti.Count; i++)
+        {
+            int questo = i;
+            var suo = Lab.EsitiDelGiro.GetValueOrDefault(compiti[i].Id);
+            <button type="button" class="lab-giro-pallino" data-pallino="@compiti[i].Id" data-esito="@DiCheEsito(compiti[i], suo)"
+                    aria-current="@(i == Lab.CompitoAperto ? "step" : null)"
+                    title="@($"{compiti[i].Id} · {compiti[i].Titolo}{(GiroDiProva.Fatto(compiti[i], suo) ? " · " + NomeDellEsito(compiti[i], suo) : "")}")"
+                    @onclick="() => Lab.VaiAlCompito(questo)">@(i + 1)</button>
+        }
+    </nav>
+
+    <section class="lab-giro-compito" data-compito="@compito.Id">
+        <h3 class="lab-giro-titolo">@compito.Id · @compito.Titolo</h3>
+        <p><span class="lab-giro-etichetta">Fai</span> @compito.Fai</p>
+        <p><span class="lab-giro-etichetta">Dovresti vedere</span> @compito.DovrestiVedere</p>
+        @if (compito.Pagina is { } pagina)
+        {
+            @if (Lab.Pagina == pagina)
+            {
+                <p class="lab-nota" data-giro-pagina="qui">Sei già in @GiroDiProva.NomeDellaPagina(pagina).</p>
+            }
+            else
+            {
+                <p><button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="giro-vai"
+                           @onclick="() => Lab.VaiAllaPaginaDelCompito(compito)">Vai a @GiroDiProva.NomeDellaPagina(pagina)</button></p>
+            }
+        }
+
+        <textarea class="lab-giro-nota" rows="3" data-campo="giro-nota" @bind="_nota" @bind:event="oninput"
+                  placeholder="@(compito.SoloNota ? "Scrivi qui" : "Una nota: che cosa hai visto, dove ti sei fermato (se va tutto, anche niente)")"></textarea>
+
+        @if (compito.SoloNota)
+        {
+            <p><button type="button" class="lab-tasto" data-tasto="giro-scrivi-la-nota" disabled="@string.IsNullOrWhiteSpace(_nota)"
+                       @onclick="() => Lab.ScriviLaNota(compito.Id, _nota)">Scrivi la nota</button></p>
+        }
+        else
+        {
+            <p class="lab-giro-esiti">
+                @foreach (var (quale, nome, spiega) in Esiti)
+                {
+                    <button type="button" class="lab-tasto @(esito?.Esito == quale ? null : "lab-tasto-tenue")" data-tasto="@($"giro-{quale.ToString().ToLowerInvariant()}")"
+                            aria-pressed="@(esito?.Esito == quale ? "true" : "false")" title="@spiega"
+                            @onclick="() => Lab.DaiLEsito(compito.Id, quale, _nota)">@nome</button>
+                }
+            </p>
+            @if (esito?.Esito is not null && !string.Equals(esito.Nota ?? "", _nota?.Trim() ?? "", StringComparison.Ordinal))
+            {
+                <p><button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="giro-scrivi-la-nota"
+                           @onclick="() => Lab.ScriviLaNota(compito.Id, _nota)">Scrivi la nota</button>
+                    <span class="lab-nota">(l'esito resta @NomeDellEsito(compito, esito))</span></p>
+            }
+        }
+        @if (GiroDiProva.Fatto(compito, esito))
+        {
+            <p class="lab-nota" data-giro-dato>Dato il @esito!.Quando.ToString("dd/MM HH:mm"): @NomeDellEsito(compito, esito).</p>
+        }
+    </section>
+
+    <footer class="lab-giro-piede">
+        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="giro-prima" disabled="@(Lab.CompitoAperto == 0)"
+                @onclick="() => Lab.VaiAlCompito(Lab.CompitoAperto - 1)">‹ Prima</button>
+        <button type="button" class="lab-tasto lab-tasto-tenue" data-tasto="giro-dopo" disabled="@(Lab.CompitoAperto == compiti.Count - 1)"
+                @onclick="() => Lab.VaiAlCompito(Lab.CompitoAperto + 1)">Dopo ›</button>
+        <span class="lab-barra-spazio"></span>
+        <button type="button" class="lab-tasto" data-tasto="giro-manda" disabled="@(Lab.CompitiFatti == 0)"
+                title="Apre GitHub con la issue già scritta (esiti, note, errori del registro): la mandi tu, con «Submit new issue». Si può mandare anche a metà, e di nuovo dopo"
+                @onclick="() => Lab.MandaGliEsiti()">Manda gli esiti</button>
+    </footer>
+    @if (Lab.PercheNonMandaGliEsiti is { } perche)
+    {
+        <p class="lab-avviso-breve" data-giro-rifiuto>@perche</p>
+    }
+    else if (Lab.PaginaDegliEsiti is not null)
+    {
+        <p class="lab-nota" data-giro-mandato>
+            Si è aperta GitHub con la issue già scritta: premi «Submit new issue».
+            @if (Lab.EsitiTagliati)
+            {
+                <span data-giro-tagliato>Il testo era lungo e nel link ne sta una parte: trascina nella issue il file
+                    <code>@GiroDiProva.FileDegliEsiti</code>
+                    (<button type="button" class="lab-voce" data-tasto="giro-mostra-il-file" @onclick="Lab.ApriLaCartellaDegliEsiti">mostra il file</button>).</span>
+            }
+        </p>
+    }
+</aside>
+
+@code {
+    private static readonly (EsitoDelCompito Quale, string Nome, string Perche)[] Esiti =
+    [
+        (EsitoDelCompito.Va, "✅ Va", "Hai visto quel che dice «Dovresti vedere»"),
+        (EsitoDelCompito.NonVa, "❌ Non va", "Hai visto altro, o il Lab ha dato un errore: scrivi che cosa nella nota"),
+        (EsitoDelCompito.NonHoCapito, "❓ Non ho capito", "Non hai capito che cosa fare, o dove: anche questo serve, scrivi dove ti sei fermato"),
+    ];
+
+    private string? _nota;
+    private string? _notaDel;
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    // La nota segue il compito aperto: cambiando compito torna quella scritta per lui (o vuota).
+    protected override void OnParametersSet() => RiprendiLaNota();
+
+    private void RiprendiLaNota()
+    {
+        string id = GiroDiProva.Compiti[Lab.CompitoAperto].Id;
+        if (_notaDel == id)
+            return;
+        _notaDel = id;
+        _nota = Lab.EsitiDelGiro.GetValueOrDefault(id)?.Nota;
+    }
+
+    private static string DiCheEsito(CompitoDelGiro compito, EsitoDelGiro? esito) =>
+        !GiroDiProva.Fatto(compito, esito) ? "nessuno"
+        : compito.SoloNota ? "nota"
+        : esito!.Esito!.Value.ToString().ToLowerInvariant();
+
+    private static string NomeDellEsito(CompitoDelGiro compito, EsitoDelGiro? esito) =>
+        compito.SoloNota ? "nota scritta"
+        : esito?.Esito switch
+        {
+            EsitoDelCompito.Va => "✅ va",
+            EsitoDelCompito.NonVa => "❌ non va",
+            EsitoDelCompito.NonHoCapito => "❓ non ho capito",
+            _ => "nessun esito",
+        };
+
+    private void Aggiorna() => InvokeAsync(() =>
+    {
+        RiprendiLaNota();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

@@ -399,6 +399,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-11-01-editor-sulla-mappa.md`](feature/2026-11-01-editor-sulla-mappa.md) — L'editor sulla mappa — F9 (1 novembre 2026)
 - [`feature/2026-11-01-indice-rifatto.md`](feature/2026-11-01-indice-rifatto.md) — L'Indice dell'AIP espanso, rifatto (1 novembre 2026)
 - [`feature/2026-11-02-lavorare-su-uno-scalo.md`](feature/2026-11-02-lavorare-su-uno-scalo.md) — Lavorare su uno scalo o su un settore (2 novembre 2026)
+- [`feature/2026-11-03-kit-di-prova-per-gli-aod.md`](feature/2026-11-03-kit-di-prova-per-gli-aod.md) — Il kit di prova per gli AOD (3 novembre 2026)
 
 ### `filoni`
 

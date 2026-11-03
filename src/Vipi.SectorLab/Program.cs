@@ -21,6 +21,8 @@ using WinForms = System.Windows.Forms;
 /// <para><c>--dati &lt;cartella&gt;</c>: i dati del Lab (ultima cartella, recenti, impostazioni, backup, registro, WebView2)
 /// stanno lì invece che in <c>%LOCALAPPDATA%\VipiSectorLab</c>. Con una cartella vuota è il primo avvio di un AOD.
 /// L'autoprova senza <c>--dati</c> usa una cartella temporanea sua.</para>
+/// <para>Il kit di prova per gli AOD (3 novembre): <c>--lavoro-proposto &lt;cartella&gt;</c> scrive la cartella di lavoro nel
+/// primo avvio; <c>--giro-di-prova</c> accende il Giro di prova (poi ricordato nei dati).</para>
 /// </summary>
 internal static class Program
 {
@@ -90,8 +92,17 @@ internal static class Program
             e.SetObserved();
         };
 
+        // Il kit di prova per gli AOD (3 novembre, K2-K3): la cartella di lavoro proposta al primo avvio, e il Giro di prova.
+        {
+            var lab = server.Services.GetRequiredService<SessioneDelLab>();
+            if (Valore(args, "--lavoro-proposto") is { Length: > 0 } proposto)
+                lab.LavoroProposto = proposto;
+            if (args.Contains("--giro-di-prova", StringComparer.OrdinalIgnoreCase))
+                lab.AccendiIlGiro();
+        }
+
         // Il Lab lavora nel suo ambiente (20 ottobre): senza --cartella riapre da sé il sector dell'ambiente di lavoro.
-        cartellaDaAprire ??= server.Services.GetRequiredService<SessioneDelLab>().SectorDaRiaprire();
+        cartellaDaAprire ??=server.Services.GetRequiredService<SessioneDelLab>().SectorDaRiaprire();
         bool cartellaAperta = false;
         if (cartellaDaAprire is not null)
         {

@@ -47,6 +47,13 @@
             <span class="lab-nota">@(Lab.StaLeggendoIlRamo || Lab.StaCambiandoRamo ? "…" : ramo.InParole())</span>
         </button>
     }
+    @* Il kit di prova per gli AOD (K5): il Giro si apre e si chiude da qui, coi compiti fatti. *@
+    @if (Principale && Lab.GiroAcceso)
+    {
+        <button class="lab-tasto lab-tasto-tenue" data-tasto="giro" aria-pressed="@(Lab.GiroAperto ? "true" : "false")"
+                title="@(Lab.GiroAperto ? "Chiude il pannello del Giro di prova" : "Apre il Giro di prova: i compiti da provare, uno alla volta")"
+                @onclick="Lab.ApriOChiudiIlGiro">🧪 Giro @Lab.CompitiFatti/@GiroDiProva.Compiti.Count</button>
+    }
     <Storia />
     <button class="lab-tasto" disabled="@(Lab.Modifiche.Quante == 0 || Lab.StaSalvando)" @onclick="() => Lab.SalvaAsync()"
             title="@(Lab.Modifiche.Quante == 0 ? "Niente da salvare" : "Scrive le modifiche in sospeso nei file (Ctrl+S); l'elenco col diff sta nelle Modifiche")"

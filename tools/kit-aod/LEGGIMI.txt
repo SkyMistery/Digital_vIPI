@@ -1,0 +1,38 @@
+AURORA SECTOR LAB - VERSIONE DI PROVA PER GLI AOD
+Eseguibile {SHA}, preparato il {DATA}
+
+Il Lab non ha bisogno di spiegazioni: dentro c'è il "Giro di prova", dodici compiti corti
+che ti portano in giro per il programma. Qui sotto solo come farlo partire.
+
+
+PRIMA, UNA VOLTA SOLA
+1. GitHub. Ti servono un account GitHub (gratis, github.com) e due inviti, che arrivano per email:
+   it-aurora-sector-test e it-aip-espanso-test. Accettali tutti e due. Se non ti sono arrivati,
+   manda il tuo nome GitHub a chi ti ha dato questo zip.
+2. Git for Windows: https://git-scm.com/download/win  (installazione con le scelte proposte).
+3. Aurora installata su questo PC: il Lab ne legge i colori e i profili.
+Serve Windows 10 o 11 a 64 bit.
+
+
+AVVIO
+1. Tasto destro sullo zip -> "Estrai tutto..." in una cartella tua (per esempio D:\IVAO).
+   Non lanciarlo da dentro lo zip.
+2. Doppio clic su "Avvia il Lab.cmd".
+   Se Windows dice "Windows ha protetto il PC": "Ulteriori informazioni" -> "Esegui comunque"
+   (il programma non è firmato).
+3. Primo avvio: è già tutto scritto. Premi "Prepara tutto" e aspetta qualche minuto.
+   Se git ti chiede di entrare in GitHub (una sua finestra), entra col tuo account.
+4. Si apre il Lab col pannello "Giro di prova" in basso a destra. Fai i compiti uno alla volta;
+   per ognuno premi "Va", "Non va" o "Non ho capito", e scrivi una nota se serve.
+   "Non ho capito" è una risposta utile quanto le altre: dice dove il Lab non si spiega da solo.
+5. Alla fine (o anche a metà) premi "Manda gli esiti": si apre GitHub con la segnalazione già
+   scritta. Premi "Submit new issue". Fatto.
+
+
+DA SAPERE
+- Lavori su una COPIA di prova del sector: niente di quello che fai arriva al sector vero.
+- Tutto sta nella cartella estratta. Per ricominciare da zero: chiudi il Lab, cancella le
+  cartelle "dati" e "lavoro", riavvia da "Avvia il Lab.cmd".
+- Il pannello del giro si chiude con la x e si riapre col tasto "Giro di prova" in alto.
+- Qualcosa si è rotto? Scrivilo nella nota del compito: "Manda gli esiti" porta con sé
+  anche gli errori registrati dal Lab.
