@@ -15,7 +15,9 @@ del registro; un testo troppo lungo per il link si taglia e dice di trascinare `
 avvio nasce con la cartella di lavoro scritta (`--lavoro-proposto`). Lo zip lo fa `tools/kit-aod/prepara-kit.ps1` (Lab in
 `app\`, `Avvia il Lab.cmd`, LEGGIMI per chi non ha mai visto il Lab). Al committente: accendere le Issues sul fork di prova
 e invitare gli AOD sui due repo di prova (l'AIP espanso è privato). Visto sul banco: la barra in alto a 1 400 px era già
-più larga dello schermo (1 597 px) prima del tasto del giro; resta così. Nessun codice comune. Lab 1 602 (+9).
+più larga dello schermo (1 597 px) prima del tasto del giro; resta così. Provato da zero sul banco (dati vuoti, «Prepara
+tutto» coi repo di prova veri): l'Indice dell'AIP chiede prima il ciclo («Lavora su questo», la scelta del 26 ottobre), e
+G7 ora lo dice. Nessun codice comune. Lab 1 602 (+9).
 
 **2 novembre, sera: lavorare su un settore** (R7 della carta [`2026-11-02-lavorare-su-uno-scalo.md`](../feature/2026-11-02-lavorare-su-uno-scalo.md);
 il committente: «Comincia R7», prima delle prove sullo scalo). Il fuoco anche su una **posizione** ATC (D2): linguetta

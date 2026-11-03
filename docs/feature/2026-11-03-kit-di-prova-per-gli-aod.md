@@ -71,7 +71,7 @@ lungo non lo legge nessuno, e le domande tornerebbero al committente.
 | G4 | Sector · Mappa | Scegli uno stand o una taxiway; **✎ Modifica sulla mappa**, trascina un vertice o lo stand | La forma si sposta; in barra «Salva (1)» |
 | G5 | Sector · Consegna | Guarda la modifica col suo diff; **Annulla** | Le righe prima e dopo; annullata, la barra torna a «Salva» |
 | G6 | Sector · Mappa | Linguetta **Settori**, una posizione, **◎ Lavora su …**, poi **esci** | Il settore e, in grigio, quelli accanto; uscito, il sector intero |
-| G7 | AIP espanso · Indice | Cerca una voce del tuo scalo (una SID, un punto) e aprila | La scheda della voce e la sua forma sulla mappa |
+| G7 | AIP espanso · Lettura e consegna | La prima volta «Lavora su questo» sul ciclo in vigore (su un ambiente nuovo l'Indice lo chiede, visto da zero sul banco); poi nell'Indice cerca una voce del tuo scalo | La scheda della voce e la sua forma sulla mappa |
 | G8 | Confronti | Apri **Punti significativi**: guarda uguali, diverse, mancanti; apri una riga diversa | I due lati sulla mappa, arancio (AIP) e blu (sector); il gesto per portare l'AIP nel sector |
 | G9 | Sector · Testo | Apri un file, cambia una riga, **Applica**; poi annulla in Consegna | La modifica in sospeso come le altre |
 | G10 | Sector · Mappa | **Problemi** (in barra «N errori · M avvisi»): aprine uno | La voce del problema e il record che lo dà |

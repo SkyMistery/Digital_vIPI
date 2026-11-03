@@ -57,8 +57,9 @@ public static class GiroDiProva
         new("G6", "Lavorare su un settore", PaginaDelLab.Sector,
             "Esci dallo scalo; linguetta Settori: scegli una posizione, «◎ Lavora su …»; poi «esci».",
             "Il settore sulla mappa e, in grigio, quelli accanto; uscito, di nuovo il sector intero."),
-        new("G7", "L'AIP espanso", PaginaDelLab.AipIndice,
-            "Nell'Indice cerca una voce del tuo scalo (una SID, un punto) e aprila.",
+        // Su un ambiente nuovo l'Indice chiede prima il ciclo (26 ottobre: il ciclo lo sceglie l'AOD): visto da zero sul banco.
+        new("G7", "L'AIP espanso", PaginaDelLab.Aip,
+            "La prima volta scegli il ciclo: qui, sulla riga del ciclo in vigore, «Lavora su questo». Poi apri l'Indice (in alto, AIP espanso) e cerca una voce del tuo scalo: una SID, un punto.",
             "La scheda della voce com'è nell'AIP, e la sua forma sulla mappa."),
         new("G8", "Confrontare l'AIP col sector", PaginaDelLab.Confronti,
             "Apri la sezione «Punti significativi»: guarda uguali, diverse e mancanti; apri una riga diversa.",
