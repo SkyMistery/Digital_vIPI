@@ -1,6 +1,6 @@
 **Versione di prova per gli AOD.** Si lavora su una copia di prova del sector: niente di quello che fai arriva al sector vero.
 
-Il Lab si spiega da solo: dentro c'è il **Giro di prova**, dodici compiti corti che ti portano in giro per il programma. Qui sotto solo come farlo partire.
+Il Lab si spiega da solo: dentro ci sono i **giri di prova**, compiti corti che ti portano in giro per il programma. Si comincia da «Primi passi»; gli altri giri (per esempio «Il ground dello scalo») arrivano da soli nel pannello, senza riscaricare niente. Qui sotto solo come farlo partire.
 
 ### Prima, una volta sola
 
@@ -16,13 +16,13 @@ Serve Windows 10 o 11 a 64 bit.
 2. Tasto destro sullo zip → **Estrai tutto…** in una cartella tua (per esempio `D:\IVAO`). Non lanciarlo da dentro lo zip.
 3. Doppio clic su **Avvia il Lab.cmd**. Se Windows dice «Windows ha protetto il PC»: **Ulteriori informazioni** → **Esegui comunque** (il programma non è firmato).
 4. Primo avvio: è già tutto scritto. Premi **Prepara tutto** e aspetta qualche minuto. Se git ti chiede di entrare in GitHub, entra col tuo account.
-5. In basso a destra il pannello **🧪 Giro di prova**: fai i compiti uno alla volta, e per ognuno ✅ **Va**, ❌ **Non va** o ❓ **Non ho capito**, con una nota se serve. «Non ho capito» è utile quanto le altre: dice dove il Lab non si spiega da solo.
-6. Alla fine, o anche a metà, **Manda gli esiti**: si apre GitHub con la segnalazione già scritta. Premi **Submit new issue**.
+5. In basso a destra il pannello **🧪**: in testa la tendina dei giri («nuovo» = uno che non hai ancora aperto). Fai i compiti uno alla volta, e per ognuno ✅ **Va**, ❌ **Non va** o ❓ **Non ho capito**, con una nota se serve. «Non ho capito» è utile quanto le altre: dice dove il Lab non si spiega da solo.
+6. Alla fine di un giro, o anche a metà, **Manda gli esiti**: si apre GitHub con la segnalazione di quel giro già scritta. Premi **Submit new issue**. **Ricomincia** svuota il giro, per rifarlo con una versione nuova.
 
 ### Da sapere
 
 - Tutto sta nella cartella estratta. Per ricominciare da zero: chiudi il Lab, cancella le cartelle `dati` e `lavoro`, riavvia da «Avvia il Lab.cmd».
-- Una versione nuova si scarica da qui: chiudi il Lab ed estrai lo zip nuovo nella stessa cartella, sostituendo i file. `dati` e `lavoro` restano, col Giro dov'eri arrivato.
+- Una versione nuova si scarica da qui: chiudi il Lab ed estrai lo zip nuovo nella stessa cartella, sostituendo i file. `dati` e `lavoro` restano, coi giri dov'eri arrivato.
 - Qualcosa si è rotto? Scrivilo nella nota del compito: «Manda gli esiti» porta con sé anche gli errori registrati dal Lab.
 
 ---

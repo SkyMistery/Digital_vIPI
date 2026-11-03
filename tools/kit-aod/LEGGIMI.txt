@@ -1,8 +1,9 @@
 AURORA SECTOR LAB - VERSIONE DI PROVA PER GLI AOD
 Eseguibile {SHA}, preparato il {DATA}
 
-Il Lab non ha bisogno di spiegazioni: dentro c'è il "Giro di prova", dodici compiti corti
-che ti portano in giro per il programma. Qui sotto solo come farlo partire.
+Il Lab non ha bisogno di spiegazioni: dentro ci sono i "giri di prova", compiti corti che ti
+portano in giro per il programma. Si comincia da "Primi passi"; gli altri giri arrivano da soli
+nel pannello, senza riscaricare niente. Qui sotto solo come farlo partire.
 
 
 PRIMA, UNA VOLTA SOLA
@@ -22,17 +23,19 @@ AVVIO
    (il programma non è firmato).
 3. Primo avvio: è già tutto scritto. Premi "Prepara tutto" e aspetta qualche minuto.
    Se git ti chiede di entrare in GitHub (una sua finestra), entra col tuo account.
-4. Si apre il Lab col pannello "Giro di prova" in basso a destra. Fai i compiti uno alla volta;
-   per ognuno premi "Va", "Non va" o "Non ho capito", e scrivi una nota se serve.
+4. Si apre il Lab col pannello dei giri in basso a destra; in testa la tendina per sceglierli
+   ("nuovo" = uno che non hai ancora aperto). Fai i compiti uno alla volta; per ognuno premi
+   "Va", "Non va" o "Non ho capito", e scrivi una nota se serve.
    "Non ho capito" è una risposta utile quanto le altre: dice dove il Lab non si spiega da solo.
-5. Alla fine (o anche a metà) premi "Manda gli esiti": si apre GitHub con la segnalazione già
-   scritta. Premi "Submit new issue". Fatto.
+5. Alla fine di un giro (o anche a metà) premi "Manda gli esiti": si apre GitHub con la
+   segnalazione di quel giro già scritta. Premi "Submit new issue". Fatto.
 
 
 DA SAPERE
 - Lavori su una COPIA di prova del sector: niente di quello che fai arriva al sector vero.
 - Tutto sta nella cartella estratta. Per ricominciare da zero: chiudi il Lab, cancella le
   cartelle "dati" e "lavoro", riavvia da "Avvia il Lab.cmd".
-- Il pannello del giro si chiude con la x e si riapre col tasto "Giro di prova" in alto.
+- Il pannello dei giri si chiude con la x e si riapre col tasto della provetta in alto.
+  "Ricomincia" svuota un giro, per rifarlo con una versione nuova del Lab.
 - Qualcosa si è rotto? Scrivilo nella nota del compito: "Manda gli esiti" porta con sé
   anche gli errori registrati dal Lab.
