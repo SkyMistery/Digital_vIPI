@@ -4,6 +4,11 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+**3 novembre, dopo la release: la carta «I giri di prova dal fork»** ([`2026-11-03-giri-di-prova-dal-fork.md`](../feature/2026-11-03-giri-di-prova-dal-fork.md)),
+da approvare (committente: «Se volessimo fargli fare più test come facciamo?»). Più giri scelti dal pannello, letti da
+`giri/*.json` sul `master` del fork di prova con git (dopo il `fetch` che il Lab fa già), copiati nei dati per quando
+manca la rete; esiti e issue per giro; «Ricomincia questo giro». Sei giri proposti per la prima ondata, tre domande.
+
 **3 novembre: il kit di prova per gli AOD** (committente: «voglio distribuire il tool agli AOD così loro fanno i test.
 Però non ho il tempo di spiegargli come funziona»; proposta in tre pezzi approvata). Carta
 [`2026-11-03-kit-di-prova-per-gli-aod.md`](../feature/2026-11-03-kit-di-prova-per-gli-aod.md). Il **Giro di prova**:
