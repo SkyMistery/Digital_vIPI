@@ -4312,6 +4312,10 @@
   <data name="Opt_Profile_Airport" xml:space="preserve"><value>vIPI d'aeroporto</value></data>
   <data name="Opt_Profile_AirportMil" xml:space="preserve"><value>vSOP militare</value></data>
   <data name="Opt_Profile_AppMil" xml:space="preserve"><value>vIPI APP militare</value></data>
+  <data name="Opt_DocsTitle" xml:space="preserve"><value>Documenti con sezioni vuote</value></data>
+  <data name="Opt_DocsHelp" xml:space="preserve"><value>I documenti che hanno ancora sezioni da scrivere vuote, nella versione di lavoro. Apri la riga per vedere quali; il nome apre l'editor. Le sezioni segnate facoltative qui sotto non contano.</value></data>
+  <data name="Opt_DocsNone" xml:space="preserve"><value>Nessun documento ha sezioni da scrivere vuote.</value></data>
+  <data name="Opt_DocsOpen" xml:space="preserve"><value>Apri l'editor del documento</value></data>
   <data name="Sd_WhichCount" xml:space="preserve"><value>Quali sezioni contano</value></data>
   <data name="Sd_ArrivesWith" xml:space="preserve"><value>arrivano con la programmata AIRAC {0}</value></data>
 </root>

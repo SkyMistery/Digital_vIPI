@@ -133,3 +133,20 @@ nessuna chiamata verso IVAO; il paragrafo di prova scritto nel database con uno 
 - **Non visti**: i dati veri (nessuna copia di produzione), l'editor della vIPI ACC, dell'APP, del vSOP militare e della
   vLOA (stesso componente, stessi parametri dell'editor provato), un documento unito, il giro notturno dal vivo (provato
   nei test d'integrazione).
+
+## §6 — Dopo: i documenti con sezioni vuote (S134, 4 novembre)
+
+Il committente: l'elenco delle sezioni da scrivere ancora vuote anche nella pagina «Sezioni da scrivere», sopra le
+tabelle delle facoltative: tutti i documenti che ne hanno, la riga si apre e dice quali, il nome apre l'editor.
+- `SezioniFacoltativePage`: una sezione «Documenti con sezioni vuote» in cima, una `<details>` per documento (titolo
+  col collegamento all'editor, ambito, «Nascosto» se lo è, il numero delle vuote); aperta, le vuote parte per parte
+  (per la vIPI di ACC il blocco) con «scrivi →» che porta alla sezione (`#s-<id>`, come la scheda compatta di
+  Documenti). Ordine e documenti quelli dell'elenco di Documenti (`IDocumentAdminService.ListAsync`), conto quello di
+  sempre (`ISezioniDaScrivereService.QuadroAsync`): due letture in fila sullo scope della pagina, nessuna per documento.
+- Spenta o riaccesa una facoltativa, l'elenco si rilegge con le tabelle: chi guarda vede subito che cosa cambia.
+- I nascosti restano nell'elenco, come nella colonna «Da completare» di Documenti: vale la stessa regola.
+- Test: `SezioniDaScrivereDocumentiTests` (3), rossi sulla pagina di prima.
+- Prova a schermo su DB nuovo (LIRQ, LIRP inventati): due documenti, 6 vuote ciascuno; aperta la riga di LIRQ, le sei
+  sezioni; «Procedure generali» facoltativa → 5 e 5, la riga aperta resta aperta; il nome apre l'editor; «scrivi →» su
+  «Carte aeroportuali › VFR» apre l'editor e ci scorre; 375 px senza scorrimento orizzontale. Non visti: i dati veri,
+  una vIPI di ACC con i blocchi (provata nei test).

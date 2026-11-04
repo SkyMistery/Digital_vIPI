@@ -4,6 +4,7 @@
 @inherits Vipi.Ui.ScopeProprioCheAspetta
 @using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<SharedResource> L
+@inject Vipi.Application.Routing.IDocRoutesRegistry Rotte
 
 <PageTitle>@L["Opt_Title"] · IVAO Italy</PageTitle>
 
@@ -37,6 +38,70 @@
     }
     else
     {
+        @* ---- I documenti con sezioni vuote (S134). Il committente, 4 novembre 2026: «un elenco di tutti i documenti che
+           hanno sezioni vuote … se clicco sul nome mi apre l'editor». Sopra le tabelle, perché si guarda prima che cosa
+           manca e poi si decide se una sezione è davvero da scrivere; spenta una sezione, l'elenco si rifà. Il conto è
+           quello della scheda del documento e della colonna «Da completare» di Documenti: un servizio solo. *@
+        <section class="opt-docs" data-docs-vuote>
+            <h2 class="h-card" style="margin:12px 0 8px">
+                @L["Opt_DocsTitle"] <span class="muted">· @_documenti.Count</span>
+            </h2>
+            <p class="help">@L["Opt_DocsHelp"]</p>
+            @if (_documenti.Count == 0)
+            {
+                <p class="muted">@L["Opt_DocsNone"]</p>
+            }
+            else
+            {
+                <div class="panel sd">
+                    @foreach (var (d, s) in _documenti)
+                    {
+                        var editor = Editor(d);
+                        <details @key="d.DocumentId" class="opt-doc" data-doc="@d.DocumentId">
+                            <summary>
+                                @if (editor is not null)
+                                {
+                                    <a href="@editor" title="@L["Opt_DocsOpen"]"><b>@d.Title</b></a>
+                                }
+                                else
+                                {
+                                    <b>@d.Title</b>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(d.Scope))
+                                {
+                                    <span class="muted">· @d.Scope</span>
+                                }
+                                @if (d.IsHidden)
+                                {
+                                    <span class="pill grey">@L["Ver_Hidden"]</span>
+                                }
+                                <span class="pill amber">@(s.Vuote == 1 ? L["SdS_PillOne"].Value : string.Format(L["SdS_Pill"].Value, s.Vuote))</span>
+                            </summary>
+                            @foreach (var parte in s.Parti.Where(p => p.Vuote.Count > 0))
+                            {
+                                @if (parte.Titolo is { } titolo)
+                                {
+                                    <p class="sd-part"><b>@titolo</b></p>
+                                }
+                                <ul class="sd-list">
+                                    @foreach (var v in parte.Vuote)
+                                    {
+                                        <li>
+                                            <span data-percorso>@v.Percorso</span>
+                                            @if (editor is not null)
+                                            {
+                                                <a class="sd-go" href="@($"{editor}#s-{v.SectionId}")">@L["Sd_Write"] →</a>
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </details>
+                    }
+                </div>
+            }
+        </section>
+
         <p class="help">@L["Opt_Help"]</p>
         @foreach (var profilo in _righe.GroupBy(r => r.Profilo))
         {
@@ -75,17 +140,44 @@
 
 @code {
     private IReadOnlyList<SezioneDelCatalogo>? _righe;
+    private IReadOnlyList<(ManagedDoc Doc, StatoSezioni Stato)> _documenti = Array.Empty<(ManagedDoc, StatoSezioni)>();
     private string? _errore;
     private string? _stato;
     private bool _busy;
 
     protected override async Task OnInitializedAsync()
     {
-        try { await InFilaAsync(async () => _righe = await Servizio.ElencoAsync()); }
+        try
+        {
+            await InFilaAsync(async () =>
+            {
+                _righe = await Servizio.ElencoAsync();
+                await DocumentiAsync();
+            });
+        }
         catch (EditNotAllowedException) { _errore = L["Opt_AdminOnly"]; }
     }
 
     private ISezioniFacoltativeService Servizio => ScopedServices.GetRequiredService<ISezioniFacoltativeService>();
+
+    /// <summary>
+    /// I documenti con almeno una sezione da scrivere vuota, nell'ordine dell'elenco di Documenti. Due letture in fila
+    /// sullo stesso scope (l'elenco e il conto in una passata), mai una per documento.
+    /// </summary>
+    private async Task DocumentiAsync()
+    {
+        var elenco = await ScopedServices.GetRequiredService<IDocumentAdminService>().ListAsync();
+        var conto = await ScopedServices.GetRequiredService<ISezioniDaScrivereService>().QuadroAsync();
+        _documenti = elenco
+            .Where(d => d.DocumentId is int id && conto.TryGetValue(id, out var s) && s.Vuote > 0)
+            .DistinctBy(d => d.DocumentId)
+            .Select(d => (d, conto[d.DocumentId!.Value]))
+            .ToList();
+    }
+
+    /// <summary>L'editor del documento, come lo compongono Documenti e il Glossario.</summary>
+    private string? Editor(ManagedDoc d) =>
+        Rotte.For(d.Kind).EditorUrl((d.AccCode ?? "lirr").ToLowerInvariant(), d.ReleaseKey, d.NeighbourCode, d.DocumentId);
 
     private async Task ImpostaAsync(SezioneDelCatalogo r, bool facoltativa)
     {
@@ -97,6 +189,7 @@
             {
                 await Servizio.ImpostaAsync(r.Profilo, r.Chiave, facoltativa);
                 _righe = await Servizio.ElencoAsync();
+                await DocumentiAsync();
             });
             _stato = string.Format(L[facoltativa ? "Opt_NowOptional" : "Opt_NowRequired"].Value, r.Percorso, Profilo(r.Profilo));
         }

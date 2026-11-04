@@ -4,7 +4,11 @@
 > era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
 > filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
-## Dove siamo — 28 ottobre 2026
+## Dove siamo — 4 novembre 2026
+
+> **Al 4 novembre**: S133 è **online in 1.76.0** dal 28 ottobre (§A170). 🟢 **S134** pronto da fondere su
+> `sito/lavori`: nella pagina «Sezioni da scrivere», sopra le facoltative, l'elenco dei documenti con sezioni vuote
+> (si apre e dice quali, il nome apre l'editor). Niente migrazione.
 
 > **Al 28 ottobre**: 🟢 **S133** pronto da fondere su `sito/lavori` @ `527fbba9` — lo **stato dei documenti** rifatto:
 > il confronto con la copia pubblicata guarda il testo, una scheda per documento (editor e pagina Documenti), la
@@ -3047,6 +3051,19 @@
   - ⚠️ **Al primo giro in produzione** il confronto sul testo aprirà righe «da ripubblicare» su ogni documento il cui
     testo è cambiato dall'ultima pubblicazione senza che cambiassero i blocchi: è voluto (D3), ma il numero può
     sorprendere. La colonna «Da pubblicare» si riempie al primo giro dopo l'avvio (o aprendo la scheda).
+- 🟢 **S134** (4-nov, committente in chat: «vorrei che l'elenco delle sezioni da scrivere pending sia anche in un
+  elenco in section to write, sopra l'elenco dove flegghi se una sezione è obbligatoria o facoltativa […] se clicco
+  sull'elemento si espande e mi fa vedere quali (se clicco sul nome mi apre l'editor del documento)»). Carta
+  `2026-10-28-stato-dei-documenti.md` §6.
+  - In cima alla pagina admin «Sezioni da scrivere», sopra le tabelle delle facoltative, «Documenti con sezioni
+    vuote»: una riga per documento che ne ha (titolo → editor, ambito, numero delle vuote), che si apre e dice quali,
+    con «scrivi →» che porta alla sezione nell'editor. Spenta una facoltativa, l'elenco si rifà subito.
+  - Stesso conto della scheda e della colonna «Da completare» (`ISezioniDaScrivereService.QuadroAsync`), stessi
+    documenti e ordine di Documenti (`IDocumentAdminService.ListAsync`). Solo `Vipi.Ui` (pagina, `.resx`, tema):
+    niente migrazione, niente `deploy/`, niente codice comune.
+  - Test: Ui 2139 → 2142 (`SezioniDaScrivereDocumentiTests`, rossi prima). Provato a schermo su DB nuovo (LIRQ, LIRP
+    inventati): riga aperta, facoltativa che toglie una sezione, nome e «scrivi →» che aprono l'editor sulla sezione,
+    375 px. Non visti: dati veri, una vIPI di ACC a blocchi dal vivo.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
   Al 18-ott: tutto fuso e online fino a **S113** (1.67.0); **S114** pronto su `sito/lavori` ma **in attesa** — il
   committente: «aspettiamo, fondiamo quando ci sarà altra roba»: si lavora sopra lo stesso ramo, e col prossimo
