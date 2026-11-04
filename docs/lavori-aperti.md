@@ -43,6 +43,36 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A171 — 1.77.0 PRONTA: i documenti con sezioni vuote in «Sezioni da scrivere» (S134) (4 novembre 2026)
+
+📦 Pronta da caricare, non ancora online. MINOR **senza migrazioni**, misurata dalla **1.76.0** (`cae2b84`) che gira.
+Timbro **`1.77.0 · 5135ae6`**. Fusa da `sito/lavori` @ `74f0f03a` (cartellino 🟢, CI run 41820856043), fusione
+`d746d6be` senza conflitti (`main` era antenato del ramo).
+- **S134**: in cima alla pagina admin «Sezioni da scrivere» (`/services/vsop/admin/required-sections`), sopra le
+  tabelle delle facoltative, «Documenti con sezioni vuote»: una riga per documento col numero delle vuote, aperta dice
+  quali; il nome apre l'editor, «scrivi →» porta alla sezione (`#s-<id>`). Spenta una facoltativa, l'elenco si rilegge.
+  Il conto è quello della scheda del documento (`QuadroAsync`), i documenti quelli di Documenti (`ListAsync`). Solo
+  `Vipi.Ui`, nessun codice comune. Carta `2026-10-28-stato-dei-documenti.md` §6, storia in `docs/filoni/sito.md`.
+- ⏸ **S96** tabellone resta fuori (`fix/tabellone`). `lab/f3` non toccato (non fuso per scelta del committente).
+
+**9 file** (`solo-9-file-1.77.0`): `Vipi.Ui` e `Vipi.Host` (dll + pdb), `en/Vipi.Ui.resources.dll`, `vipi-theme.css`
+(+ `.br`, `.gz`) con `Vipi.Host.staticwebassets.endpoints.json`. Confrontati col publish della **1.76.0**
+(`publish_old/20261028a`): 23 file con impronta diversa, nessuno nuovo né sparito; fuori Domain, Application,
+Infrastructure, MySqlMigrations, Hosting, AuroraBridge.Contracts e AuroraProfiles (sorgente invariato, solo MVID; il
+`git diff` da `cae2b84` tocca solo `src/Vipi.Ui`, nessuna `const`). CSS `vipi-theme.css?v=bb96699c`. Zip 3,26 MB,
+sha256 `c174b4fb5e76e5cb24d3011b29b7350d968eaf7856267c6454cd64ad6e008108`.
+Build Release senza avvisi (la prima, interrotta a metà, aveva lasciato in `obj/` di `Vipi.SectorLab.Ui` dei file pieni
+di zeri: cartella tolta e build rifatta); `dotnet test`: 18 riepiloghi `Passed!`, nessun rosso, `conta-test.sh` dice
+conteggi identici all'atteso (Ui 2142). Prova sul publish win-x64 su un database **nuovo** (SQLite, LIRQ e LIRP
+inventati; la copia del database di sviluppo non è stata usata): 158 migrazioni al primo avvio, timbro nel piè di
+pagina, «Documents with empty sections · 1» con LIRQ e le sue 6 vuote sopra le tabelle, il nome apre l'editor, «write»
+porta a `#s-8`, CSS `bb96699c`, console pulita; `pacchetto-verifica.js` con `TERMINE=LIRQ` dopo aver pubblicato LIRQ:
+Ricerca trova 1 documento. Unico rosso: il pannello traduzioni nell'editor dell'ACC LIBB, che nel database nuovo non
+esiste. Foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.77.0.md`.
+
+▶ **Dopo il carico** (committente): `Schema 0` (nessuna migrazione: resta zero), «Sezioni da scrivere» e la pagina
+Documenti sui dati veri. Rollback: le rinomine.
+
 ### ✅ A170 — 1.76.0 ONLINE: lo stato dei documenti (S133) (28 ottobre 2026)
 
 ✅ Online dal 28 ottobre 2026 sera: il committente dice «online 1.76». Da fuori, da anonimo: `/` 302, Ricerca 401, API
