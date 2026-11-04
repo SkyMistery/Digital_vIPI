@@ -43,9 +43,14 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A171 — 1.77.0 PRONTA: i documenti con sezioni vuote in «Sezioni da scrivere» (S134) (4 novembre 2026)
+### ✅ A171 — 1.77.0 ONLINE: i documenti con sezioni vuote in «Sezioni da scrivere» (S134) (4 novembre 2026)
 
-📦 Pronta da caricare, non ancora online. MINOR **senza migrazioni**, misurata dalla **1.76.0** (`cae2b84`) che gira.
+✅ Online dal 4 novembre 2026: il committente dice «Online 1.77.0». Da fuori, da anonimo: `/` 302, Ricerca 401, API
+aeroporti senza chiave 401, `vipi-theme.css?v=bb96699c` (quello nuovo, come atteso), `/vsop/health` e
+`/vsop/health/ready` Healthy. Non visti da qui (serve il login): il timbro nel piè di pagina, `Schema 0` in Diagnostica,
+«Sezioni da scrivere» sui dati veri.
+
+MINOR **senza migrazioni**, misurata dalla **1.76.0** (`cae2b84`) che gira.
 Timbro **`1.77.0 · 5135ae6`**. Fusa da `sito/lavori` @ `74f0f03a` (cartellino 🟢, CI run 41820856043), fusione
 `d746d6be` senza conflitti (`main` era antenato del ramo).
 - **S134**: in cima alla pagina admin «Sezioni da scrivere» (`/services/vsop/admin/required-sections`), sopra le
