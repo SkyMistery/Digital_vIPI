@@ -594,6 +594,14 @@
 :where(.vipi-root) .sd .sd-note{margin:4px 0 0}
 :where(.vipi-root) .sd .sd-voce .callout{margin:0}
 :where(.vipi-root) .sd-compact{margin:0 0 12px}
+/* S134 — i documenti con sezioni vuote, in cima alla pagina «Sezioni da scrivere»: una riga per documento che si apre. */
+:where(.vipi-root) .opt-docs .panel{padding:4px 14px}
+:where(.vipi-root) .opt-doc+.opt-doc{border-top:1px solid var(--line)}
+:where(.vipi-root) .opt-doc>summary{cursor:pointer;padding:8px 0;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+:where(.vipi-root) .opt-doc>summary::before{content:"▸";color:var(--muted);width:12px}
+:where(.vipi-root) .opt-doc[open]>summary::before{content:"▾"}
+:where(.vipi-root) .opt-doc>summary::-webkit-details-marker{display:none}
+:where(.vipi-root) .opt-doc[open]{padding-bottom:8px}
 :where(.vipi-root) .sd-compact .sd-voce{margin-top:6px;padding-top:6px}
 /* S133 — le quattro colonne del lavoro in fondo a ogni riga della pagina Documenti, e la loro intestazione appiccicata
    in cima all'elenco. Larghezza fissa: è quella che fa di quattro pastiglie una colonna. */

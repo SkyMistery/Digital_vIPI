@@ -4304,6 +4304,10 @@
   <data name="Opt_Profile_Airport" xml:space="preserve"><value>Airport vIPI</value></data>
   <data name="Opt_Profile_AirportMil" xml:space="preserve"><value>Military vSOP</value></data>
   <data name="Opt_Profile_AppMil" xml:space="preserve"><value>Military APP vIPI</value></data>
+  <data name="Opt_DocsTitle" xml:space="preserve"><value>Documents with empty sections</value></data>
+  <data name="Opt_DocsHelp" xml:space="preserve"><value>The documents that still have empty sections to write, in their working version. Open a row to see which; the name opens the editor. Sections marked optional below do not count.</value></data>
+  <data name="Opt_DocsNone" xml:space="preserve"><value>No document has empty sections to write.</value></data>
+  <data name="Opt_DocsOpen" xml:space="preserve"><value>Open the document editor</value></data>
   <data name="Sd_WhichCount" xml:space="preserve"><value>Which sections count</value></data>
   <data name="Sd_ArrivesWith" xml:space="preserve"><value>they arrive with the scheduled AIRAC {0}</value></data>
 </root>
